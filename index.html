@@ -11566,5 +11566,161 @@ try{(function(){
 })();}catch(err){console.error('Security checks failed to start:',err);}
 
 </script>
+<style id="scrollFx">
+/* =====================================================================
+   SCROLL EFFECTS — a new look appears while you scroll
+     • Cards, stats, buttons fade + slide in as they come on screen
+     • Header turns into frosted glass with a coloured line once you scroll
+     • Page heading gently drifts and fades (parallax)
+     • Round "Back to top" button with a progress ring
+   Only visual — no ids, data or formulas change. Turned off for people
+   who prefer less motion, and never affects print / PDF.
+   ===================================================================== */
+.sfx{opacity:0;transform:translateY(34px) scale(.985);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1);transition-delay:var(--sfx-d,0ms);will-change:opacity,transform}
+.sfx.sfx-left{transform:translateX(-40px)}
+.sfx.sfx-right{transform:translateX(40px)}
+.sfx.sfx-zoom{transform:scale(.9)}
+.sfx.sfx-in{opacity:1;transform:none}
+
+html body .topbar.scrolled{background:rgba(11,31,58,.86)!important;-webkit-backdrop-filter:saturate(1.6) blur(14px);backdrop-filter:saturate(1.6) blur(14px);box-shadow:0 12px 30px -16px rgba(15,23,42,.35)!important}
+html body.dark .topbar.scrolled{background:rgba(10,24,48,.82)!important;box-shadow:0 12px 30px -12px #000a!important}
+html body .topbar.scrolled::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--gold,#c6a76b) 15%,#f3e2b3 50%,var(--gold,#c6a76b) 85%,transparent);background-size:200% 100%;pointer-events:none;animation:sfxGrow .6s ease both,sfxSlide 6s linear infinite}
+@keyframes sfxGrow{from{transform:scaleX(.2);opacity:0}to{transform:none;opacity:1}}
+@keyframes sfxSlide{to{background-position:200% 0}}
+.scroll-progress{height:4px!important;box-shadow:0 0 10px var(--orange,#f59e0b)}
+
+.page.active>.page-header{transform:translateY(var(--sfx-py,0px));opacity:var(--sfx-po,1);transition:none}
+
+.sfx-top{position:fixed;right:22px;bottom:24px;z-index:9400;width:54px;height:54px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;
+  background:var(--card,#fff);color:var(--text,#0f172a);box-shadow:0 12px 28px -10px rgba(15,23,42,.45);
+  opacity:0;transform:translateY(20px) scale(.8);pointer-events:none;transition:opacity .3s ease,transform .3s ease}
+.sfx-top.show{opacity:1;transform:none;pointer-events:auto}
+.sfx-top:hover{transform:translateY(-3px)}
+.sfx-top:focus-visible{outline:3px solid var(--blue,#0e93c9);outline-offset:3px}
+.sfx-top svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.sfx-top .sfx-ring-bg{fill:none;stroke:var(--line,#e2e8f0);stroke-width:3}
+.sfx-top .sfx-ring{fill:none;stroke:url(#sfxGrad);stroke-width:3;stroke-linecap:round;stroke-dasharray:150.8;stroke-dashoffset:150.8;transition:stroke-dashoffset .1s linear}
+.sfx-top .sfx-arrow{position:relative;font-size:22px;font-weight:900;line-height:1}
+body.has-easy-bar .sfx-top{bottom:100px}
+@media (max-width:600px){.sfx-top{right:14px;width:48px;height:48px}body.has-easy-bar .sfx-top{bottom:150px}}
+
+@media (prefers-reduced-motion:reduce){
+  .sfx,.sfx.sfx-left,.sfx.sfx-right,.sfx.sfx-zoom{opacity:1!important;transform:none!important;transition:none!important}
+  .page.active>.page-header{transform:none!important;opacity:1!important}
+  .topbar.scrolled::after{animation:none}
+}
+@media print{
+  .sfx{opacity:1!important;transform:none!important}
+  .sfx-top{display:none!important}
+  .page>.page-header{transform:none!important;opacity:1!important}
+}
+</style>
+<script>
+/* SCROLL EFFECTS — see the comment in <style id="scrollFx"> above. */
+try{(function(){
+  'use strict';
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var SEL=[
+    '.page .card','.page .stat-card','.page .qa','.page .big-act','.page .home-guide',
+    '.page .section-title','.page .summary','.page .summarybox','.page .flow li',
+    '.page .builder','.page .rate-list','.page .admin-area','.page .help-card'
+  ].join(',');
+  /* never animate the quotation preview, pop-ups or the login screen */
+  var SKIP='#pdf .pdf-page, #pdf .pdf-page *, .login-gate *, .chatbot-panel *, .modal *, [role="dialog"] *';
+
+  var io=null;
+  if(!reduce&&'IntersectionObserver' in window){
+    io=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){if(e.isIntersecting)reveal(e.target);});
+    },{threshold:0.12,rootMargin:'0px 0px -6% 0px'});
+  }
+  function reveal(n){
+    if(!n.classList.contains('sfx')||n.classList.contains('sfx-in'))return;
+    if(io)io.unobserve(n);
+    n.classList.add('sfx-in');
+    /* after the animation, remove the classes so hover effects work as before */
+    setTimeout(function(){n.classList.remove('sfx','sfx-in','sfx-left','sfx-right','sfx-zoom');n.style.removeProperty('--sfx-d');},900+(parseInt(n.style.getPropertyValue('--sfx-d'))||0));
+  }
+  /* safety net: anything already scrolled past or on screen is shown (fast jumps, moved elements) */
+  function sweep(){
+    var vh=window.innerHeight;
+    document.querySelectorAll('.page.active .sfx:not(.sfx-in)').forEach(function(n){
+      var r=n.getBoundingClientRect();
+      if(r.height>0&&r.top<vh*0.94)reveal(n);
+    });
+  }
+
+  function prepare(root){
+    if(!io)return;
+    var list=(root&&root.querySelectorAll)?root.querySelectorAll(SEL):[];
+    if(root&&root.matches&&root.matches(SEL))list=[root].concat([].slice.call(list));
+    [].forEach.call(list,function(n){
+      if(n.dataset.sfxDone||n.matches(SKIP))return;
+      n.dataset.sfxDone='1';
+      /* things already on screen when the page opens are not hidden (no flicker) */
+      var r=n.getBoundingClientRect();
+      if(r.height>0&&r.top<window.innerHeight*0.92&&r.bottom>0)return;
+      var sib=n.parentNode?[].indexOf.call(n.parentNode.children,n):0;
+      if(n.classList.contains('stat-card')||n.classList.contains('qa')||n.classList.contains('summarybox'))n.classList.add('sfx-zoom');
+      else if(n.classList.contains('big-act'))n.classList.add(sib%2?'sfx-right':'sfx-left');
+      n.style.setProperty('--sfx-d',Math.min(sib,5)*80+'ms');
+      n.classList.add('sfx');
+      io.observe(n);
+    });
+  }
+
+  /* when a page is opened from the menu, its parts animate in again */
+  var prevShow=window.showPage;
+  if(typeof prevShow==='function'){
+    window.showPage=function(){
+      var r=prevShow.apply(this,arguments);
+      setTimeout(function(){
+        var pg=document.querySelector('.page.active');
+        if(pg){pg.querySelectorAll('[data-sfx-done]').forEach(function(n){if(!n.classList.contains('sfx'))delete n.dataset.sfxDone;});prepare(pg);}
+        onScroll();
+      },30);
+      return r;
+    };
+  }
+
+  /* new rows / cards added later (saved list, recent costings, …) */
+  var pending=[],tmr=null;
+  if(io&&'MutationObserver' in window){
+    new MutationObserver(function(ms){
+      ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n.nodeType===1)pending.push(n);});});
+      if(!tmr)tmr=setTimeout(function(){tmr=null;var p=pending;pending=[];p.forEach(prepare);},60);
+    }).observe(document.getElementById('main')||document.body,{childList:true,subtree:true});
+  }
+
+  /* back-to-top button with a progress ring */
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='sfx-top no-print';btn.setAttribute('aria-label','Back to top');btn.title='Back to top';
+  btn.innerHTML='<svg viewBox="0 0 54 54" aria-hidden="true" focusable="false"><defs><linearGradient id="sfxGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1f3a"/><stop offset="1" stop-color="#c6a76b"/></linearGradient></defs><circle class="sfx-ring-bg" cx="27" cy="27" r="24"/><circle class="sfx-ring" cx="27" cy="27" r="24"/></svg><span class="sfx-arrow" aria-hidden="true">↑</span>';
+  btn.addEventListener('click',function(){
+    window.scrollTo({top:0,behavior:reduce?'auto':'smooth'});
+    var m=document.getElementById('main');if(m)setTimeout(function(){try{m.focus({preventScroll:true});}catch(e){}},400);
+  });
+  document.body.appendChild(btn);
+  var ring=btn.querySelector('.sfx-ring');
+
+  var ticking=false;
+  function onScroll(){
+    var y=window.scrollY||document.documentElement.scrollTop||0;
+    var max=document.documentElement.scrollHeight-window.innerHeight;
+    var pct=max>0?Math.min(1,y/max):0;
+    btn.classList.toggle('show',y>400);
+    if(ring)ring.style.strokeDashoffset=(150.8*(1-pct)).toFixed(1);
+    if(io)sweep();
+    if(!reduce){
+      var h=document.querySelector('.page.active>.page-header');
+      if(h){var k=Math.min(y,260);h.style.setProperty('--sfx-py',(k*0.25).toFixed(1)+'px');h.style.setProperty('--sfx-po',(1-k/520).toFixed(3));}
+    }
+  }
+  window.addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(function(){ticking=false;onScroll();});}},{passive:true});
+
+  function start(){prepare(document.getElementById('main')||document.body);onScroll();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();}catch(err){console.error('Scroll effects failed to start:',err);}
+</script>
 </body>
 </html>
