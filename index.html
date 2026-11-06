@@ -6671,7 +6671,11 @@ try{(function(){
         failed++;
         passEl.value='';passEl.focus();
         if(failed>=5){lockedUntil=Date.now()+60000;failed=0;return showLoginError('Wrong Admin ID or password 5 times. Admin login is locked for 1 minute.');}
-        return showLoginError('Wrong Admin ID or password. Please try again.');
+        showLoginError('Wrong Admin ID or password. Please try again.');
+        if(window.adminTypedOldDefault)adminTypedOldDefault(id,pass).then(function(old){
+          if(old)showLoginError('This is the old default password. The admin ID or password was changed in Settings on this browser — please use the new one.');
+        });
+        return;
       }
       failed=0;
       if(window.adminCredsAreDefault&&adminCredsAreDefault()){
@@ -6877,19 +6881,33 @@ try{(function(){
     saveJSON('travelAdminLock',l);
   }
 
+  function checkOnce(c,idIn,id,pass){
+    if(!c)return isDefaultPass(id,pass);
+    var idOk=idIn===String(c.id).trim().toLowerCase();
+    if(c.kdf==='pbkdf2')return pbkdf2(pass,c.salt,+c.iter||ITER).then(function(h){return idOk&&same(h,c.hash);});
+    if(c.hash)return sha256(c.salt+pass).then(function(h){var g=idOk&&same(h,c.hash);return g?storeNew(c.id,pass).then(function(){return true;}):false;});
+    return Promise.resolve(idOk&&c.password!=null&&same(c.password,pass)).then(function(g){return g?storeNew(c.id,pass).then(function(){return true;}):false;});
+  }
   window.verifyAdminCreds=function(id,pass){
     if(!subtle)return Promise.resolve(false);
     if(window.adminLoginLockedFor()>0)return Promise.resolve(false);
     var c=stored(),idIn=String(id).trim().toLowerCase();
-    var check;
-    if(!c)check=isDefaultPass(id,pass);
-    else{
-      var idOk=idIn===String(c.id).toLowerCase();
-      if(c.kdf==='pbkdf2')check=pbkdf2(pass,c.salt,+c.iter||ITER).then(function(h){return idOk&&same(h,c.hash);});
-      else if(c.hash)check=sha256(c.salt+pass).then(function(h){var g=idOk&&same(h,c.hash);return g?storeNew(c.id,pass).then(function(){return true;}):false;});
-      else check=Promise.resolve(idOk&&c.password!=null&&same(c.password,pass)).then(function(g){return g?storeNew(c.id,pass).then(function(){return true;}):false;});
-    }
-    return check.then(function(g){noteResult(g);return g;});
+    pass=String(pass);
+    /* Phone keyboards often add a space before/after the password (paste,
+       suggestions). Try it exactly as typed first, then without those spaces. */
+    var trimmed=pass.replace(/^\s+|\s+$/g,'');
+    return checkOnce(c,idIn,id,pass).then(function(g){
+      if(g||trimmed===pass||!trimmed)return g;
+      return checkOnce(c,idIn,id,trimmed);
+    }).then(function(g){noteResult(g);return g;});
+  };
+  /* After a failed login: true when the built-in default ID + password were typed
+     but the admin login was changed in Settings on this browser. */
+  window.adminTypedOldDefault=function(id,pass){
+    var c=stored();
+    if(!c||c.isDefault||!subtle)return Promise.resolve(false);
+    var t=String(pass).replace(/^\s+|\s+$/g,'');
+    return isDefaultPass(id,t).catch(function(){return false;});
   };
   window.adminCredsAreDefault=function(){var c=stored();return !c||!!c.isDefault;};
   /* Only the Admin ID is ever given out — never the password. */
