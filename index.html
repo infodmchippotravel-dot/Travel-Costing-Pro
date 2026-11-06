@@ -11576,11 +11576,28 @@ try{(function(){
    Only visual — no ids, data or formulas change. Turned off for people
    who prefer less motion, and never affects print / PDF.
    ===================================================================== */
-.sfx{opacity:0;transform:translateY(34px) scale(.985);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1);transition-delay:var(--sfx-d,0ms);will-change:opacity,transform}
-.sfx.sfx-left{transform:translateX(-40px)}
-.sfx.sfx-right{transform:translateX(40px)}
-.sfx.sfx-zoom{transform:scale(.9)}
-.sfx.sfx-in{opacity:1;transform:none}
+.sfx{opacity:0;filter:blur(8px);transform:perspective(1000px) translateY(56px) rotateX(10deg) scale(.97);transform-origin:50% 100%;
+  transition:opacity .8s cubic-bezier(.16,.84,.3,1),transform .9s cubic-bezier(.16,.84,.3,1),filter .8s ease;transition-delay:var(--sfx-d,0ms);will-change:opacity,transform,filter}
+.sfx.sfx-left{transform:perspective(1000px) translateX(-70px) rotateY(8deg)}
+.sfx.sfx-right{transform:perspective(1000px) translateX(70px) rotateY(-8deg)}
+.sfx.sfx-zoom{transform:scale(.82) translateY(30px)}
+.sfx.sfx-in{opacity:1;filter:none;transform:none}
+.sfx.sfx-in.card,.sfx.sfx-in.stat-card,.sfx.sfx-in.big-act,.sfx.sfx-in.home-guide,.sfx.sfx-in.summary{animation:sfxGlow 1.6s ease-out var(--sfx-d,0ms) both}
+@keyframes sfxGlow{0%,35%{box-shadow:0 0 0 2px rgba(198,167,107,.75),0 28px 60px -24px rgba(198,167,107,.75)}}
+
+/* gold line that draws under each heading when its card comes on screen */
+.page .card .card-title,.page .builder-title{background-image:linear-gradient(90deg,var(--gold,#c6a76b),#f3e2b3);background-repeat:no-repeat;background-position:left calc(100% - 0px);background-size:0 3px;padding-bottom:8px;transition:background-size 1s cubic-bezier(.16,.84,.3,1) .35s}
+.page .sfx-seen .card-title,.page .sfx-seen .builder-title,.page .sfx-seen.builder-title{background-size:64px 3px}
+
+/* soft moving colour light behind the whole site (moves with scroll) */
+.sfx-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.sfx-bg i{position:absolute;display:block;border-radius:50%;filter:blur(70px);opacity:.55;will-change:transform}
+.sfx-bg .b1{width:520px;height:520px;left:-140px;top:12vh;background:radial-gradient(circle,rgba(198,167,107,.55),transparent 70%)}
+.sfx-bg .b2{width:600px;height:600px;right:-180px;top:45vh;background:radial-gradient(circle,rgba(14,147,201,.32),transparent 70%)}
+.sfx-bg .b3{width:440px;height:440px;left:38%;top:90vh;background:radial-gradient(circle,rgba(11,31,58,.28),transparent 70%)}
+body.dark .sfx-bg i{opacity:.4}
+body.dark .sfx-bg .b3{background:radial-gradient(circle,rgba(120,160,255,.25),transparent 70%)}
+main#main,.sitefooter{position:relative;z-index:1}
 
 html body .topbar.scrolled{background:rgba(11,31,58,.86)!important;-webkit-backdrop-filter:saturate(1.6) blur(14px);backdrop-filter:saturate(1.6) blur(14px);box-shadow:0 12px 30px -16px rgba(15,23,42,.35)!important}
 html body.dark .topbar.scrolled{background:rgba(10,24,48,.82)!important;box-shadow:0 12px 30px -12px #000a!important}
@@ -11605,12 +11622,14 @@ body.has-easy-bar .sfx-top{bottom:100px}
 @media (max-width:600px){.sfx-top{right:14px;width:48px;height:48px}body.has-easy-bar .sfx-top{bottom:150px}}
 
 @media (prefers-reduced-motion:reduce){
-  .sfx,.sfx.sfx-left,.sfx.sfx-right,.sfx.sfx-zoom{opacity:1!important;transform:none!important;transition:none!important}
+  .sfx,.sfx.sfx-left,.sfx.sfx-right,.sfx.sfx-zoom{opacity:1!important;transform:none!important;filter:none!important;transition:none!important;animation:none!important}
+  .page .card .card-title,.page .builder-title{transition:none!important}
   .page.active>.page-header{transform:none!important;opacity:1!important}
   .topbar.scrolled::after{animation:none}
 }
 @media print{
-  .sfx{opacity:1!important;transform:none!important}
+  .sfx{opacity:1!important;transform:none!important;filter:none!important}
+  .sfx-bg{display:none!important}
   .sfx-top{display:none!important}
   .page>.page-header{transform:none!important;opacity:1!important}
 }
@@ -11637,7 +11656,7 @@ try{(function(){
   function reveal(n){
     if(!n.classList.contains('sfx')||n.classList.contains('sfx-in'))return;
     if(io)io.unobserve(n);
-    n.classList.add('sfx-in');
+    n.classList.add('sfx-in','sfx-seen');
     /* after the animation, remove the classes so hover effects work as before */
     setTimeout(function(){n.classList.remove('sfx','sfx-in','sfx-left','sfx-right','sfx-zoom');n.style.removeProperty('--sfx-d');},900+(parseInt(n.style.getPropertyValue('--sfx-d'))||0));
   }
@@ -11659,7 +11678,7 @@ try{(function(){
       n.dataset.sfxDone='1';
       /* things already on screen when the page opens are not hidden (no flicker) */
       var r=n.getBoundingClientRect();
-      if(r.height>0&&r.top<window.innerHeight*0.92&&r.bottom>0)return;
+      if(r.height>0&&r.top<window.innerHeight*0.92&&r.bottom>0){setTimeout(function(){n.classList.add('sfx-seen');},120);return;}
       var sib=n.parentNode?[].indexOf.call(n.parentNode.children,n):0;
       if(n.classList.contains('stat-card')||n.classList.contains('qa')||n.classList.contains('summarybox'))n.classList.add('sfx-zoom');
       else if(n.classList.contains('big-act'))n.classList.add(sib%2?'sfx-right':'sfx-left');
@@ -11703,6 +11722,15 @@ try{(function(){
   document.body.appendChild(btn);
   var ring=btn.querySelector('.sfx-ring');
 
+  /* moving colour lights in the background */
+  var bg=null,blobs=[];
+  if(!reduce){
+    bg=document.createElement('div');bg.className='sfx-bg no-print';bg.setAttribute('aria-hidden','true');
+    bg.innerHTML='<i class="b1"></i><i class="b2"></i><i class="b3"></i>';
+    document.body.insertBefore(bg,document.body.firstChild);
+    blobs=[].slice.call(bg.children);
+  }
+
   var ticking=false;
   function onScroll(){
     var y=window.scrollY||document.documentElement.scrollTop||0;
@@ -11711,6 +11739,13 @@ try{(function(){
     btn.classList.toggle('show',y>400);
     if(ring)ring.style.strokeDashoffset=(150.8*(1-pct)).toFixed(1);
     if(io)sweep();
+    if(blobs.length){
+      var sp=[-0.18,0.12,-0.3],t=Date.now()/4000;
+      blobs.forEach(function(b,i){
+        var x=Math.sin(t+i*2)*30,yy=y*sp[i]+Math.cos(t+i)*20;
+        b.style.transform='translate3d('+x.toFixed(1)+'px,'+yy.toFixed(1)+'px,0) scale('+(1+pct*0.25*(i%2?1:-1)).toFixed(3)+')';
+      });
+    }
     if(!reduce){
       var h=document.querySelector('.page.active>.page-header');
       if(h){var k=Math.min(y,260);h.style.setProperty('--sfx-py',(k*0.25).toFixed(1)+'px');h.style.setProperty('--sfx-po',(1-k/520).toFixed(3));}
