@@ -11855,6 +11855,16 @@ html body.dark .easy-bar .eb-info strong{color:#fff!important}
    (It used to hide when the big Save button was even 1px on screen — including
    when that button sat behind the bar — so sometimes no Save button showed.) */
 html body.sheet-save-visible.on-sheet #ebSave,html body #easyBar #ebSave{visibility:visible!important;opacity:1!important}
+/* Show / Hide password button: one fixed look and place. Hovering never moves
+   or restyles it, and the browser's own eye / clear icons (Microsoft Edge)
+   are hidden so they do not appear on top of it while hovering or typing. */
+html body .pw-wrap input::-ms-reveal,html body .pw-wrap input::-ms-clear{display:none!important;width:0;height:0}
+html body .pw-wrap input::-webkit-credentials-auto-fill-button,html body .pw-wrap input::-webkit-strong-password-auto-fill-button{visibility:hidden!important;display:none!important;pointer-events:none}
+html body .pw-wrap .pw-toggle,html body .pw-wrap .pw-toggle:hover,html body .pw-wrap .pw-toggle:focus,html body .pw-wrap .pw-toggle:active{
+  position:absolute!important;top:50%!important;right:6px!important;transform:translateY(-50%)!important;transition:border-color .15s ease,background-color .15s ease!important;
+  background:var(--card,#fff)!important;color:var(--text,#0f172a)!important;box-shadow:none!important;filter:none!important;animation:none!important;z-index:2}
+html body .pw-wrap .pw-toggle:hover{border-color:var(--lx-gold,#c6a76b)!important;background:rgba(198,167,107,.12)!important}
+html body .pw-wrap .pw-toggle::before,html body .pw-wrap .pw-toggle::after{display:none!important}
 @media print{html body{background-image:none!important}}
 </style>
 </body>
