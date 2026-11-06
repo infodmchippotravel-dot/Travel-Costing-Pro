@@ -10808,7 +10808,18 @@ try{(function(){
       if(page&&e.target&&page.contains(e.target))later();
     },true);
   });
-  window.addEventListener('pagehide',function(){flushNow();});
+  /* Refresh: remember which unsaved costing was on screen (this tab only),
+     so it comes straight back after the page loads again. */
+  var REOPEN='travelReopenDraft';
+  window.addEventListener('pagehide',function(){
+    var kept=flushNow();
+    try{
+      if(kept&&loggedIn()){
+        var pg=document.querySelector('.page.active');
+        sessionStorage.setItem(REOPEN,JSON.stringify({key:currentKey(),user:sess().key,page:pg?pg.id:'dashboard',at:Date.now()}));
+      }else sessionStorage.removeItem(REOPEN);
+    }catch(e){}
+  });
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')flushNow();});
 
   /* ---- saving removes the draft ---- */
@@ -11005,6 +11016,24 @@ try{(function(){
   var prevFinish=window.finishLogin;
   if(prevFinish)window.finishLogin=function(){var r=prevFinish.apply(this,arguments);renderDrafts();setTimeout(tell,900);return r;};
   renderDrafts();
+
+  /* After a refresh, open the unsaved costing again instead of leaving an empty sheet. */
+  function reopenAfterRefresh(){
+    var info=null;
+    try{info=JSON.parse(sessionStorage.getItem(REOPEN)||'null');sessionStorage.removeItem(REOPEN);}catch(e){return;}
+    if(!info||!info.key)return;
+    var s=sess();
+    if(!s.key||s.key!==info.user||Date.now()-(+info.at||0)>6*3600000)return;
+    var d=getDrafts().find(function(x){return x.id===info.key;});
+    if(!d||!canSee(d))return;
+    if(getDrafts().filter(function(x){return x.createdBy&&x.createdBy.key===s.key;}).length===1)told[s.key]=1;  // no extra "you have drafts" message
+    var st=window.showToast;
+    if(st)window.showToast=function(m,k){return st.call(this,/^Draft opened/.test(String(m))?'Your unsaved costing is back on screen. Press Save when it is ready.':m,k);};
+    try{openDraft(d.id,true);}catch(e){console.error('Could not reopen the costing after refresh:',e);return;}
+    finally{if(st)window.showToast=st;}
+    if(info.page&&info.page!=='dashboard'&&$(info.page)&&window.goToPage)goToPage(info.page);
+  }
+  setTimeout(reopenAfterRefresh,1200);
   setTimeout(tell,1800);
 })();}catch(err){console.error('Auto drafts failed to start:',err);}
 
