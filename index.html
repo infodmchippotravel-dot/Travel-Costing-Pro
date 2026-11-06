@@ -11877,6 +11877,10 @@ html body.dark .easy-bar .eb-info strong{color:#fff!important}
   html body .page .stat-card:hover,html body .page .qa:hover,html body .page .big-act:hover,html body .page .hg-steps li:hover,html body .page button:hover{transform:none!important}
   html body .big-act-primary::before,html body .hdr-new::before{display:none}
 }
+/* The bottom-bar Save button always stays visible while scrolling.
+   (It used to hide when the big Save button was even 1px on screen — including
+   when that button sat behind the bar — so sometimes no Save button showed.) */
+html body.sheet-save-visible.on-sheet #ebSave,html body #easyBar #ebSave{visibility:visible!important;opacity:1!important}
 @media print{html body{background-image:none!important}}
 </style>
 </body>
