@@ -11757,5 +11757,127 @@ try{(function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();}catch(err){console.error('Scroll effects failed to start:',err);}
 </script>
+<style id="premiumLux">
+/* =====================================================================
+   PREMIUM LUXURY LOOK — navy & gold
+     • Page headings become a rich navy banner with gold details
+     • Gold buttons with a soft shine, deep navy main buttons
+     • Cards with gold-tinted edges, layered soft shadows, gentle lift
+     • Numbers in an elegant serif with a navy → gold finish
+     • Gold focus ring on every box, gold text selection & scrollbar
+   Only colours, borders and shadows change — no ids, data or formulas.
+   ===================================================================== */
+:root{--lx-navy:#0B1F3A;--lx-navy2:#16365F;--lx-gold:#C6A76B;--lx-gold-l:#EBD9AC;--lx-gold-d:#9A7A3E;
+  --lx-edge:rgba(198,167,107,.26);--lx-shadow:0 1px 2px rgba(11,31,58,.05),0 14px 36px -16px rgba(11,31,58,.22);
+  --lx-shadow-h:0 2px 4px rgba(11,31,58,.06),0 26px 50px -20px rgba(11,31,58,.32),0 0 0 1px rgba(198,167,107,.38)}
+html body{background-image:radial-gradient(1200px 500px at 85% -10%,rgba(198,167,107,.14),transparent 60%),radial-gradient(900px 500px at -10% 30%,rgba(22,54,95,.06),transparent 60%)!important;background-attachment:fixed!important}
+::selection{background:rgba(198,167,107,.35);color:inherit}
+html{scrollbar-color:var(--lx-gold) transparent}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-thumb{background:linear-gradient(var(--lx-gold-l),var(--lx-gold));border-radius:20px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- Header ---------- */
+html body header.topbar{background:linear-gradient(100deg,#091a31 0%,var(--lx-navy) 45%,var(--lx-navy2) 100%)!important}
+html body #primaryNav>button{position:relative}
+html body #primaryNav>button.active,html body #primaryNav>button[aria-current="page"]{color:var(--lx-gold-l)!important;box-shadow:inset 0 -2px 0 var(--lx-gold)!important}
+html body .hdr-new,html body .topbar .hdr-new{background:linear-gradient(135deg,var(--lx-gold-l) 0%,var(--lx-gold) 45%,var(--lx-gold-d) 100%)!important;color:var(--lx-navy)!important;border:0!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 8px 22px -10px rgba(198,167,107,.9)!important;position:relative;overflow:hidden}
+html body .user-chip,html body .acct-btn{border:1px solid rgba(198,167,107,.4)!important}
+
+/* ---------- Page heading banner ---------- */
+html body .page>.page-header{position:relative;overflow:hidden;border-radius:22px!important;padding:26px 30px!important;margin-bottom:22px!important;
+  background:radial-gradient(600px 220px at 100% 0%,rgba(198,167,107,.28),transparent 70%),
+             repeating-linear-gradient(135deg,rgba(255,255,255,.025) 0 2px,transparent 2px 14px),
+             linear-gradient(120deg,#0a1b33 0%,var(--lx-navy) 50%,var(--lx-navy2) 100%)!important;
+  border:1px solid rgba(198,167,107,.35)!important;box-shadow:0 24px 50px -26px rgba(11,31,58,.6),inset 0 1px 0 rgba(255,255,255,.06)!important;color:#fff!important}
+html body .page>.page-header::after{content:"";position:absolute;left:30px;right:30px;bottom:0;height:2px;background:linear-gradient(90deg,transparent,var(--lx-gold),transparent);opacity:.8;pointer-events:none}
+html body .page>.page-header .ph-title{color:#fff!important}
+html body .page>.page-header .ph-sub,html body .page>.page-header .dash-head-text>div:not(.ph-eyebrow),html body .page>.page-header p{color:rgba(255,255,255,.74)!important}
+html body .page>.page-header .ph-sub b,html body .page>.page-header .ph-sub strong{color:var(--lx-gold-l)!important}
+html body .page>.page-header .ph-eyebrow{color:var(--lx-gold-l)!important;letter-spacing:.14em!important}
+html body .page>.page-header .ph-icon{background:linear-gradient(135deg,var(--lx-gold-l),var(--lx-gold) 55%,var(--lx-gold-d))!important;color:var(--lx-navy)!important;box-shadow:0 10px 24px -10px rgba(198,167,107,.9)!important;border:0!important}
+html body .page>.page-header .ph-icon *{color:var(--lx-navy)!important;stroke:currentColor}
+html body .page>.page-header .role-badge{background:rgba(198,167,107,.16)!important;color:var(--lx-gold-l)!important;border:1px solid rgba(198,167,107,.5)!important}
+html body .page>.page-header .btn-ghost{background:rgba(255,255,255,.08)!important;color:#fff!important;border:1px solid rgba(198,167,107,.5)!important}
+html body .page>.page-header .btn-ghost:hover{background:rgba(198,167,107,.18)!important}
+html body .page>.page-header .hero-search{background:rgba(255,255,255,.08)!important;border:1px solid rgba(198,167,107,.4)!important;box-shadow:none!important}
+html body .page>.page-header .hero-search input{background:rgba(255,255,255,.96)!important}
+html body .page>.page-header .hero-search button{background:linear-gradient(135deg,var(--lx-gold-l),var(--lx-gold) 50%,var(--lx-gold-d))!important;color:var(--lx-navy)!important;border:0!important}
+
+/* ---------- Cards ---------- */
+html body .page .card,html body .page .home-guide,html body .page .summary,html body .page .stat-card,html body .page .flow-step,html body .page .big-act{
+  border:1px solid var(--lx-edge)!important;box-shadow:var(--lx-shadow)!important;transition:box-shadow .35s ease,transform .35s cubic-bezier(.2,.7,.2,1),border-color .35s ease}
+html body .page .card:hover,html body .page .home-guide:hover{box-shadow:var(--lx-shadow-h)!important}
+html body .page .card{border-radius:20px!important}
+html body .page .stat-card:hover,html body .page .qa:hover,html body .page .big-act:hover,html body .page .hg-steps li:hover{transform:translateY(-4px);box-shadow:var(--lx-shadow-h)!important}
+html body .page .qa,html body .page .hg-steps li{transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease,border-color .35s ease;border-color:var(--lx-edge)!important}
+html body .page .qa:hover,html body .page .hg-steps li:hover{border-color:rgba(198,167,107,.6)!important}
+
+/* big "Create New Costing" tile */
+html body .page .big-act-primary{background:radial-gradient(420px 180px at 100% 0%,rgba(198,167,107,.32),transparent 70%),linear-gradient(120deg,#0a1b33,var(--lx-navy) 55%,var(--lx-navy2))!important;border:1px solid rgba(198,167,107,.5)!important;position:relative;overflow:hidden}
+html body .page .big-act-primary .ba-ico{background:linear-gradient(135deg,var(--lx-gold-l),var(--lx-gold) 55%,var(--lx-gold-d))!important;color:var(--lx-navy)!important;border:0!important;box-shadow:0 10px 22px -10px rgba(198,167,107,.95)!important}
+html body .page .big-act-primary small{color:rgba(255,255,255,.75)!important}
+html body .page .big-act:not(.big-act-primary){box-shadow:inset 4px 0 0 var(--lx-gold),var(--lx-shadow)!important}
+/* shine that passes over gold / primary buttons on hover */
+html body .big-act-primary::before,html body .hdr-new::before,html body .lx-shine::before{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.38),transparent);transform:skewX(-18deg);transition:left .8s ease;pointer-events:none}
+html body .big-act-primary:hover::before,html body .hdr-new:hover::before,html body .lx-shine:hover::before{left:130%}
+
+/* stats */
+html body .page .stat-card{box-shadow:inset 0 3px 0 var(--lx-gold),var(--lx-shadow)!important}
+html body .page .stat-icon{background:linear-gradient(135deg,var(--lx-navy2),var(--lx-navy))!important;color:var(--lx-gold-l)!important;border:0!important;box-shadow:0 8px 18px -10px rgba(11,31,58,.8)!important}
+html body .page .stat-icon *{color:var(--lx-gold-l)!important}
+html body .page .stat-value{font-family:"Playfair Display",Georgia,serif!important;font-weight:700!important;font-size:clamp(28px,2.6vw,36px)!important;
+  background:linear-gradient(120deg,var(--lx-navy) 20%,var(--lx-gold-d) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+html body .page .stat-label{color:var(--lx-gold-d)!important;letter-spacing:.12em!important}
+
+/* step numbers */
+html body .page .hg-num,html body .page .flow-num{background:linear-gradient(135deg,var(--lx-navy2),var(--lx-navy))!important;color:var(--lx-gold-l)!important;border:1px solid rgba(198,167,107,.6)!important}
+html body .page .flow-step.is-done .flow-num{background:linear-gradient(135deg,var(--lx-gold-l),var(--lx-gold))!important;color:var(--lx-navy)!important}
+
+/* ---------- Buttons ---------- */
+html body .page button.green,html body .page button.blue,html body .easy-bar button.green,html body .login-card button.blue{
+  background:linear-gradient(135deg,var(--lx-navy2) 0%,var(--lx-navy) 60%,#08172c 100%)!important;color:#fff!important;border:1px solid rgba(198,167,107,.45)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 10px 24px -12px rgba(11,31,58,.75)!important;transition:transform .2s ease,box-shadow .25s ease,filter .25s ease;position:relative;overflow:hidden}
+html body .page button.green:hover,html body .page button.blue:hover,html body .easy-bar button.green:hover,html body .login-card button.blue:hover{
+  transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 14px 30px -12px rgba(11,31,58,.85),0 0 0 3px rgba(198,167,107,.22)!important;filter:brightness(1.08)}
+html body .page button.orange{background:linear-gradient(135deg,var(--lx-gold-l),var(--lx-gold) 50%,var(--lx-gold-d))!important;color:var(--lx-navy)!important;border:0!important}
+html body .page .btn-ghost{transition:border-color .25s ease,box-shadow .25s ease,background .25s ease}
+html body .page .btn-ghost:hover{border-color:var(--lx-gold)!important;box-shadow:0 0 0 3px rgba(198,167,107,.16)!important}
+
+/* ---------- Forms ---------- */
+html body .page input:not([type=radio]):not([type=checkbox]):not([type=range]):focus,html body .page select:focus,html body .page textarea:focus,html body .login-card input:focus{
+  border-color:var(--lx-gold)!important;box-shadow:0 0 0 4px rgba(198,167,107,.2)!important;outline:none!important}
+
+/* ---------- Tables ---------- */
+html body .page .data-table thead th,html body .page table thead th{color:var(--lx-gold-d)!important;letter-spacing:.12em!important}
+html body .page .data-table tbody tr{transition:background .2s ease}
+html body .page .data-table tbody tr:hover td{background:rgba(198,167,107,.08)!important}
+
+/* ---------- Bottom total bar ---------- */
+html body .easy-bar{background:rgba(255,255,255,.86)!important;-webkit-backdrop-filter:saturate(1.5) blur(14px);backdrop-filter:saturate(1.5) blur(14px);border-top:1px solid transparent!important;
+  box-shadow:0 -1px 0 rgba(198,167,107,.55),0 -14px 34px -14px rgba(11,31,58,.25)!important}
+html body .easy-bar .eb-info strong{font-family:"Playfair Display",Georgia,serif!important;color:var(--lx-navy)!important}
+
+/* ---------- Footer & login ---------- */
+html body .sitefooter{background:radial-gradient(700px 240px at 100% 0%,rgba(198,167,107,.2),transparent 70%),linear-gradient(120deg,#0a1b33,var(--lx-navy) 55%,var(--lx-navy2))!important;border:1px solid rgba(198,167,107,.35)!important}
+html body .login-card{box-shadow:0 40px 90px -30px rgba(0,0,0,.65),0 0 0 1px rgba(198,167,107,.4),0 0 60px -10px rgba(198,167,107,.25)!important}
+
+/* ---------- Dark theme ---------- */
+html body.dark{background-image:radial-gradient(1200px 500px at 85% -10%,rgba(198,167,107,.10),transparent 60%)!important}
+html body.dark .page .card,html body.dark .page .home-guide,html body.dark .page .summary,html body.dark .page .stat-card,html body.dark .page .flow-step,html body.dark .page .big-act:not(.big-act-primary){border-color:rgba(198,167,107,.2)!important}
+html body.dark .page .stat-value{background:linear-gradient(120deg,#fff 20%,var(--lx-gold-l) 100%);-webkit-background-clip:text;background-clip:text}
+html body.dark .page .stat-label,html body.dark .page .data-table thead th,html body.dark .page table thead th{color:var(--lx-gold-l)!important}
+html body.dark .easy-bar{background:rgba(10,24,48,.86)!important}
+html body.dark .easy-bar .eb-info strong{color:#fff!important}
+
+@media (max-width:600px){html body .page>.page-header,html body #dashboard.page>.page-header{padding:20px 18px!important;border-radius:18px!important}}
+@media (prefers-reduced-motion:reduce){
+  html body .page .stat-card:hover,html body .page .qa:hover,html body .page .big-act:hover,html body .page .hg-steps li:hover,html body .page button:hover{transform:none!important}
+  html body .big-act-primary::before,html body .hdr-new::before{display:none}
+}
+@media print{html body{background-image:none!important}}
+</style>
 </body>
 </html>
