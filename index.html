@@ -10705,7 +10705,16 @@ try{(function(){
   function putDrafts(list){
     list.sort(function(a,b){return String(b.updatedAt).localeCompare(String(a.updatedAt));});
     if(list.length>MAX)list.length=MAX;
-    saveJSON(KEY,list);
+    /* Drafts are only a safety copy: when browser storage is full, drop the
+       oldest drafts until the newest ones fit — never show an error for this
+       (it used to pop up "Data could not be saved" on refresh). */
+    for(;;){
+      try{localStorage.setItem(KEY,JSON.stringify(list));return;}
+      catch(e){
+        if(!list.length){console.warn('Drafts could not be stored: browser storage is full.',e);return;}
+        list.pop();
+      }
+    }
   }
   function canSee(d){
     var s=sess();if(!s.key)return false;
