@@ -6727,7 +6727,8 @@ try{(function(){
       }
       failed=0;
       if(window.adminCredsAreDefault&&adminCredsAreDefault()){
-        setTimeout(function(){alert('⚠️ Security warning: you are using the DEFAULT admin ID and password. Please go to Settings and change the Admin ID/Password immediately, otherwise anyone can log in as Admin.');},600);
+        /* a tip (blue, goes away by itself) — not a red error */
+        setTimeout(function(){var t='🔐 Tip: you are using the built-in admin password. Set your own in Settings → Admin Login Credentials.';if(window.showToast)showToast(t,'info');else alert(t);},600);
       }
       var users=getLoginUsers();
       var u=users[ADMIN_KEY]||{createdAt:Date.now()};
@@ -11464,11 +11465,11 @@ try{(function(){
      en:'The PDF shows <b>Total Package Cost</b> and a separate box for each per-person rate that is used: Adult (Single / Double / Triple sharing), Child (With Bed) and Child (No Bed).',
      hi:'PDF में <b>Total Package Cost</b> और हर per person रेट का अलग बॉक्स आता है: Adult (Single / Double / Triple sharing), Child (With Bed) और Child (No Bed) — जो इस्तेमाल हुए हों।'},
     {id:'login',kw:['forgot password','password','login','log in','sign in','logout','log out','locked','पासवर्ड','लॉगिन'],
-     en:function(){return '<b>Users</b> log in with their name only — no password.<br><b>Admin</b> logs in with name, Admin ID and password ('+(admin()?'change it in <b>Settings → Admin Login Credentials</b>':'only the admin has these')+'). After 5 wrong passwords the admin login locks for a while.<br>Forgot the admin password? Please contact the person who manages this website.';},
-     hi:function(){return '<b>User</b> सिर्फ अपने नाम से लॉगिन करते हैं — पासवर्ड नहीं।<br><b>Admin</b> नाम, Admin ID और पासवर्ड से लॉगिन करता है ('+(admin()?'<b>Settings → Admin Login Credentials</b> में बदलें':'ये सिर्फ admin के पास होते हैं')+')। 5 बार गलत पासवर्ड पर admin login कुछ देर के लिए बंद हो जाता है।<br>Admin पासवर्ड भूल गए? वेबसाइट संभालने वाले व्यक्ति से संपर्क करें।';}},
+     en:function(){return '<b>Users</b> log in with their name only — no password.<br><b>Admin</b> logs in with name, Admin ID and password ('+(admin()?'change it in <b>Settings → Admin Login Credentials</b>':'only the admin has these')+'). After 5 wrong passwords the admin login locks for a while.<br>Forgot the admin password? On the admin login press <b>Forgot password?</b> — a 6-digit code goes to the admin e-mail saved in <b>Settings → Admin Login Credentials</b>; type the code and choose a new password.';},
+     hi:function(){return '<b>User</b> सिर्फ अपने नाम से लॉगिन करते हैं — पासवर्ड नहीं।<br><b>Admin</b> नाम, Admin ID और पासवर्ड से लॉगिन करता है ('+(admin()?'<b>Settings → Admin Login Credentials</b> में बदलें':'ये सिर्फ admin के पास होते हैं')+')। 5 बार गलत पासवर्ड पर admin login कुछ देर के लिए बंद हो जाता है।<br>Admin पासवर्ड भूल गए? Admin login पर <b>Forgot password?</b> दबाएं — <b>Settings → Admin Login Credentials</b> में सेव admin e-mail पर 6 अंकों का कोड जाएगा; कोड डालकर नया पासवर्ड रखें।';}},
     {id:'rates',kw:['saved rates','rate list','rates','rate','price list','change price','add price','kimat','daam','admin','रेट','कीमत'],
      en:function(){return admin()
-       ?'<b>Saved Rates</b> (top menu) has tabs for <b>Transfers</b> (Car / SUV / Van price), <b>SIC Transfers</b>, <b>Entry Tickets</b> and <b>Meals</b>. Add, edit or delete a price there; press <b>＋ Use</b> to put it straight into the costing.'
+       ?'<b>Saved Rates</b> (top menu) has tabs for <b>Transfers</b> (Car / SUV / Van price), <b>SIC Transfers</b>, <b>Entry Tickets</b>, <b>Meals</b> and <b>🏝️ Tours</b> (the tours for Create Itinerary). Add, edit or delete there; press <b>＋ Use</b> to put it straight into the costing.'
        :'Only the admin can add or change the saved prices. You simply pick them in the Costing Sheet — the item total is shown to you.';},
      hi:function(){return admin()
        ?'ऊपर मेन्यू में <b>Saved Rates</b> में <b>Transfers</b> (Car / SUV / Van), <b>SIC Transfers</b>, <b>Entry Tickets</b> और <b>Meals</b> के टैब हैं। वहाँ कीमत जोड़ें, बदलें या हटाएं; <b>＋ Use</b> से सीधे कॉस्टिंग में डालें।'
