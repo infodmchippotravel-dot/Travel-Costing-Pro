@@ -11622,25 +11622,44 @@ try{(function(){
   /* never animate the quotation preview, pop-ups or the login screen */
   var SKIP='#pdf .pdf-page, #pdf .pdf-page *, .login-gate *, .chatbot-panel *, .modal *, [role="dialog"] *';
 
-  var io=null;
+  /* Cards play their entrance every time they come on screen:
+       • showIO  — card is (12%) on screen → play the animation
+       • hideIO  — card has gone fully below the screen, or its page was
+                   hidden → get it ready to play again next time
+     Cards that are already on screen when a page opens animate in too. */
+  var io=null,hideIO=null,timers=new WeakMap();
   if(!reduce&&'IntersectionObserver' in window){
     io=new IntersectionObserver(function(entries){
       entries.forEach(function(e){if(e.isIntersecting)reveal(e.target);});
     },{threshold:0.12,rootMargin:'0px 0px -6% 0px'});
+    hideIO=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting)return;
+        var r=e.boundingClientRect;
+        if(r.height===0||r.top>=(window.innerHeight||document.documentElement.clientHeight))hide(e.target);
+      });
+    },{threshold:0});
+  }
+  function hide(n){
+    if(n.matches(':hover')||n.contains(document.activeElement))return;
+    clearTimeout(timers.get(n));
+    n.classList.remove('sfx-in','sfx-seen');
+    n.classList.add('sfx');
+    if(n.dataset.sfxKind)n.classList.add(n.dataset.sfxKind);
   }
   function reveal(n){
     if(!n.classList.contains('sfx')||n.classList.contains('sfx-in'))return;
-    if(io)io.unobserve(n);
     n.classList.add('sfx-in','sfx-seen');
+    clearTimeout(timers.get(n));
     /* after the animation, remove the classes so hover effects work as before */
-    setTimeout(function(){n.classList.remove('sfx','sfx-in','sfx-left','sfx-right','sfx-zoom');n.style.removeProperty('--sfx-d');},900+(parseInt(n.style.getPropertyValue('--sfx-d'))||0));
+    timers.set(n,setTimeout(function(){n.classList.remove('sfx','sfx-in','sfx-left','sfx-right','sfx-zoom');},900+(parseInt(n.style.getPropertyValue('--sfx-d'))||0)));
   }
-  /* safety net: anything already scrolled past or on screen is shown (fast jumps, moved elements) */
+  /* safety net: anything on screen that is still waiting is shown (fast jumps, moved elements) */
   function sweep(){
     var vh=window.innerHeight;
     document.querySelectorAll('.page.active .sfx:not(.sfx-in)').forEach(function(n){
       var r=n.getBoundingClientRect();
-      if(r.height>0&&r.top<vh*0.94)reveal(n);
+      if(r.height>0&&r.top<vh*0.94&&r.bottom>0)reveal(n);
     });
   }
 
@@ -11651,15 +11670,14 @@ try{(function(){
     [].forEach.call(list,function(n){
       if(n.dataset.sfxDone||n.matches(SKIP))return;
       n.dataset.sfxDone='1';
-      /* things already on screen when the page opens are not hidden (no flicker) */
-      var r=n.getBoundingClientRect();
-      if(r.height>0&&r.top<window.innerHeight*0.92&&r.bottom>0){setTimeout(function(){n.classList.add('sfx-seen');},120);return;}
       var sib=n.parentNode?[].indexOf.call(n.parentNode.children,n):0;
-      if(n.classList.contains('stat-card')||n.classList.contains('qa')||n.classList.contains('summarybox'))n.classList.add('sfx-zoom');
-      else if(n.classList.contains('big-act'))n.classList.add(sib%2?'sfx-right':'sfx-left');
+      var kind='';
+      if(n.classList.contains('stat-card')||n.classList.contains('qa')||n.classList.contains('summarybox'))kind='sfx-zoom';
+      else if(n.classList.contains('big-act'))kind=sib%2?'sfx-right':'sfx-left';
+      if(kind){n.dataset.sfxKind=kind;n.classList.add(kind);}
       n.style.setProperty('--sfx-d',Math.min(sib,5)*80+'ms');
       n.classList.add('sfx');
-      io.observe(n);
+      io.observe(n);hideIO.observe(n);
     });
   }
 
@@ -11670,7 +11688,7 @@ try{(function(){
       var r=prevShow.apply(this,arguments);
       setTimeout(function(){
         var pg=document.querySelector('.page.active');
-        if(pg){pg.querySelectorAll('[data-sfx-done]').forEach(function(n){if(!n.classList.contains('sfx'))delete n.dataset.sfxDone;});prepare(pg);}
+        if(pg)prepare(pg);
         onScroll();
       },30);
       return r;
