@@ -6702,7 +6702,8 @@ try{(function(){
         failed++;
         passEl.value='';passEl.focus();
         if(failed>=5){lockedUntil=Date.now()+60000;failed=0;return showLoginError('Wrong Admin ID or password 5 times. Admin login is locked for 1 minute.');}
-        showLoginError('Wrong Admin ID or password. Please try again.');
+        if(window.adminIdIsRight&&!adminIdIsRight(id)){idEl.setAttribute('aria-invalid','true');showLoginError('The Admin ID is not right. Please check the Admin ID (not your name).');}
+        else showLoginError('The password is not right. Type it again and press Show to see what you typed.');
         if(window.adminTypedOldDefault)adminTypedOldDefault(id,pass).then(function(old){
           if(old)showLoginError('This is the old default password. The admin ID or password was changed in Settings on this browser — please use the new one.');
         });
@@ -6922,23 +6923,28 @@ try{(function(){
   window.verifyAdminCreds=function(id,pass){
     if(!subtle)return Promise.resolve(false);
     if(window.adminLoginLockedFor()>0)return Promise.resolve(false);
-    var c=stored(),idIn=String(id).trim().toLowerCase();
+    var c=stored();id=normId(id);var idIn=id.toLowerCase();
     pass=String(pass);
     /* Phone keyboards often add a space before/after the password (paste,
-       suggestions). Try it exactly as typed first, then without those spaces. */
-    var trimmed=pass.replace(/^\s+|\s+$/g,'');
-    return checkOnce(c,idIn,id,pass).then(function(g){
-      if(g||trimmed===pass||!trimmed)return g;
-      return checkOnce(c,idIn,id,trimmed);
-    }).then(function(g){noteResult(g);return g;});
+       suggestions) or type look-alike signs (e.g. a wide "＠"). Try it exactly as
+       typed first, then without those spaces, then with the plain signs. */
+    var trimmed=pass.replace(/^\s+|\s+$/g,''),tries=[pass];
+    [trimmed,nfkc(trimmed)].forEach(function(t){if(t&&tries.indexOf(t)===-1)tries.push(t);});
+    var i=0;
+    function next(g){if(g||i>=tries.length)return g;return checkOnce(c,idIn,id,tries[i++]).then(next);}
+    return next(false).then(function(g){noteResult(g);return g;});
   };
+  function nfkc(t){try{return String(t).normalize('NFKC');}catch(e){return String(t);}}
+  function normId(id){return nfkc(String(id)).replace(/\s+/g,'').trim();}
+  /* After a failed login: is the Admin ID the one this browser expects? (says which box to check) */
+  window.adminIdIsRight=function(id){var c=stored();return normId(id).toLowerCase()===String(c?c.id:DEFAULT_ID).trim().toLowerCase();};
   /* After a failed login: true when the built-in default ID + password were typed
      but the admin login was changed in Settings on this browser. */
   window.adminTypedOldDefault=function(id,pass){
     var c=stored();
     if(!c||c.isDefault||!subtle)return Promise.resolve(false);
     var t=String(pass).replace(/^\s+|\s+$/g,'');
-    return isDefaultPass(id,t).catch(function(){return false;});
+    return isDefaultPass(normId(id),nfkc(t)).catch(function(){return false;});
   };
   window.adminCredsAreDefault=function(){var c=stored();return !c||!!c.isDefault;};
   /* Only the Admin ID is ever given out — never the password. */
