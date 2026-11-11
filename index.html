@@ -4774,6 +4774,16 @@ function saveWORD(){
   updatePDF();persistCurrentCosting();
   let node=document.querySelector('#pdf .pdf-page');
   if(!node)return alert('Quotation preview not found.');
+  /* Word-friendly copy of the quotation (tables + inline styles), built from what the PDF shows */
+  if(typeof window.buildWordQuotation==='function'){
+    let html=window.buildWordQuotation(node);
+    let blobW=new Blob(['\ufeff',html],{type:'application/msword'});
+    let aW=document.createElement('a');aW.href=URL.createObjectURL(blobW);
+    let fnW=(costingNumberField&&costingNumberField.value.trim())||costingNumber();
+    aW.download='Quotation_'+fnW+'.doc';document.body.appendChild(aW);aW.click();aW.remove();
+    setTimeout(function(){URL.revokeObjectURL(aW.href);},2000);
+    return;
+  }
   let contentHtml=node.querySelector('.pdf-inner').outerHTML;
   let wordStyles=`
     body{font-family:Calibri,Arial,sans-serif;color:#16202f;margin:0;padding:20px}
@@ -12491,6 +12501,131 @@ try{(function(){
     .then(function(){$('fpSave').disabled=false;});
   });
 })();}catch(err){console.error('Forgot password failed to start:',err);}
+</script>
+<script>
+/* =====================================================================
+   WORD FILE = SAME AS THE PDF
+     Word cannot read the modern page layout (flex / grid / CSS variables),
+     so the Word file is built separately with tables and inline styles,
+     from exactly what the on-screen quotation shows: same order, colours,
+     logo (turned into PNG), and only the parts that are visible.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  var C={navy:'#0B1F3A',gold:'#A8874F',gold2:'#D9C49A',cream:'#FAF6EE',text:'#1D2430',muted:'#667085',rule:'#E6DCC7',white:'#FFFFFF'};
+  var SANS="'Segoe UI',Calibri,Arial,sans-serif",SERIF="Georgia,'Times New Roman',serif";
+  function esc(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function shown(el,stop){for(var e=el;e&&e!==stop;e=e.parentElement){var cs=getComputedStyle(e);if(cs.display==='none'||cs.visibility==='hidden')return false;}return !!el;}
+  function txt(el){if(!el)return '';var c=el.cloneNode(true);c.querySelectorAll('.lux-emo,.pdf-emo,.lux-ico,svg').forEach(function(x){x.remove();});return c.textContent.replace(/\s+/g,' ').trim();}
+  function q(root,sel){return root.querySelector(sel);}
+  function logoPng(img){
+    try{if(!img||!img.complete||!img.naturalWidth)return '';var k=document.createElement('canvas'),s=160;k.width=s;k.height=s;var x=k.getContext('2d');
+      var r=Math.min(s/img.naturalWidth,s/img.naturalHeight),w=img.naturalWidth*r,h=img.naturalHeight*r;x.drawImage(img,(s-w)/2,(s-h)/2,w,h);return k.toDataURL('image/png');}catch(e){return '';}
+  }
+  function gap(){return '';}
+  /* space above a block: a white top border (Word and LibreOffice both keep it; empty lines and outer padding are not reliable) */
+  function wrap(html,pt){return '<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse"><tr><td style="border-top:'+pt+'pt solid #FFFFFF;padding:0">'+html+'</td></tr></table>';}
+  function title(t){return wrap('<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse"><tr>'
+    +'<td style="width:20pt;border-bottom:1pt solid '+C.rule+';padding:0 0 4pt"><span style="color:'+C.gold+';font-size:12pt;font-weight:bold">&#8212;</span></td>'
+    +'<td style="border-bottom:1pt solid '+C.rule+';padding:0 0 4pt;font-family:'+SERIF+';font-size:12pt;font-weight:bold;letter-spacing:2pt;color:'+C.navy+'">'+esc(t.toUpperCase())+'</td></tr></table>',10)+'<table width="100%" cellspacing="0" cellpadding="0"><tr><td style="border-top:5pt solid #FFFFFF;font-size:1pt;line-height:1pt"></td></tr></table>';}
+
+  window.buildWordQuotation=function(page){
+    var inner=q(page,'.pdf-inner')||page,plain=page.classList.contains('is-plain'),out=[];
+    /* top bar */
+
+    /* header: brand | QUOTATION + details */
+    var img=q(inner,'#pdfLogo img'),logo=plain?'':logoPng(img);
+    var contact=q(inner,'#pdfContact'),contactLines=[];
+    if(contact&&shown(contact,page)){var addr=contact.firstChild&&contact.firstChild.nodeType===3?contact.firstChild.textContent.trim():'';if(addr)contactLines.push(esc(addr));
+      var bits=[].slice.call(contact.querySelectorAll('.pc')).map(function(x){return esc(x.textContent.trim());}).filter(Boolean);if(bits.length)contactLines.push(bits.join(' &nbsp;|&nbsp; '));}
+    var meta=[].slice.call(inner.querySelectorAll('.qmeta-box .qrow')).filter(function(r){return shown(r,page)&&txt(r.querySelector('b'));}).map(function(r){
+      return '<tr><td style="padding:3pt 8pt 3pt 0;border-bottom:1pt dotted '+C.rule+';font-family:'+SERIF+';font-size:8.5pt;color:'+C.muted+'">'+esc(txt(r.querySelector('span')))+'</td>'
+        +'<td style="padding:3pt 0;border-bottom:1pt dotted '+C.rule+';font-family:'+SERIF+';font-size:8.5pt;font-weight:bold;color:'+C.text+';text-align:right">'+esc(txt(r.querySelector('b')))+'</td></tr>';}).join('');
+    var HB='border-top:4pt solid '+C.navy+';border-bottom:1.5pt solid '+C.navy+';';
+    out.push('<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse"><tr>'
+      +(logo?'<td width="70" valign="top" style="'+HB+'width:56pt;padding:14pt 10pt 12pt 0"><img src="'+logo+'" width="64" height="64" style="width:48pt;height:48pt" alt=""></td>':'')
+      +'<td valign="top" style="'+HB+'padding:14pt 0 12pt">'
+      +'<div style="font-family:'+SERIF+';font-size:'+(plain?'19':'21')+'pt;font-weight:bold;letter-spacing:1.5pt;color:'+C.navy+'">'+esc(txt(q(inner,'#pdfCompany')))+'</div>'
+      +(txt(q(inner,'#pdfTagline'))&&shown(q(inner,'#pdfTagline'),page)?'<div style="font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.6pt;color:'+C.gold+';margin-top:3pt">'+esc(txt(q(inner,'#pdfTagline')).toUpperCase())+'</div>':'')
+      +(contactLines.length?'<div style="font-family:'+SANS+';font-size:7.5pt;color:'+C.muted+';margin-top:5pt;line-height:1.5">'+contactLines.join('<br>')+'</div>':'')
+      +'</td><td width="210" valign="top" style="'+HB+'width:160pt;padding:14pt 0 12pt">'
+      +'<div style="font-family:'+SERIF+';font-size:20pt;letter-spacing:5pt;color:'+C.navy+';text-align:right;margin-bottom:6pt">'+esc(txt(q(inner,'.quotation h2'))||'QUOTATION')+'</div>'
+      +'<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">'+meta+'</table></td></tr></table>');
+    /* double rule */
+
+    /* prepared for */
+    var forEl=q(inner,'#pdfFor');
+    out.push('<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse"><tr><td style="border-top:1pt solid '+C.gold+';padding:12pt 0 5pt;font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.6pt;color:'+C.gold+'">'+(forEl&&shown(forEl,page)?esc(txt(forEl).toUpperCase()):'&nbsp;')+'</td></tr></table>');
+    var boxes=[].slice.call(inner.querySelectorAll('.client-grid .client-box')).filter(function(b){return shown(b,page);});
+    if(boxes.length)out.push('<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1pt solid '+C.rule+';background:'+C.cream+'"><tr>'
+      +boxes.map(function(b,i){return '<td valign="top" style="padding:7pt 9pt;background:'+C.cream+';'+(i?'border-left:1pt solid '+C.rule+';':'')+'width:'+Math.floor(100/boxes.length)+'%">'
+        +'<div style="font-family:'+SANS+';font-size:6.5pt;font-weight:bold;letter-spacing:1pt;color:'+C.muted+'">'+esc(txt(b.querySelector('small')).toUpperCase())+'</div>'
+        +'<div style="font-family:'+SANS+';font-size:10pt;font-weight:bold;color:'+C.text+';margin-top:4pt">'+esc(txt(b.querySelector('strong'))||'---')+'</div></td>';}).join('')+'</tr></table>');
+    /* the rest, in the same order as the page */
+    var started=false;
+    [].forEach.call(inner.children,function(el){
+      if(el.classList.contains('client-grid')){started=true;return;}
+      if(!started||!shown(el,page))return;
+      var c=el.classList;
+      if(c.contains('section-title')){out.push(title(txt(el)));return;}
+      if(c.contains('pdf-service-head'))return;
+      if(el.id==='pdfServices'){
+        var rows=['<tr><td style="background:'+C.navy+';color:#fff;font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.2pt;padding:6pt 9pt;width:32pt">NO.</td><td style="background:'+C.navy+';color:#fff;font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.2pt;padding:6pt 9pt">SERVICE DESCRIPTION</td></tr>'];
+        [].forEach.call(el.children,function(r){
+          if(!shown(r,page))return;
+          if(r.classList.contains('pdf-incl-title')){rows.push('<tr><td colspan="2" style="padding:9pt 9pt 4pt;border-bottom:1pt solid '+C.gold2+';font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.4pt;color:'+C.gold+'">'+esc(txt(r).toUpperCase())+'</td></tr>');return;}
+          if(r.classList.contains('pdf-service')){
+            var lines=[].slice.call(r.querySelectorAll('.pdf-service-type')).filter(function(x){return shown(x,page);}).map(function(x){return esc(txt(x));});
+            var price=r.querySelector('.pdf-service-price');
+            rows.push('<tr><td valign="top" style="padding:7pt 9pt;border-bottom:1pt solid '+C.rule+';font-family:'+SERIF+';font-size:10pt;font-weight:bold;color:'+C.gold+'">'+esc(txt(r.querySelector('.pdf-number')))+'.</td>'
+              +'<td valign="top" style="padding:7pt 9pt;border-bottom:1pt solid '+C.rule+'"><div style="font-family:'+SANS+';font-size:10pt;font-weight:bold;color:'+C.text+'">'+esc(txt(r.querySelector('.pdf-service-name')))+'</div>'
+              +(lines.length?'<div style="font-family:'+SANS+';font-size:8pt;color:'+C.muted+';margin-top:2pt;line-height:1.45">'+lines.join('<br>')+'</div>':'')
+              +(price&&shown(price,page)&&txt(price)?'<div style="font-family:'+SANS+';font-size:9pt;font-weight:bold;color:'+C.navy+';margin-top:3pt">'+esc(txt(price))+'</div>':'')+'</td></tr>');
+            return;}
+          var t=txt(r);if(t)rows.push('<tr><td colspan="2" style="padding:7pt 9pt;border-bottom:1pt solid '+C.rule+';font-family:'+SANS+';font-size:9pt;color:'+C.text+'">'+esc(t)+'</td></tr>');
+        });
+        out.push('<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1pt solid '+C.rule+'">'+rows.join('')+'</table>');return;
+      }
+      if(c.contains('pdf-final')){
+        var stats=[].slice.call(el.querySelectorAll('.stat')).filter(function(s){return shown(s,page)&&txt(s.querySelector('small'));});
+        var trs='';for(var i=0;i<stats.length;i+=3){var row=stats.slice(i,i+3);trs+='<tr>'+row.map(function(s,j){var hl=s.classList.contains('highlight');
+          return '<td valign="top" style="background:'+C.navy+';padding:10pt 14pt;'+(j?'border-left:1pt solid #2A3D5C;':'')+'width:'+Math.floor(100/row.length)+'%">'
+            +'<div style="font-family:'+SANS+';font-size:7pt;font-weight:bold;letter-spacing:1.2pt;color:'+C.gold2+'">'+esc(txt(s.querySelector('small')).toUpperCase())+'</div>'
+            +'<div style="font-family:'+SERIF+';font-size:'+(hl?'15':'18')+'pt;font-weight:bold;color:'+(hl?C.gold2:'#FFFFFF')+';margin-top:5pt">'+esc(txt(s.querySelector('strong')))+'</div></td>';}).join('')+'</tr>';}
+        out.push('<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:'+C.navy+'">'+trs+'</table>');return;
+      }
+      if(c.contains('pdf-pay')){
+        var sp=[].slice.call(el.children).filter(function(x){return shown(x,page);});
+        out.push(wrap('<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1pt solid '+C.rule+';background:'+C.cream+'"><tr>'
+          +sp.map(function(x,k){var b=x.querySelector('b'),lbl=txt(x).replace(txt(b),'').trim();return '<td style="padding:7pt 10pt;background:'+C.cream+';font-family:'+SANS+';font-size:9pt;color:'+C.muted+';text-align:'+(k?'right':'left')+'">'+esc(lbl)+' <b style="color:'+C.text+'">'+esc(txt(b))+'</b></td>';}).join('')+'</tr></table>',7));return;
+      }
+      if(c.contains('pdf-terms')){
+        var li=[].slice.call(el.querySelectorAll('li')).filter(function(x){return shown(x,page);});
+        out.push('<table cellspacing="0" cellpadding="0" style="border-collapse:collapse">'+li.map(function(x,k){return '<tr><td valign="top" style="padding:1pt 6pt 1pt 0"><p style="margin:0;font-family:'+SANS+';font-size:8pt;line-height:11pt;font-weight:bold;color:'+C.gold+'">'+(k+1)+'.</p></td><td style="padding:1pt 0"><p style="margin:0;font-family:'+SANS+';font-size:8pt;line-height:11pt;color:'+C.muted+'">'+esc(txt(x))+'</p></td></tr>';}).join('')+'</table>');return;
+      }
+      if(c.contains('pdf-thanks')){out.push(wrap('<span style="font-family:'+SERIF+';font-style:italic;font-size:9pt;color:'+C.text+'">'+esc(txt(el))+'</span>',10));return;}
+      if(c.contains('pdf-sign')){
+        var L=q(el,'.sg-left'),R=[].slice.call(el.querySelectorAll('.sg')).filter(function(x){return x!==L;})[0];
+        var lb=L&&L.querySelector('b'),rb=R&&R.querySelector('b'),rText=R?txt(R):'',rName=rb?txt(rb):'';
+        var rParts=rName?rText.split(rName):[rText,''];   // no company name (plain PDF): keep the text whole
+        out.push(wrap('<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed"><col width="62%"><col width="38%"><tr>'
+          +'<td width="62%" valign="bottom" style="width:62%;padding:0;font-family:'+SANS+';font-size:8.5pt;color:'+C.muted+'">'+esc(L?txt(L).replace(txt(lb),'').trim():'')+(lb?'<br><b style="color:'+C.text+';font-size:9.5pt">'+esc(txt(lb))+'</b>':'')+'</td>'
+          +'<td width="38%" valign="bottom" style="width:38%;padding:6pt 0 0;border-top:1pt solid '+C.text+';text-align:center;font-family:'+SANS+';font-size:8.5pt;color:'+C.muted+'">'+esc((rParts[0]||'').trim())+(rName?'<br><b style="color:'+C.text+';font-size:9.5pt">'+esc(rName)+'</b>':'')+((rParts[1]||'').trim()?'<br>'+esc(rParts[1].trim()):'')+'</td></tr></table>',26));return;
+      }
+      if(c.contains('pdf-footer')){
+        var d=[].slice.call(el.children);
+        out.push(wrap('<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse"><tr>'
+          +'<td valign="top" style="border-top:1pt solid '+C.rule+';padding:6pt 0 0;font-family:'+SANS+';font-size:7.5pt;color:'+C.muted+'">'+esc(txt(d[0]))+'</td>'
+          +'<td valign="top" style="border-top:1pt solid '+C.rule+';padding:6pt 0 0;font-family:'+SANS+';font-size:7.5pt;color:'+C.muted+';text-align:right">'+(d[1]?d[1].innerHTML.replace(/<(?!\/?(b|br)\b)[^>]*>/gi,''):'')+'</td></tr></table>',14));return;
+      }
+      var t=txt(el);if(t)out.push('<p style="font-family:'+SANS+';font-size:9pt;color:'+C.text+';margin:8pt 0">'+esc(t)+'</p>');
+    });
+    return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Quotation</title>'
+      +'<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->'
+      +'<style>@page Section1{size:595.3pt 841.9pt;margin:30pt 34pt 30pt 34pt}div.Section1{page:Section1}body{font-family:'+SANS+';color:'+C.text+';margin:0}table{mso-table-lspace:0;mso-table-rspace:0}td{mso-line-height-rule:exactly}p{margin:0}</style>'
+      +'</head><body><div class="Section1">'+out.join('')+'</div></body></html>';
+  };
+})();}catch(err){console.error('Word quotation builder failed to start:',err);}
 </script>
 </body>
 </html>
