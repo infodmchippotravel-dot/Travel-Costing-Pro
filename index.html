@@ -12345,5 +12345,49 @@ try{(function(){
   pw.addEventListener('input',function(){if(/saved password/.test(hint.textContent))note('');});
 })();}catch(err){console.error('Admin password box helper failed to start:',err);}
 </script>
+<script>
+/* =====================================================================
+   ADMIN LOGIN CREDENTIALS (Settings) — clear feedback
+     Pressing "Update Credentials" with a password that is too short or
+     has no number used to do nothing on screen. Now every case shows a
+     message right under the button, and the hint says the rules.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  var card=document.getElementById('adminCredsCard');
+  var idEl=document.getElementById('adminIdInput'),pwEl=document.getElementById('adminPasswordInput');
+  if(!card||!idEl||!pwEl||typeof window.updateAdminCreds!=='function')return;
+  var btn=[].slice.call(card.querySelectorAll('button')).find(function(b){return /Update Credentials/.test(b.textContent);});
+  var msg=document.createElement('p');
+  msg.id='adminCredsMsg';msg.setAttribute('role','status');msg.setAttribute('aria-live','polite');
+  msg.style.cssText='margin:10px 0 0;font-weight:700;line-height:1.5';msg.hidden=true;
+  var host=btn&&btn.parentNode||card;host.appendChild(msg);
+  var rules=document.createElement('p');
+  rules.className='field-hint';rules.style.cssText='margin:6px 0 0';
+  rules.textContent='At least 8 characters, with letters and numbers (e.g. Phuket2026Trip). Not the old default password.';
+  var pwBox=pwEl.closest('.pw-wrap')||pwEl;pwBox.parentNode.insertBefore(rules,pwBox.nextSibling);
+  function say(t,ok){msg.textContent=t;msg.hidden=!t;msg.style.color=ok?'#166534':'#b42318';}
+  function stamp(){try{return (JSON.parse(localStorage.getItem('travelAdminCreds')||'null')||{}).updatedAt||'';}catch(e){return '';}}
+  var prev=window.updateAdminCreds;
+  window.updateAdminCreds=function(){
+    var id=(idEl.value||'').trim(),pass=pwEl.value||'';
+    if(!id){say('Please type the Admin Login ID.');idEl.focus();return;}
+    if(!pass){say('Please type the new admin password.');pwEl.focus();return;}
+    if(pass.trim().length<8){say('The password is too short — use at least 8 characters.');pwEl.focus();return;}
+    if(!/[A-Za-z]/.test(pass)||!/[0-9]/.test(pass)){say('Please use letters and numbers in the password (e.g. Phuket2026Trip).');pwEl.focus();return;}
+    say('Saving…',true);
+    var before=stamp(),r=prev.apply(this,arguments),tries=0;
+    (function check(){
+      tries++;
+      if(stamp()!==before){say('✅ Saved. From now on log in as Admin with ID "'+id+'" and the new password. Write the password down.',true);return;}
+      var t=[].slice.call(document.querySelectorAll('.toast-msg')).map(function(x){return x.textContent;}).join(' ');
+      if(/old default password/i.test(t)){say('This is the old default password. Please choose a new one.');return;}
+      if(tries<40)setTimeout(check,150);else say('The password could not be saved. Please try again.');
+    })();
+    return r;
+  };
+  pwEl.addEventListener('input',function(){if(msg.style.color!=='rgb(22, 101, 52)')say('');});
+})();}catch(err){console.error('Admin credentials feedback failed to start:',err);}
+</script>
 </body>
 </html>
