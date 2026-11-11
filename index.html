@@ -11546,6 +11546,8 @@ try{(function(){
    ===================================================================== */
 .sfx{opacity:0;filter:blur(8px);transform:perspective(1000px) translateY(56px) rotateX(10deg) scale(.97);transform-origin:50% 100%;
   transition:opacity .8s cubic-bezier(.16,.84,.3,1),transform .9s cubic-bezier(.16,.84,.3,1),filter .8s ease;transition-delay:var(--sfx-d,0ms);will-change:opacity,transform,filter}
+/* coming back into view while scrolling UP: drop in from above */
+.sfx.sfx-up{transform:perspective(1000px) translateY(-56px) rotateX(-10deg) scale(.97);transform-origin:50% 0}
 .sfx.sfx-left{transform:perspective(1000px) translateX(-70px) rotateY(8deg)}
 .sfx.sfx-right{transform:perspective(1000px) translateX(70px) rotateY(-8deg)}
 .sfx.sfx-zoom{transform:scale(.82) translateY(30px)}
@@ -11622,10 +11624,11 @@ try{(function(){
   /* never animate the quotation preview, pop-ups or the login screen */
   var SKIP='#pdf .pdf-page, #pdf .pdf-page *, .login-gate *, .chatbot-panel *, .modal *, [role="dialog"] *';
 
-  /* Cards play their entrance every time they come on screen:
+  /* Cards play their entrance EVERY time they come on screen, scrolling
+     down (they rise in from below) or up (they drop in from above):
        • showIO  — card is (12%) on screen → play the animation
-       • hideIO  — card has gone fully below the screen, or its page was
-                   hidden → get it ready to play again next time
+       • hideIO  — card has gone fully off the screen (below or above), or
+                   its page was hidden → get it ready to play again
      Cards that are already on screen when a page opens animate in too. */
   var io=null,hideIO=null,timers=new WeakMap();
   if(!reduce&&'IntersectionObserver' in window){
@@ -11636,14 +11639,17 @@ try{(function(){
       entries.forEach(function(e){
         if(e.isIntersecting)return;
         var r=e.boundingClientRect;
-        if(r.height===0||r.top>=(window.innerHeight||document.documentElement.clientHeight))hide(e.target);
+        var vh=window.innerHeight||document.documentElement.clientHeight;
+        if(r.height===0||r.top>=vh)hide(e.target,false);      // gone below the screen / page hidden
+        else if(r.bottom<=0)hide(e.target,true);              // gone above the screen
       });
     },{threshold:0});
   }
-  function hide(n){
+  function hide(n,above){
     if(n.matches(':hover')||n.contains(document.activeElement))return;
     clearTimeout(timers.get(n));
     n.classList.remove('sfx-in','sfx-seen');
+    n.classList.toggle('sfx-up',!!above);
     n.classList.add('sfx');
     if(n.dataset.sfxKind)n.classList.add(n.dataset.sfxKind);
   }
@@ -11652,7 +11658,7 @@ try{(function(){
     n.classList.add('sfx-in','sfx-seen');
     clearTimeout(timers.get(n));
     /* after the animation, remove the classes so hover effects work as before */
-    timers.set(n,setTimeout(function(){n.classList.remove('sfx','sfx-in','sfx-left','sfx-right','sfx-zoom');},900+(parseInt(n.style.getPropertyValue('--sfx-d'))||0)));
+    timers.set(n,setTimeout(function(){n.classList.remove('sfx','sfx-in','sfx-up','sfx-left','sfx-right','sfx-zoom');},900+(parseInt(n.style.getPropertyValue('--sfx-d'))||0)));
   }
   /* safety net: anything on screen that is still waiting is shown (fast jumps, moved elements) */
   function sweep(){
