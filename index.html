@@ -11865,6 +11865,21 @@ html body .pw-wrap .pw-toggle,html body .pw-wrap .pw-toggle:hover,html body .pw-
   background:var(--card,#fff)!important;color:var(--text,#0f172a)!important;box-shadow:none!important;filter:none!important;animation:none!important;z-index:2}
 html body .pw-wrap .pw-toggle:hover{border-color:var(--lx-gold,#c6a76b)!important;background:rgba(198,167,107,.12)!important}
 html body .pw-wrap .pw-toggle::before,html body .pw-wrap .pw-toggle::after{display:none!important}
+/* Login screen flying planes: show the same on every device. Laptops with the
+   system setting "reduce motion" / Windows "Animation effects" off used to hide
+   the planes and the dotted route completely, so the phone and laptop login
+   screens looked different. The planes are slow and gentle, so they stay on. */
+@media (prefers-reduced-motion:reduce){
+  html body .login-gate .login-plane,html body .login-gate .login-route{display:block!important}
+  html body .login-gate .login-plane.p1{animation-duration:26s!important;animation-iteration-count:infinite!important}
+  html body .login-gate .login-plane.p2{animation-duration:32s!important;animation-iteration-count:infinite!important}
+  html body .login-gate .login-plane.p3{animation-duration:22s!important;animation-iteration-count:infinite!important}
+  html body .login-gate .login-plane.p4{animation-duration:30s!important;animation-iteration-count:infinite!important}
+  html body .login-gate .login-plane.p5{animation-duration:35s!important;animation-iteration-count:infinite!important}
+  html body .login-gate .login-plane.p6{animation-duration:24s!important;animation-iteration-count:infinite!important}
+  html body .login-gate .login-route path{animation-duration:18s!important;animation-iteration-count:infinite!important}
+  html body .login-gate .login-route .route-dot{animation-duration:2.6s!important;animation-iteration-count:infinite!important}
+}
 @media print{html body{background-image:none!important}}
 </style>
 </body>
