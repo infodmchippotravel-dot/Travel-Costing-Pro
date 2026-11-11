@@ -9322,7 +9322,14 @@ try{(function(){
     var cat=el('efCat').value,info=eff(cat),key=el('efPick').value;
     var custom=!info.saved||key===CUSTOM;
     var name=custom?el('efName').value.trim():key&&info.saved?(cat==='transfer'?(((typeof transfers!=='undefined'?transfers:[])[+key]||{}).name||''):key):'';
-    if(info.saved&&!key)return strict?fail('efPick','Please select a '+info.noun+' from the list.'):null;
+    if(info.saved&&!key){
+      if(!strict)return null;
+      var art=/^[aeiou]/i.test(info.noun)?'an ':'a ';
+      /* empty list: say why instead of "select from the list" */
+      var opts=[].filter.call(el('efPick').options,function(o){return o.value&&o.value!==CUSTOM;}).length;
+      if(!opts)return fail('efPick','No saved '+info.noun+'s yet. '+(typeof isAdminSession==='function'&&isAdminSession()?'Add them in Saved Rates':'The admin adds them in Saved Rates')+' — or press ＋ Add Custom Service to type your own.');
+      return fail('efPick','Please select '+art+info.noun+' from the list.');
+    }
     if(!name)return strict?fail(custom?'efName':'efPick',info.saved?'Please type the '+info.noun+' name.':'Please type the '+({hotel:'hotel name',activity:'activity name',other:'description',ctransfer:'custom transfer name',cservice:'custom service name'}[cat])+'.'):null;
     var date=cat==='hotel'?(el('efCheckIn').value||''):(el('efDate').value||'');
     var line;
