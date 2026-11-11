@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://translate.googleapis.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com; frame-src https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://translate.googleapis.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com; frame-src 'self' https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <script>
 /* ===== Guaranteed stale-cache buster (safe version) =====
@@ -3336,6 +3336,10 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 <nav class="pager" id="savedPager" aria-label="Saved costings pages"></nav>
 </section>
 
+<section id="itinerary" class="page" aria-labelledby="itinTitle">
+<div class="page-header"><div aria-hidden="true" class="ph-icon navy"><svg class="lux-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6z"/><path d="M9 4v14M15 6v14"/></svg></div><div><h1 class="ph-title" id="itinTitle" tabindex="-1">Create Itinerary</h1><div class="ph-sub">Make the day-by-day tour voucher for your client, then print it or save it as PDF.</div></div></div>
+<div class="itin-wrap"><iframe id="itinFrame" title="Create Itinerary — tour voucher maker"></iframe><p class="itin-loading">Loading the itinerary maker…</p></div>
+</section>
 <section id="settings" class="page">
 <div class="page-header"><div aria-hidden="true" class="ph-icon navy">⚙️</div><div><div class="ph-eyebrow">Account</div><h1 class="ph-title" tabindex="-1">Settings</h1><div class="ph-sub">Your profile, sounds, company details and backups</div></div></div>
 <div class="card">
@@ -11551,6 +11555,10 @@ try{(function(){
 .sfx.sfx-left{transform:perspective(1000px) translateX(-70px) rotateY(8deg)}
 .sfx.sfx-right{transform:perspective(1000px) translateX(70px) rotateY(-8deg)}
 .sfx.sfx-zoom{transform:scale(.82) translateY(30px)}
+/* cards taller than the screen: flat slide only — a 3D tilt on a very tall card moves it
+   far off screen in the browser's eyes, so it would never be shown */
+.sfx.sfx-tall{transform:translateY(40px)}
+.sfx.sfx-tall.sfx-up{transform:translateY(-40px)}
 .sfx.sfx-in{opacity:1;transform:none}
 .sfx.sfx-in.card,.sfx.sfx-in.stat-card,.sfx.sfx-in.big-act,.sfx.sfx-in.home-guide,.sfx.sfx-in.summary{animation:sfxGlow 1.6s ease-out var(--sfx-d,0ms) both}
 @keyframes sfxGlow{0%,35%{box-shadow:0 0 0 2px rgba(198,167,107,.75),0 28px 60px -24px rgba(198,167,107,.75)}}
@@ -11633,8 +11641,10 @@ try{(function(){
   var io=null,hideIO=null,timers=new WeakMap();
   if(!reduce&&'IntersectionObserver' in window){
     io=new IntersectionObserver(function(entries){
-      entries.forEach(function(e){if(e.isIntersecting)reveal(e.target);});
-    },{threshold:0.12,rootMargin:'0px 0px -6% 0px'});
+      var vh=window.innerHeight||800;
+      /* 12% of the card on screen — or, for a card taller than the screen, a quarter of the screen */
+      entries.forEach(function(e){if(e.isIntersecting&&(e.intersectionRatio>=0.12||e.intersectionRect.height>=vh*0.25))reveal(e.target);});
+    },{threshold:[0,0.02,0.05,0.08,0.12],rootMargin:'0px 0px -6% 0px'});
     hideIO=new IntersectionObserver(function(entries){
       entries.forEach(function(e){
         if(e.isIntersecting)return;
@@ -11645,9 +11655,25 @@ try{(function(){
       });
     },{threshold:0});
   }
+  function tall(n){
+    var want=n.offsetHeight>(window.innerHeight||800)*0.8;
+    if(want===n.classList.contains('sfx-tall'))return;
+    /* switch between the 3D and the flat start position at once (no slide), so it is measured right */
+    var waiting=n.classList.contains('sfx')&&!n.classList.contains('sfx-in');
+    if(waiting)n.style.setProperty('transition','none','important');
+    n.classList.toggle('sfx-tall',want);
+    if(waiting){void n.offsetWidth;n.style.removeProperty('transition');}
+  }
+  /* a card that changes size (e.g. its tab is opened, a long list is filled in) is checked again */
+  var ro=null,roT=null;
+  if('ResizeObserver' in window)ro=new ResizeObserver(function(es){
+    es.forEach(function(e){if(e.target.classList.contains('sfx'))tall(e.target);});
+    if(!roT)roT=requestAnimationFrame(function(){roT=null;sweep();});
+    clearTimeout(ro.later);ro.later=setTimeout(sweep,1000);   // again once a flat/3D change has finished moving
+  });
   function hide(n,above){
     if(n.matches(':hover')||n.contains(document.activeElement))return;
-    clearTimeout(timers.get(n));
+    clearTimeout(timers.get(n));tall(n);
     n.classList.remove('sfx-in','sfx-seen');
     n.classList.toggle('sfx-up',!!above);
     n.classList.add('sfx');
@@ -11664,6 +11690,7 @@ try{(function(){
   function sweep(){
     var vh=window.innerHeight;
     document.querySelectorAll('.page.active .sfx:not(.sfx-in)').forEach(function(n){
+      tall(n);
       var r=n.getBoundingClientRect();
       if(r.height>0&&r.top<vh*0.94&&r.bottom>0)reveal(n);
     });
@@ -11682,8 +11709,8 @@ try{(function(){
       else if(n.classList.contains('big-act'))kind=sib%2?'sfx-right':'sfx-left';
       if(kind){n.dataset.sfxKind=kind;n.classList.add(kind);}
       n.style.setProperty('--sfx-d',Math.min(sib,5)*80+'ms');
-      n.classList.add('sfx');
-      io.observe(n);hideIO.observe(n);
+      tall(n);n.classList.add('sfx');
+      io.observe(n);hideIO.observe(n);if(ro)ro.observe(n);
     });
   }
 
@@ -11921,5 +11948,275 @@ html body main .page .sfx{transition:opacity .8s cubic-bezier(.16,.84,.3,1),tran
 }
 @media print{html body{background-image:none!important}}
 </style>
+<style id="itineraryCss">
+/* ---------- Create Itinerary page ---------- */
+#itinerary .itin-wrap{position:relative;border-radius:20px;overflow:hidden;border:1px solid rgba(198,167,107,.30);
+  box-shadow:0 1px 2px rgba(11,31,58,.05),0 14px 36px -16px rgba(11,31,58,.22);background:var(--bg,#F6F3ED)}
+#itinerary #itinFrame{display:block;width:100%;height:calc(100vh - 250px);min-height:640px;border:0;background:transparent}
+@supports (height:100dvh){#itinerary #itinFrame{height:calc(100dvh - 250px)}}
+#itinerary .itin-loading{position:absolute;inset:0;display:grid;place-items:center;margin:0;color:var(--muted,#667085);font-weight:700;pointer-events:none}
+#itinerary .itin-wrap.is-ready .itin-loading{display:none}
+@media (max-width:600px){#itinerary #itinFrame{height:calc(100vh - 190px);min-height:560px}@supports (height:100dvh){#itinerary #itinFrame{height:calc(100dvh - 190px)}}}
+@media print{#itinerary{display:none!important}}
+/* one more menu item (Create Itinerary): keep the header on one line on laptop screens */
+@media (min-width:1024px) and (max-width:1439px){
+  html body .topbar .assist-btn .ab-text{display:none!important}
+  html body .topbar .assist-btn{min-width:44px;padding:0 12px!important;justify-content:center}
+  html body #primaryNav>button{padding:0 10px!important}
+}
+@media (min-width:1024px) and (max-width:1300px){
+  html body #primaryNav>button .lux-ico{display:none}
+  html body .topbar .acct-name{display:none}
+  html body .topbar .acct-btn{padding:4px!important}
+}
+@media (min-width:1024px) and (max-width:1120px){
+  html body #primaryNav>button{padding:0 7px!important;font-size:13.5px!important}
+  html body .topbar .hdr-new{padding-left:12px!important;padding-right:12px!important}
+}
+
+/* ---------- Saved Rates → Tours ---------- */
+#ratesPanel-tour .tour-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#ratesPanel-tour .tour-form .tf-wide{grid-column:1/-1}
+#ratesPanel-tour .tour-form .tf-2{grid-column:span 2}
+#ratesPanel-tour textarea{width:100%;min-height:132px;line-height:1.5;resize:vertical}
+#ratesPanel-tour textarea#tourBring{min-height:76px}
+#ratesPanel-tour .tf-hint{font-size:13px;color:var(--muted,#667085);margin:4px 0 0}
+#ratesPanel-tour .tour-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+#ratesPanel-tour .tour-tools select{width:auto;min-width:180px}
+#ratesPanel-tour .tour-tools .tt-n{margin-left:auto;font-weight:700;color:var(--muted,#667085)}
+#ratesPanel-tour .tour-lines{color:var(--muted,#667085);font-size:13px;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#ratesPanel-tour .tour-city{display:inline-block;font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;background:rgba(198,167,107,.18);color:#7a5f2c}
+#ratesPanel-tour .tour-more{display:flex;justify-content:center;margin-top:12px}
+#ratesPanel-tour .form-error{color:#b42318;font-weight:700;min-height:0;margin:0}
+#ratesPanel-tour .form-error:empty{display:none}
+body.dark #ratesPanel-tour .tour-city{color:#EBD9AC}
+@media (max-width:760px){#ratesPanel-tour .tour-form{grid-template-columns:1fr}#ratesPanel-tour .tour-form .tf-2{grid-column:auto}}
+</style>
+<script>
+/* =====================================================================
+   CREATE ITINERARY — menu item next to "My Costings"
+     • Opens the tour voucher / itinerary maker (itinerary.html) inside
+       the website, with the same login, colours and dark mode.
+     • Old PDF vouchers are shown to the admin only; users see only the
+       vouchers they saved themselves.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  function el(id){return document.getElementById(id);}
+  var nav=el('primaryNav'),page=el('itinerary'),frame=el('itinFrame');
+  if(!nav||!page||!frame)return;
+  var mine=el('navMyCostings');
+  var b=document.createElement('button');
+  b.type='button';b.id='navItinerary';b.setAttribute('onclick',"showPage('itinerary',this)");b.innerHTML='<svg class="lux-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6z"/><path d="M9 4v14M15 6v14"/></svg> Create Itinerary';
+  if(mine&&mine.parentNode===nav)nav.insertBefore(b,mine.nextSibling);else nav.appendChild(b);
+
+  function sessKey(){try{return localStorage.getItem('travelCurrentUserKey')||'';}catch(e){return '';}}
+  var loadedFor=null;
+  function load(){
+    var k=sessKey();
+    if(frame.getAttribute('src')&&loadedFor===k)return;
+    loadedFor=k;
+    page.querySelector('.itin-wrap').classList.remove('is-ready');
+    var v=/[?&]_v=(\d+)/.exec(location.search);
+    frame.src='itinerary.html'+(v?'?_v='+v[1]:'');
+  }
+  frame.addEventListener('load',function(){page.querySelector('.itin-wrap').classList.add('is-ready');});
+  var prevShow=window.showPage;
+  window.showPage=function(id,btn){
+    var r=prevShow.apply(this,arguments);
+    if(id==='itinerary'){
+      load();
+      [].forEach.call(nav.children,function(x){var on=x===b;x.classList.toggle('active',on);if(on)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current');});
+    }
+    return r;
+  };
+
+  /* Backup: also keep the admin's tour list and the saved itineraries */
+  var prevAll=window.allSavedData;
+  if(typeof prevAll==='function')window.allSavedData=function(){
+    var d=prevAll.apply(this,arguments);
+    try{var t=JSON.parse(localStorage.getItem('travelTourList')||'null');if(Array.isArray(t))d.tourList=t;}catch(e){}
+    try{var s=JSON.parse(localStorage.getItem('tv.saved.v1')||'null');if(Array.isArray(s))d.itineraries=s;}catch(e){}
+    return d;
+  };
+  var prevImport=window.importBackup;
+  if(typeof prevImport==='function')window.importBackup=function(event){
+    var self=this,args=arguments,file=event&&event.target&&event.target.files&&event.target.files[0];
+    var admin=typeof isAdminSession==='function'&&isAdminSession();
+    if(!file||!admin||!/\.json$/i.test(file.name)||file.size>10*1024*1024)return prevImport.apply(self,args);
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{
+        var d=JSON.parse(rd.result);
+        if(d&&Array.isArray(d.tourList))localStorage.setItem('travelTourList',JSON.stringify(d.tourList.filter(function(x){return x&&typeof x==='object'&&x.t;})));
+        if(d&&Array.isArray(d.itineraries)){
+          var cur=[];try{cur=JSON.parse(localStorage.getItem('tv.saved.v1')||'[]')||[];}catch(e){}
+          var ids={};cur.forEach(function(v){if(v&&v.id)ids[v.id]=1;});
+          d.itineraries.forEach(function(v){if(v&&typeof v==='object'&&v.id&&!ids[v.id])cur.push(v);});
+          localStorage.setItem('tv.saved.v1',JSON.stringify(cur));
+        }
+      }catch(e){/* not JSON — the normal restore shows the message */}
+      prevImport.apply(self,args);
+    };
+    rd.onerror=function(){prevImport.apply(self,args);};
+    rd.readAsText(file);
+  };
+})();}catch(err){console.error('Create Itinerary failed to start:',err);}
+
+/* =====================================================================
+   SAVED RATES → TOURS (admin)
+     The tours used by "🔍 Choose tour" in Create Itinerary.
+     Add a new tour, change one, or delete one. The list is kept in this
+     browser ("travelTourList"); the built-in list is the starting point.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  function el(id){return document.getElementById(id);}
+  var page=el('rates');
+  var tabs=page&&page.querySelector('.rates-tabs'),holder=page&&page.querySelector('.rates-panels');
+  if(!tabs||!holder)return;
+  var KEY='travelTourList',SRC='assets/itinerary-tours.js';
+  var MEALS=[['','No meals'],['B','Breakfast'],['L','Lunch'],['D','Dinner'],['BL','Breakfast + Lunch'],['BD','Breakfast + Dinner'],['LD','Lunch + Dinner'],['BLD','Breakfast + Lunch + Dinner']];
+  var CABS=['Private Transfer','SIC (Shared)','No Transfer','Private AC Van','Shared Speedboat (SIC)','Private Speedboat','Long Tail Boat (SIC)','Catamaran (SIC)','Own Arrangement'];
+  function esc(s){return escapeHtml(s==null?'':String(s));}
+  function admin(){return typeof isAdminSession==='function'&&isAdminSession();}
+  function tell(m,k){if(window.showToast)showToast(m,k||'success');}
+
+  /* tab + panel */
+  var tb=document.createElement('button');
+  tb.type='button';tb.setAttribute('role','tab');tb.className='rates-tab';tb.id='ratesTab-tour';tb.dataset.tab='tour';
+  tb.setAttribute('aria-controls','ratesPanel-tour');tb.setAttribute('aria-selected','false');tb.tabIndex=-1;
+  tb.innerHTML='🏝️ Tours <span class="rt-n" id="ratesN-tour">…</span>';
+  tabs.appendChild(tb);
+  var p=document.createElement('section');
+  p.className='rates-panel';p.id='ratesPanel-tour';p.setAttribute('role','tabpanel');p.setAttribute('aria-labelledby','ratesTab-tour');p.hidden=true;
+  p.innerHTML='<div class="card rates-form-card"><h2 class="card-title rf-title" id="rfTitle-tour"><span class="step-no" aria-hidden="true">1</span> <span class="rf-text">Add a new tour</span></h2>'
+    +'<p class="rates-help">These tours come up in <b>Create Itinerary → 🔍 Choose tour</b>. Fill in the tour, then press <b>Save</b>.</p>'
+    +'<div class="tour-form">'
+    +'<div class="tf-2"><label for="tourName">Tour name</label><input type="text" id="tourName" maxlength="120" autocomplete="off" placeholder="e.g. Coral Island Tour by Speedboat"></div>'
+    +'<div><label for="tourCity">City</label><input type="text" id="tourCity" list="tourCityList" maxlength="40" autocomplete="off" placeholder="e.g. Pattaya"><datalist id="tourCityList"></datalist></div>'
+    +'<div><label for="tourMeal">Meals</label><select id="tourMeal">'+MEALS.map(function(m){return '<option value="'+m[0]+'">'+m[1]+'</option>';}).join('')+'</select></div>'
+    +'<div class="tf-wide"><label for="tourCab">Transport</label><select id="tourCab">'+CABS.map(function(c){return '<option>'+esc(c)+'</option>';}).join('')+'</select></div>'
+    +'<div class="tf-wide"><label for="tourLines">Day plan (one line per row)</label><textarea id="tourLines" placeholder="• 08:00 AM Pick up from hotel lobby&#10;• Speedboat to Coral Island&#10;• Lunch at Indian restaurant"></textarea>'
+    +'<p class="tf-hint">Start a line with <b>•</b> to show a bullet. Lines without <b>•</b> print without one. Put <b>[[ ]]</b> around words to make them yellow, e.g. [[NOTE: carry your passport]].</p></div>'
+    +'<div class="tf-wide"><label for="tourBring">Things to bring <span class="opt-tag">optional</span></label><textarea id="tourBring" placeholder="One per row, e.g. towel"></textarea></div>'
+    +'</div><p class="form-error" id="tourError" role="alert"></p>'
+    +'<div class="builder-actions"><button class="blue" id="tourSave" type="button" style="flex:1">💾 Save Tour</button><button class="btn-ghost" id="tourCancel" type="button">Cancel</button></div></div>'
+    +'<div class="card rates-list-card"><h2 class="card-title"><span class="step-no" aria-hidden="true">2</span> Saved Tours</h2>'
+    +'<div class="tour-tools"><label for="tourCityFilter" class="visually-hidden">City</label><select id="tourCityFilter"><option value="">All cities</option></select>'
+    +'<button class="btn-ghost" type="button" id="tourReset">↺ Start again from the built-in list</button><span class="tt-n" id="tourCount"></span></div>'
+    +'<table class="data-table rate-table"><caption class="visually-hidden">Saved tours</caption>'
+    +'<thead><tr><th scope="col">Tour</th><th scope="col">City</th><th scope="col">Meals</th><th scope="col">Transport</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>'
+    +'<tbody id="tourList"><tr><td colspan="5" class="empty">Loading tours…</td></tr></tbody></table>'
+    +'<div class="tour-more" id="tourMore" hidden><button class="btn-ghost" type="button" id="tourMoreBtn">▼ Show all</button></div></div>';
+  holder.appendChild(p);
+
+  /* data */
+  var loading=null,editing=-1,showAll=false;
+  function ensure(){
+    if(Array.isArray(window.SLIP_PRESETS))return Promise.resolve();
+    if(loading)return loading;
+    loading=new Promise(function(ok,bad){var s=document.createElement('script');s.src=SRC;s.onload=ok;s.onerror=function(){loading=null;bad(new Error('The tour list could not be loaded. Check the internet and try again.'));};document.head.appendChild(s);});
+    return loading;
+  }
+  function builtIn(){return JSON.parse(JSON.stringify(window.SLIP_PRESETS||[]));}
+  function list(){try{var s=JSON.parse(localStorage.getItem(KEY)||'null');if(Array.isArray(s))return s;}catch(e){}return builtIn();}
+  function store(a){try{localStorage.setItem(KEY,JSON.stringify(a));return true;}catch(e){tell('Could not save — browser storage is full.','error');return false;}}
+  function mealName(m){var f=MEALS.find(function(x){return x[0]===String(m||'').toUpperCase().split('').sort(function(a,b){return 'BLD'.indexOf(a)-'BLD'.indexOf(b);}).join('');});return f?f[1]:(m||'—');}
+  function linesToText(a){return (a||[]).map(function(l){return String(l).replace(/^[⁢⁣]/,function(c){return c==='⁢'?'• ':'';});}).join('\n');}
+  function textToLines(t){return String(t||'').split('\n').map(function(l){return l.replace(/\s+$/,'');}).filter(function(l){return l.trim();}).map(function(l){l=l.trim();return /^[•●▪]/.test(l)?l.replace(/^[•●▪]\s*/,'• '):'⁣'+l;});}
+
+  /* list */
+  function render(){
+    var all=list(),q=((el('ratesSearch')||{}).value||'').trim().toLowerCase(),city=el('tourCityFilter').value;
+    var cities={};all.forEach(function(t){if(t&&t.c)cities[t.c]=1;});
+    var cs=Object.keys(cities).sort();
+    var cf=el('tourCityFilter'),keep=cf.value;
+    cf.innerHTML='<option value="">All cities</option>'+cs.map(function(c){return '<option'+(c===keep?' selected':'')+'>'+esc(c)+'</option>';}).join('');
+    el('tourCityList').innerHTML=cs.map(function(c){return '<option value="'+esc(c)+'"></option>';}).join('');
+    var rows=all.map(function(t,i){return {t:t,i:i};}).filter(function(x){
+      var t=x.t;if(!t||!t.t)return false;if(city&&t.c!==city)return false;
+      return !q||(t.t+' '+(t.c||'')+' '+(t.it||[]).join(' ')).toLowerCase().indexOf(q)!==-1;
+    });
+    var max=showAll||q?rows.length:60,body=el('tourList');
+    body.innerHTML=rows.length?rows.slice(0,max).map(function(x){
+      var t=x.t,first=(t.it||[]).map(function(l){return String(l).replace(/^[⁢⁣•\s]+/,'').replace(/\[\[|\]\]/g,'');}).slice(0,2).join(' · ');
+      return '<tr><td class="cell-name" data-label="Tour"><b>'+esc(t.t)+'</b><div class="tour-lines">'+esc(first)+'</div></td>'
+        +'<td data-label="City">'+(t.c?'<span class="tour-city">'+esc(t.c)+'</span>':'<span class="muted">—</span>')+'</td>'
+        +'<td data-label="Meals">'+esc(mealName(t.m))+'</td><td data-label="Transport">'+esc(t.tr||'—')+'</td>'
+        +'<td data-label="Actions"><div class="row-actions">'+(admin()?'<button class="blue" type="button" data-tour-edit="'+x.i+'" aria-label="Edit '+esc(t.t)+'">Edit</button><button class="red" type="button" data-tour-del="'+x.i+'" aria-label="Delete '+esc(t.t)+'">Delete</button>':'')+'</div></td></tr>';
+    }).join(''):'<tr><td colspan="5" class="empty">'+(q||city?'No tours match.':'No tours saved yet.')+'</td></tr>';
+    el('tourMore').hidden=rows.length<=max;el('tourMoreBtn').textContent='▼ Show all '+rows.length+' tours';
+    el('tourCount').textContent=rows.length+' of '+all.length+' tours';
+    el('ratesN-tour').textContent=all.length;
+  }
+  function fail(e){el('tourList').innerHTML='<tr><td colspan="5" class="empty">'+esc(e.message||e)+'</td></tr>';}
+  function refresh(){ensure().then(render,fail);}
+
+  /* form */
+  function setTitle(on,name){el('rfTitle-tour').querySelector('.rf-text').textContent=on?'Change: '+name:'Add a new tour';p.querySelector('.rates-form-card').classList.toggle('is-editing',!!on);}
+  function clearForm(){editing=-1;['tourName','tourCity','tourLines','tourBring'].forEach(function(id){el(id).value='';});el('tourMeal').value='';el('tourCab').value='Private Transfer';el('tourError').textContent='';setTitle(false);}
+  function fill(i){
+    var t=list()[i];if(!t)return;editing=i;
+    el('tourName').value=t.t||'';el('tourCity').value=t.c||'';
+    var m=String(t.m||'').toUpperCase().split('').sort(function(a,b){return 'BLD'.indexOf(a)-'BLD'.indexOf(b);}).join('');
+    el('tourMeal').value=MEALS.some(function(x){return x[0]===m;})?m:'';
+    var cab=el('tourCab');if(t.tr&&![].some.call(cab.options,function(o){return o.value===t.tr;})){var o=document.createElement('option');o.textContent=t.tr;cab.appendChild(o);}
+    cab.value=t.tr||'Private Transfer';
+    el('tourLines').value=linesToText(t.it);el('tourBring').value=(t.b||[]).join('\n');
+    el('tourError').textContent='';setTitle(true,t.t);
+    p.querySelector('.rates-form-card').scrollIntoView({block:'start',behavior:'smooth'});
+    setTimeout(function(){el('tourName').focus({preventScroll:true});},300);
+  }
+  el('tourSave').addEventListener('click',function(){
+    if(!admin())return tell('Only the admin can change tours.','error');
+    var name=el('tourName').value.replace(/\s+/g,' ').trim(),city=el('tourCity').value.replace(/\s+/g,' ').trim(),lines=textToLines(el('tourLines').value);
+    if(!name){el('tourError').textContent='Please type the tour name.';el('tourName').focus();return;}
+    if(!lines.length){el('tourError').textContent='Please type the day plan (at least one line).';el('tourLines').focus();return;}
+    var all=list();
+    var dup=all.findIndex(function(t,i){return i!==editing&&t&&String(t.t).toLowerCase()===name.toLowerCase()&&String(t.c||'').toLowerCase()===city.toLowerCase();});
+    if(dup!==-1){el('tourError').textContent='A tour with this name and city is already saved. Press Edit on it to change it.';return;}
+    var t={t:name,c:city,m:el('tourMeal').value,tr:el('tourCab').value,it:lines,b:el('tourBring').value.split('\n').map(function(x){return x.trim();}).filter(Boolean)};
+    var was=editing;
+    if(was>=0&&all[was])all[was]=t;else all.unshift(t);
+    if(!store(all))return;
+    clearForm();showAll=false;render();
+    tell(was>=0?'Tour changed: '+name:'Tour saved: '+name);
+  });
+  el('tourCancel').addEventListener('click',clearForm);
+  el('tourList').addEventListener('click',function(e){
+    var ed=e.target.closest('[data-tour-edit]'),dl=e.target.closest('[data-tour-del]');
+    if(ed)return fill(+ed.dataset.tourEdit);
+    if(dl){
+      if(!admin())return;
+      var all=list(),i=+dl.dataset.tourDel,t=all[i];if(!t)return;
+      if(!confirm('Delete this tour?\n\n'+t.t+(t.c?' ('+t.c+')':'')+'\n\nIt will no longer come up in Create Itinerary.'))return;
+      all.splice(i,1);if(!store(all))return;
+      if(editing===i)clearForm();else if(editing>i)editing--;
+      render();tell('Tour deleted: '+t.t);
+    }
+  });
+  el('tourCityFilter').addEventListener('change',function(){showAll=false;render();});
+  el('tourMoreBtn').addEventListener('click',function(){showAll=true;render();});
+  el('tourReset').addEventListener('click',function(){
+    if(!admin())return;
+    if(!confirm('Start again from the built-in tour list?\n\nTours you added or changed here will be removed.'))return;
+    try{localStorage.removeItem(KEY);}catch(e){}
+    clearForm();render();tell('The built-in tour list is back.');
+  });
+  var srch=el('ratesSearch');if(srch)srch.addEventListener('input',function(){if(!p.hidden)render();});
+
+  /* tab switching (works together with the other Saved Rates tabs) */
+  tabs.addEventListener('click',function(e){
+    var t=e.target.closest('[data-tab]');if(!t)return;
+    var on=t.dataset.tab==='tour';
+    p.hidden=!on;tb.classList.toggle('is-on',on);tb.setAttribute('aria-selected',on?'true':'false');tb.tabIndex=on?0:-1;
+    if(on)refresh();
+  });
+  var prevShow=window.showPage;
+  window.showPage=function(id){var r=prevShow.apply(this,arguments);if(id==='rates'&&admin())ensure().then(render,function(){});return r;};
+  window.addEventListener('storage',function(e){if(e.key===KEY&&!p.hidden)render();});
+})();}catch(err){console.error('Saved Rates → Tours failed to start:',err);}
+</script>
 </body>
 </html>
