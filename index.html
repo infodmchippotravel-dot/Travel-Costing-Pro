@@ -2572,6 +2572,12 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
       <div class="field-icon"><span aria-hidden="true">🔒</span><input id="adminLoginPassword" type="password" placeholder="Password" autocomplete="current-password"></div>
       <button class="blue login-main-btn" onclick="loginAsAdmin()" type="button">Login as Admin ➜</button>
       <div class="login-hint">Only the admin can manage rates, transfers, services, tickets and admin settings.</div>
+      <details class="admin-recover" id="adminRecover"><summary>Forgot admin password?</summary>
+        <p class="login-field-hint">Type the <b>Recovery Key</b> (it is kept only by the website owner). The admin login of <b>this browser</b> goes back to the default Admin ID and password. Costings and rates stay as they are.</p>
+        <label for="adminRecoverKey">Recovery Key</label>
+        <div class="field-icon"><span aria-hidden="true">🗝️</span><input id="adminRecoverKey" type="password" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"></div>
+        <button class="btn-ghost login-main-btn" id="adminRecoverBtn" type="button" style="margin-top:10px">Reset admin login on this browser</button>
+      </details>
       <div style="text-align:center;margin-top:12px">
         <button type="button" onclick="showEmailLoginPanel()" class="login-back-link login-switch">← Back to user login</button>
       </div>
@@ -12245,6 +12251,59 @@ try{(function(){
   window.showPage=function(id){var r=prevShow.apply(this,arguments);if(id==='rates'&&admin())ensure().then(render,function(){});return r;};
   window.addEventListener('storage',function(e){if(e.key===KEY&&!p.hidden)render();});
 })();}catch(err){console.error('Saved Rates → Tours failed to start:',err);}
+</script>
+<style id="adminRecoverCss">
+.admin-recover{margin-top:12px;border:1px solid rgba(198,167,107,.35);border-radius:12px;padding:8px 12px;background:rgba(198,167,107,.06)}
+.admin-recover summary{cursor:pointer;font-weight:700;font-size:14px;color:#7a5f2c}
+.admin-recover[open] summary{margin-bottom:8px}
+body.dark .admin-recover summary{color:#EBD9AC}
+</style>
+<script>
+/* =====================================================================
+   ADMIN LOGIN RECOVERY (this browser only) — needs the owner's Recovery Key
+     Only a slow, salted hash of the key is in the website (PBKDF2, 310,000
+     rounds), never the key itself. With the right key the admin ID /
+     password of THIS browser go back to the built-in default and any lock
+     is removed. 5 wrong keys → recovery is locked for 15 minutes.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  var K={salt:'31515f02c5d26bc61f52fc7715cf7531',iter:310000,hash:'cc8d9a7cc0c546807d6f73e2dcd4ed17ab297c693456b74a8f46019980a966cf'};
+  var LOCK='travelRecoveryLock';
+  var btn=document.getElementById('adminRecoverBtn'),inp=document.getElementById('adminRecoverKey');
+  if(!btn||!inp)return;
+  var subtle=window.crypto&&window.crypto.subtle;
+  function err(m){if(typeof showLoginError==='function')showLoginError(m);}
+  function hex(buf){return Array.prototype.map.call(new Uint8Array(buf),function(b){return ('0'+b.toString(16)).slice(-2);}).join('');}
+  function same(a,b){if(a.length!==b.length)return false;var d=0;for(var i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0;}
+  function lock(){try{return JSON.parse(localStorage.getItem(LOCK)||'null')||{n:0,until:0};}catch(e){return {n:0,until:0};}}
+  function setLock(l){try{localStorage.setItem(LOCK,JSON.stringify(l));}catch(e){}}
+  btn.addEventListener('click',function(){
+    var l=lock();
+    if(l.until>Date.now())return err('Too many wrong Recovery Keys. Please try again in '+Math.ceil((l.until-Date.now())/60000)+' minutes.');
+    var key=String(inp.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(!key){inp.focus();return err('Please type the Recovery Key.');}
+    if(!subtle)return err('This browser cannot check the key. Please open the website with https://');
+    btn.disabled=true;
+    var enc=new TextEncoder();
+    subtle.importKey('raw',enc.encode(key),{name:'PBKDF2'},false,['deriveBits']).then(function(k){
+      return subtle.deriveBits({name:'PBKDF2',salt:enc.encode(K.salt),iterations:K.iter,hash:'SHA-256'},k,256);
+    }).then(function(bits){
+      btn.disabled=false;
+      if(!same(hex(bits),K.hash)){
+        l.n=(+l.n||0)+1;if(l.n>=5){l.until=Date.now()+15*60000;l.n=0;}
+        setLock(l);inp.value='';inp.focus();
+        return err('This Recovery Key is not right. Please check it and try again.');
+      }
+      setLock({n:0,until:0});
+      try{localStorage.removeItem('travelAdminCreds');localStorage.removeItem('travelAdminLock');}catch(e){}
+      inp.value='';err('');
+      if(window.showToast)showToast('Admin login reset on this browser. Log in with the default Admin ID and password, then set a new password in Settings.','success');
+      setTimeout(function(){location.reload();},1800);
+    },function(){btn.disabled=false;err('The key could not be checked. Please try again.');});
+  });
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();btn.click();}});
+})();}catch(err){console.error('Admin recovery failed to start:',err);}
 </script>
 </body>
 </html>
