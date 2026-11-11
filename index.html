@@ -3399,6 +3399,27 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 <h3>🔑 Admin vs User</h3>
 <p style="color:var(--muted);line-height:1.8"><b>Users</b> log in with just their name. Their name is filled in as the <b>Client Name</b> on every new costing, and they see only the costings they saved. <b>Admins</b> log in with <b>Admin Name + Admin ID + Password</b> (the "Login as Admin" button on the login screen). Only admins can change rates, transfers, services and tickets, and admins see every saved costing.</p>
 </div>
+<div class="card itin-help" id="itinHelp">
+<h3>🗺️ Create Itinerary — how to use</h3>
+<p style="color:var(--muted);line-height:1.8;margin-top:0">Open <b>Create Itinerary</b> in the menu to make the day-by-day tour voucher for a client.</p>
+<details open><summary>How do I make a voucher?</summary><ol>
+<li>Press <b>＋ New Voucher</b> at the top.</li>
+<li><b>1 Client:</b> type the Client Name, Adults, Kids and the Travel start date. The Voucher Number comes by itself.</li>
+<li><b>2 Day by day plan:</b> in each row press <b>🔍 Choose tour</b>. A window opens: press a city (Pattaya, Bangkok…) or type a word (e.g. <i>coral</i>, <i>safari</i>, <i>airport</i>), then click the tour — the row fills itself. To change it later press <b>🔄 Change tour</b>. Not in the list? Press <b>✏️ Type my own</b>.</li>
+<li><b>3 Hotel details:</b> press <b>＋ Add hotel</b>, type the hotel name and click it. Check-in &amp; check-out dates fill by themselves (change them if needed). Add the Confirmation #.</li>
+<li>Press <b>＋ Add next day</b> for more days, <b>✕</b> to remove a day.</li>
+<li>Press <b>🖨️ Print / PDF</b> at the top. It saves by itself.</li></ol></details>
+<details><summary>How do I get a PDF for WhatsApp / Email?</summary><p>Press <b>🖨️ Print / PDF</b>. In the print window choose <b>“Save as PDF”</b> and press Save.</p></details>
+<details><summary>Hippo Travel, Anup Group or no company?</summary><p>At the top of Create Itinerary, choose it in <b>Company on PDF</b> before printing. Each voucher shows only one company. The admin changes their phone and address in <b>⚙️ Settings</b> at the bottom of Create Itinerary.</p></details>
+<details><summary>How do I make text yellow?</summary><p>In a day's <b>Itinerary details</b>, select the words (or click on the line) and press <b>🖍 Yellow</b>. Press again to remove it. Hotel <b>Confirmation #</b> is always yellow.</p></details>
+<details><summary>Where does the • bullet come?</summary><p>You don't add bullets — the PDF puts them by itself, like your vouchers: each line gets <b>•</b>; hotel name, <b>NOTE</b>, <b>Check in Hotel</b> and the <b>What to bring</b> list have no bullet.</p></details>
+<details><summary>Why does the hotel name show in the day plan?</summary><p>When you add a hotel in <b>3 Hotel details</b>, its name comes by itself in the day of its <b>check-in date</b> — in CAPITALS and bold, like your vouchers (first day: the hotel name; later days: “Check in Hotel – NAME”). Change the hotel or date below and it changes above too.</p></details>
+<details><summary>How do I add the flight ticket?</summary><p>In <b>4 Flight details</b> press <b>📎 Upload ticket</b> and choose the photo, screenshot or PDF. It prints full size under Flight Details.</p></details>
+<details><summary>How do I open a saved voucher?</summary><p>Go down to <b>📒 All vouchers</b> in Create Itinerary, search the name and press <b>Open →</b>. Newest travel date first (a saved one shows its 💾 number under the name). 🖨️ prints it straight away. Users see the vouchers they saved; the admin also sees everyone's vouchers and the old PDF vouchers.</p></details>
+<details><summary>How do I add or change a tour in “Choose tour”? (admin)</summary><p>Go to <b>Saved Rates → 🏝️ Tours</b>. Fill in the tour and press <b>💾 Save Tour</b>, or press <b>Edit</b> / <b>Delete</b> on a saved tour. The change shows in Create Itinerary straight away.</p></details>
+<details><summary>Is my work lost if I close the website?</summary><p>No. Your work is kept in this browser as you type, and it is there when you open the website again. To keep a copy, the admin can use <b>Settings → Download Backup</b> (it includes the tours and the saved vouchers).</p></details>
+<details><summary>I made a mistake — can I undo?</summary><p>Yes. Press <b>↶ Undo</b> in the black message at the bottom right after the change.</p></details>
+</div>
 <div class="card">
 <h3>📞 Need more help?</h3>
 <p style="color:var(--muted);line-height:1.8">Reach us at the number or email below — the details are also available in the footer.</p>
@@ -11974,6 +11995,13 @@ html body main .page .sfx{transition:opacity .8s cubic-bezier(.16,.84,.3,1),tran
   html body .topbar .hdr-new{padding-left:12px!important;padding-right:12px!important}
 }
 
+/* ---------- Help: Create Itinerary questions ---------- */
+#itinHelp details{border:1px solid rgba(198,167,107,.30);border-radius:12px;padding:10px 14px;margin:8px 0;background:var(--card,#fff)}
+#itinHelp details[open]{border-color:rgba(198,167,107,.6);box-shadow:0 8px 20px -14px rgba(11,31,58,.35)}
+#itinHelp summary{font-weight:700;cursor:pointer;color:var(--text,#1d2430)}
+#itinHelp summary::marker{color:#9A7A3E}
+#itinHelp details p,#itinHelp details ol{margin:8px 0 2px;color:var(--muted,#667085);line-height:1.7}
+#itinHelp details ol{padding-left:20px}
 /* ---------- Saved Rates → Tours ---------- */
 #ratesPanel-tour .tour-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 #ratesPanel-tour .tour-form .tf-wide{grid-column:1/-1}
