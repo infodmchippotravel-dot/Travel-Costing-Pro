@@ -11544,14 +11544,14 @@ try{(function(){
    Only visual — no ids, data or formulas change. Turned off for people
    who prefer less motion, and never affects print / PDF.
    ===================================================================== */
-.sfx{opacity:0;filter:blur(8px);transform:perspective(1000px) translateY(56px) rotateX(10deg) scale(.97);transform-origin:50% 100%;
-  transition:opacity .8s cubic-bezier(.16,.84,.3,1),transform .9s cubic-bezier(.16,.84,.3,1),filter .8s ease;transition-delay:var(--sfx-d,0ms);will-change:opacity,transform,filter}
+.sfx{opacity:0;transform:perspective(1000px) translateY(56px) rotateX(10deg) scale(.97);transform-origin:50% 100%;
+  transition:opacity .8s cubic-bezier(.16,.84,.3,1),transform .9s cubic-bezier(.16,.84,.3,1);transition-delay:var(--sfx-d,0ms);will-change:opacity,transform}
 /* coming back into view while scrolling UP: drop in from above */
 .sfx.sfx-up{transform:perspective(1000px) translateY(-56px) rotateX(-10deg) scale(.97);transform-origin:50% 0}
 .sfx.sfx-left{transform:perspective(1000px) translateX(-70px) rotateY(8deg)}
 .sfx.sfx-right{transform:perspective(1000px) translateX(70px) rotateY(-8deg)}
 .sfx.sfx-zoom{transform:scale(.82) translateY(30px)}
-.sfx.sfx-in{opacity:1;filter:none;transform:none}
+.sfx.sfx-in{opacity:1;transform:none}
 .sfx.sfx-in.card,.sfx.sfx-in.stat-card,.sfx.sfx-in.big-act,.sfx.sfx-in.home-guide,.sfx.sfx-in.summary{animation:sfxGlow 1.6s ease-out var(--sfx-d,0ms) both}
 @keyframes sfxGlow{0%,35%{box-shadow:0 0 0 2px rgba(198,167,107,.75),0 28px 60px -24px rgba(198,167,107,.75)}}
 
@@ -11561,9 +11561,9 @@ try{(function(){
 
 /* soft moving colour light behind the whole site (moves with scroll) */
 .sfx-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.sfx-bg i{position:absolute;display:block;border-radius:50%;filter:blur(70px);opacity:.55;will-change:transform}
-.sfx-bg .b1{width:520px;height:520px;left:-140px;top:12vh;background:radial-gradient(circle,rgba(198,167,107,.55),transparent 70%)}
-.sfx-bg .b2{width:600px;height:600px;right:-180px;top:45vh;background:radial-gradient(circle,rgba(14,147,201,.32),transparent 70%)}
+.sfx-bg i{position:absolute;display:block;border-radius:50%;opacity:.55;will-change:transform}
+.sfx-bg .b1{width:520px;height:520px;left:-140px;top:12vh;background:radial-gradient(circle,rgba(198,167,107,.5),rgba(198,167,107,.18) 35%,transparent 70%)}
+.sfx-bg .b2{width:600px;height:600px;right:-180px;top:45vh;background:radial-gradient(circle,rgba(14,147,201,.28),rgba(14,147,201,.1) 35%,transparent 70%)}
 .sfx-bg .b3{width:440px;height:440px;left:38%;top:90vh;background:radial-gradient(circle,rgba(11,31,58,.28),transparent 70%)}
 body.dark .sfx-bg i{opacity:.4}
 body.dark .sfx-bg .b3{background:radial-gradient(circle,rgba(120,160,255,.25),transparent 70%)}
@@ -11595,7 +11595,7 @@ body.has-easy-bar .sfx-top{bottom:100px}
    transition to 0.01ms. Give the scroll effects their real timing back so
    laptops with that setting look the same as phones. */
 @media (prefers-reduced-motion:reduce){
-  html body .sfx{transition-duration:.8s,.9s,.8s!important}
+  html body .sfx{transition-duration:.8s,.9s!important}
   html body .sfx.sfx-in.card,html body .sfx.sfx-in.stat-card,html body .sfx.sfx-in.big-act,html body .sfx.sfx-in.home-guide,html body .sfx.sfx-in.summary{animation-duration:1.6s!important}
   html body .page .card .card-title,html body .page .builder-title{transition-duration:1s!important}
   html body .topbar.scrolled::after{animation-duration:.6s,6s!important;animation-iteration-count:1,infinite!important}
@@ -11897,10 +11897,13 @@ html body .pw-wrap .pw-toggle,html body .pw-wrap .pw-toggle:hover,html body .pw-
   background:var(--card,#fff)!important;color:var(--text,#0f172a)!important;box-shadow:none!important;filter:none!important;animation:none!important;z-index:2}
 html body .pw-wrap .pw-toggle:hover{border-color:var(--lx-gold,#c6a76b)!important;background:rgba(198,167,107,.12)!important}
 html body .pw-wrap .pw-toggle::before,html body .pw-wrap .pw-toggle::after{display:none!important}
+/* Smooth scrolling for every jump on the page (Back to top, links, "go to the
+   missing field"), also with the system "reduce motion" setting on. */
+html{scroll-behavior:smooth!important}
 /* While a card is waiting for / playing its scroll animation, the scroll
    effect's own timing wins over the card hover transition (otherwise the
    card snapped in instead of fading and sliding in). */
-html body main .page .sfx{transition:opacity .8s cubic-bezier(.16,.84,.3,1),transform .9s cubic-bezier(.16,.84,.3,1),filter .8s ease!important;transition-delay:var(--sfx-d,0ms)!important}
+html body main .page .sfx{transition:opacity .8s cubic-bezier(.16,.84,.3,1),transform .9s cubic-bezier(.16,.84,.3,1)!important;transition-delay:var(--sfx-d,0ms)!important}
 /* Login screen flying planes: show the same on every device. Laptops with the
    system setting "reduce motion" / Windows "Animation effects" off used to hide
    the planes and the dotted route completely, so the phone and laptop login
