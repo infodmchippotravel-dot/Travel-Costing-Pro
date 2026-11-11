@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://translate.googleapis.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com; frame-src 'self' https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://translate.googleapis.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com https://api.emailjs.com; frame-src 'self' https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <script>
 /* ===== Guaranteed stale-cache buster (safe version) =====
@@ -2571,20 +2571,35 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
       <label for="adminLoginPassword" style="margin-top:12px">Password</label>
       <div class="field-icon"><span aria-hidden="true">🔒</span><input id="adminLoginPassword" type="password" placeholder="Password" autocomplete="off" data-lpignore="true" data-1p-ignore spellcheck="false" autocapitalize="off"></div>
       <p class="login-field-hint" id="adminPwHint" role="status" aria-live="polite" hidden></p>
+      <div class="fp-row"><button type="button" class="fp-link" id="fpOpen">Forgot password?</button></div>
       <button class="blue login-main-btn" onclick="loginAsAdmin()" type="button">Login as Admin ➜</button>
       <div class="login-hint">Only the admin can manage rates, transfers, services, tickets and admin settings.</div>
-      <details class="admin-recover" id="adminRecover"><summary>Forgot admin password?</summary>
-        <p class="login-field-hint">Type the <b>Recovery Key</b> (it is kept only by the website owner). The admin login of <b>this browser</b> goes back to the default Admin ID and password. Costings and rates stay as they are.</p>
-        <label for="adminRecoverKey">Recovery Key</label>
-        <div class="field-icon"><span aria-hidden="true">🗝️</span><input id="adminRecoverKey" type="password" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"></div>
-        <button class="btn-ghost login-main-btn" id="adminRecoverBtn" type="button" style="margin-top:10px">Reset admin login on this browser</button>
-      </details>
       <div style="text-align:center;margin-top:12px">
         <button type="button" onclick="showEmailLoginPanel()" class="login-back-link login-switch">← Back to user login</button>
       </div>
     </div>
 
-    <div id="loginExtraInfo" style="display:none">
+    <div id="loginPanel-forgot" class="login-panel" role="group" aria-labelledby="fpHead">
+<h3 class="login-panel-title" id="fpHead">🔐 Reset admin password</h3>
+<p class="login-field-hint" id="fpIntro">We send a 6-digit code (OTP) to the admin e-mail. Type the code and choose a new password.</p>
+<div id="fpStep1">
+<button class="blue login-main-btn" id="fpSend" type="button">📧 Send code to the admin e-mail</button>
+</div>
+<div id="fpStep2" hidden>
+<label for="fpCode">6-digit code from the e-mail</label>
+<div class="field-icon"><span aria-hidden="true">🔢</span><input id="fpCode" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="e.g. 482913"></div>
+<label for="fpNew" style="margin-top:12px">New admin password</label>
+<div class="field-icon"><span aria-hidden="true">🔒</span><input id="fpNew" type="password" autocomplete="new-password" placeholder="At least 8 characters, letters + numbers"></div>
+<label for="fpNew2" style="margin-top:12px">Type the new password again</label>
+<div class="field-icon"><span aria-hidden="true">🔒</span><input id="fpNew2" type="password" autocomplete="new-password" placeholder="Same password again"></div>
+<button class="blue login-main-btn" id="fpSave" type="button" style="margin-top:14px">✅ Change password</button>
+<div style="text-align:center;margin-top:8px"><button type="button" class="login-back-link login-switch" id="fpResend">↻ Send the code again</button></div>
+</div>
+<p class="login-field-hint" id="fpMsg" role="status" aria-live="polite" hidden></p>
+<div style="text-align:center;margin-top:12px"><button type="button" class="login-back-link login-switch" id="fpBack">← Back to admin login</button></div>
+</div>
+
+<div id="loginExtraInfo" style="display:none">
       <h3 style="margin-top:6px">📋 A few more details needed</h3>
       <div id="loginExtraPhoneField">
         <label for="extraPhone">Phone Number</label>
@@ -6964,6 +6979,18 @@ try{(function(){
         $('adminPasswordInput').value='';
         alert('✅ Admin ID and password updated. Use them the next time you log in as Admin.');
       });
+    });
+  };
+  /* After a correct e-mail OTP: save the new admin password (same rules and hashing as Settings) */
+  window.adminSetPasswordAfterOtp=function(pass){
+    pass=String(pass||'');
+    if(!subtle)return Promise.reject(new Error('This browser cannot store the password safely. Please open the site with https://'));
+    if(pass.trim().length<8)return Promise.reject(new Error('The password is too short — use at least 8 characters.'));
+    if(!/[A-Za-z]/.test(pass)||!/[0-9]/.test(pass))return Promise.reject(new Error('Please use letters and numbers in the password (e.g. Phuket2026Trip).'));
+    var c=stored(),id=c?c.id:DEFAULT_ID;
+    return isDefaultPass(id,pass).then(function(isDef){
+      if(isDef)throw new Error('This is the old default password. Please choose a new one.');
+      return storeNew(id,pass).then(function(){noteResult(true);return id;});
     });
   };
   window.renderAdminCredsCard=function(){
@@ -12259,59 +12286,6 @@ try{(function(){
   window.addEventListener('storage',function(e){if(e.key===KEY&&!p.hidden)render();});
 })();}catch(err){console.error('Saved Rates → Tours failed to start:',err);}
 </script>
-<style id="adminRecoverCss">
-.admin-recover{margin-top:12px;border:1px solid rgba(198,167,107,.35);border-radius:12px;padding:8px 12px;background:rgba(198,167,107,.06)}
-.admin-recover summary{cursor:pointer;font-weight:700;font-size:14px;color:#7a5f2c}
-.admin-recover[open] summary{margin-bottom:8px}
-body.dark .admin-recover summary{color:#EBD9AC}
-</style>
-<script>
-/* =====================================================================
-   ADMIN LOGIN RECOVERY (this browser only) — needs the owner's Recovery Key
-     Only a slow, salted hash of the key is in the website (PBKDF2, 310,000
-     rounds), never the key itself. With the right key the admin ID /
-     password of THIS browser go back to the built-in default and any lock
-     is removed. 5 wrong keys → recovery is locked for 15 minutes.
-   ===================================================================== */
-try{(function(){
-  'use strict';
-  var K={salt:'31515f02c5d26bc61f52fc7715cf7531',iter:310000,hash:'cc8d9a7cc0c546807d6f73e2dcd4ed17ab297c693456b74a8f46019980a966cf'};
-  var LOCK='travelRecoveryLock';
-  var btn=document.getElementById('adminRecoverBtn'),inp=document.getElementById('adminRecoverKey');
-  if(!btn||!inp)return;
-  var subtle=window.crypto&&window.crypto.subtle;
-  function err(m){if(typeof showLoginError==='function')showLoginError(m);}
-  function hex(buf){return Array.prototype.map.call(new Uint8Array(buf),function(b){return ('0'+b.toString(16)).slice(-2);}).join('');}
-  function same(a,b){if(a.length!==b.length)return false;var d=0;for(var i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0;}
-  function lock(){try{return JSON.parse(localStorage.getItem(LOCK)||'null')||{n:0,until:0};}catch(e){return {n:0,until:0};}}
-  function setLock(l){try{localStorage.setItem(LOCK,JSON.stringify(l));}catch(e){}}
-  btn.addEventListener('click',function(){
-    var l=lock();
-    if(l.until>Date.now())return err('Too many wrong Recovery Keys. Please try again in '+Math.ceil((l.until-Date.now())/60000)+' minutes.');
-    var key=String(inp.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-    if(!key){inp.focus();return err('Please type the Recovery Key.');}
-    if(!subtle)return err('This browser cannot check the key. Please open the website with https://');
-    btn.disabled=true;
-    var enc=new TextEncoder();
-    subtle.importKey('raw',enc.encode(key),{name:'PBKDF2'},false,['deriveBits']).then(function(k){
-      return subtle.deriveBits({name:'PBKDF2',salt:enc.encode(K.salt),iterations:K.iter,hash:'SHA-256'},k,256);
-    }).then(function(bits){
-      btn.disabled=false;
-      if(!same(hex(bits),K.hash)){
-        l.n=(+l.n||0)+1;if(l.n>=5){l.until=Date.now()+15*60000;l.n=0;}
-        setLock(l);inp.value='';inp.focus();
-        return err('This Recovery Key is not right. Please check it and try again.');
-      }
-      setLock({n:0,until:0});
-      try{localStorage.removeItem('travelAdminCreds');localStorage.removeItem('travelAdminLock');}catch(e){}
-      inp.value='';err('');
-      if(window.showToast)showToast('Admin login reset on this browser. Log in with the default Admin ID and password, then set a new password in Settings.','success');
-      setTimeout(function(){location.reload();},1800);
-    },function(){btn.disabled=false;err('The key could not be checked. Please try again.');});
-  });
-  inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();btn.click();}});
-})();}catch(err){console.error('Admin recovery failed to start:',err);}
-</script>
 <script>
 /* =====================================================================
    ADMIN PASSWORD BOX — type it yourself
@@ -12388,6 +12362,127 @@ try{(function(){
   };
   pwEl.addEventListener('input',function(){if(msg.style.color!=='rgb(22, 101, 52)')say('');});
 })();}catch(err){console.error('Admin credentials feedback failed to start:',err);}
+</script>
+<style id="forgotPwCss">
+.fp-row{display:flex;justify-content:flex-end;margin-top:6px}
+html body #adminCredsCard .fr-3{align-items:start!important}
+.fp-link{background:none!important;border:0!important;box-shadow:none!important;padding:2px 0!important;min-height:0!important;color:#7a5f2c!important;font-weight:700;font-size:14px;text-decoration:underline;cursor:pointer}
+.fp-link:hover{color:#0B1F3A!important}
+body.dark .fp-link{color:#EBD9AC!important}
+#fpMsg.is-ok{color:#166534;font-weight:700}#fpMsg.is-err{color:#b42318;font-weight:700}
+</style>
+<script>
+/* =====================================================================
+   FORGOT ADMIN PASSWORD — 6-digit code (OTP) by e-mail
+     • Settings → Admin Login Credentials has an "Admin e-mail" box.
+     • Login → Admin → "Forgot password?" sends a 6-digit code to that
+       e-mail (via EmailJS), valid for 10 minutes, 5 tries. With the right
+       code the admin chooses a new password (same rules as Settings).
+     • The code itself is never stored — only a salted hash of it.
+     • E-mail sending needs the site owner's EmailJS details below.
+   ===================================================================== */
+var EMAILJS_CONFIG={serviceId:'',templateId:'',publicKey:''};   /* fill in from emailjs.com */
+try{(function(){
+  'use strict';
+  function $(id){return document.getElementById(id);}
+  var EMAIL_KEY='travelAdminEmail',OTP_KEY='travelAdminOtp',OTP_MIN=10,MAX_TRIES=5,RESEND_S=60;
+  var subtle=window.crypto&&window.crypto.subtle;
+  function getEmail(){try{return (localStorage.getItem(EMAIL_KEY)||'').trim();}catch(e){return '';}}
+  function okEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);}
+  function mask(e){var m=/^(.)(.*)(@.*)$/.exec(e);return m?m[1]+m[2].replace(/./g,'•').slice(0,6)+m[3]:e;}
+  function configured(){var c=EMAILJS_CONFIG;return !!(c.serviceId&&c.templateId&&c.publicKey);}
+  function hex(buf){return Array.prototype.map.call(new Uint8Array(buf),function(b){return ('0'+b.toString(16)).slice(-2);}).join('');}
+  function sha(t){return subtle.digest('SHA-256',new TextEncoder().encode(t)).then(hex);}
+
+  /* ---------- Settings: admin e-mail box ---------- */
+  (function(){
+    var card=$('adminCredsCard'),idEl=$('adminIdInput');if(!card||!idEl)return;
+    var wrap=document.createElement('div');wrap.className='admin-email-field';
+    wrap.innerHTML='<label for="adminEmailInput">Admin e-mail <span class="opt-tag">for “Forgot password?”</span></label>'
+      +'<input id="adminEmailInput" type="email" autocomplete="email" placeholder="e.g. info@hippotravel.in">'
+      +'<p class="field-hint" style="margin:6px 0 0">A 6-digit code is sent here when the admin forgets the password.</p>'
+      +'<div class="builder-actions" style="margin-top:8px"><button class="btn-ghost" type="button" id="adminEmailSave">💾 Save e-mail</button></div>'
+      +'<p id="adminEmailMsg" role="status" aria-live="polite" style="margin:8px 0 0;font-weight:700" hidden></p>';
+    wrap.style.cssText='margin-top:18px;padding-top:16px;border-top:1px solid rgba(198,167,107,.35);max-width:520px';
+    card.appendChild(wrap);   // its own part of the card, under the ID / password / Update button
+    var inp=$('adminEmailInput'),msg=$('adminEmailMsg');
+    function say(t,ok){msg.textContent=t;msg.hidden=!t;msg.style.color=ok?'#166534':'#b42318';}
+    function fill(){inp.value=getEmail();}
+    fill();
+    var prev=window.renderAdminCredsCard;
+    if(typeof prev==='function')window.renderAdminCredsCard=function(){var r=prev.apply(this,arguments);fill();return r;};
+    $('adminEmailSave').addEventListener('click',function(){
+      if(!(typeof isAdminSession==='function'&&isAdminSession()))return say('Only the admin can change this.');
+      var e=inp.value.trim();
+      if(!okEmail(e)){inp.focus();return say('Please type a correct e-mail address.');}
+      try{localStorage.setItem(EMAIL_KEY,e);}catch(x){return say('Could not save — browser storage is full.');}
+      say('✅ Saved. The “Forgot password?” code will go to '+e+'.',true);
+    });
+  })();
+
+  /* ---------- Login: Forgot password? ---------- */
+  var panel=$('loginPanel-forgot');if(!panel||!$('fpOpen'))return;
+  var msg=$('fpMsg'),resendAt=0;
+  function say(t,ok){msg.textContent=t||'';msg.hidden=!t;msg.className='login-field-hint '+(t?(ok?'is-ok':'is-err'):'');}
+  function show(id){document.querySelectorAll('.login-panel').forEach(function(p){p.classList.toggle('active',p.id===id);});if(typeof showLoginError==='function')showLoginError('');}
+  function intro(){
+    var e=getEmail();
+    $('fpIntro').innerHTML=e?'We send a 6-digit code (OTP) to <b>'+escapeHtml(mask(e))+'</b>. Type the code and choose a new password.'
+      :'No admin e-mail is saved on this browser yet. The admin adds it in <b>Settings → Admin Login Credentials → Admin e-mail</b>.';
+    $('fpSend').disabled=!e;
+  }
+  $('fpOpen').addEventListener('click',function(){show('loginPanel-forgot');intro();say('');$('fpStep1').hidden=false;$('fpStep2').hidden=true;});
+  $('fpBack').addEventListener('click',function(){show('loginPanel-admin');});
+
+  function send(){
+    var e=getEmail();
+    if(!e)return say('No admin e-mail is saved on this browser.');
+    if(!configured())return say('E-mail sending is not set up yet on this website (EmailJS). Please ask the website owner.');
+    if(!subtle)return say('This browser cannot do this safely. Please open the site with https://');
+    if(Date.now()<resendAt)return say('Please wait '+Math.ceil((resendAt-Date.now())/1000)+' seconds before sending another code.');
+    var a=new Uint32Array(1);crypto.getRandomValues(a);var code=String(100000+(a[0]%900000));
+    var salt=hex(crypto.getRandomValues(new Uint8Array(16)).buffer);
+    $('fpSend').disabled=true;$('fpResend').disabled=true;say('Sending the code…',true);
+    fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({service_id:EMAILJS_CONFIG.serviceId,template_id:EMAILJS_CONFIG.templateId,user_id:EMAILJS_CONFIG.publicKey,
+        template_params:{to_email:e,otp:code,minutes:String(OTP_MIN),site:location.host||'Hippo Travel'}})})
+    .then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error(t||('HTTP '+r.status));});
+      return sha(salt+code).then(function(h){
+        try{sessionStorage.setItem(OTP_KEY,JSON.stringify({h:h,salt:salt,until:Date.now()+OTP_MIN*60000,tries:0}));}catch(x){}
+        code='';resendAt=Date.now()+RESEND_S*1000;
+        $('fpStep1').hidden=true;$('fpStep2').hidden=false;$('fpCode').value='';$('fpCode').focus();
+        say('📧 Code sent to '+mask(e)+'. It works for '+OTP_MIN+' minutes. Check the Spam folder too.',true);
+      });})
+    .catch(function(err){console.error('OTP e-mail failed:',err);say('The code could not be sent. Check the internet and try again.');})
+    .then(function(){$('fpSend').disabled=!getEmail();$('fpResend').disabled=false;});
+  }
+  $('fpSend').addEventListener('click',send);
+  $('fpResend').addEventListener('click',send);
+
+  $('fpSave').addEventListener('click',function(){
+    var o=null;try{o=JSON.parse(sessionStorage.getItem(OTP_KEY)||'null');}catch(e){}
+    if(!o)return say('Please send a code first.');
+    if(Date.now()>o.until){try{sessionStorage.removeItem(OTP_KEY);}catch(e){}$('fpStep1').hidden=false;$('fpStep2').hidden=true;return say('The code has expired. Please send a new code.');}
+    if(o.tries>=MAX_TRIES)return say('Too many wrong codes. Please send a new code.');
+    var code=($('fpCode').value||'').replace(/\D/g,''),p1=$('fpNew').value,p2=$('fpNew2').value;
+    if(code.length!==6){$('fpCode').focus();return say('Please type the 6-digit code from the e-mail.');}
+    if(p1!==p2){$('fpNew2').focus();return say('The two new passwords are not the same.');}
+    $('fpSave').disabled=true;
+    sha(o.salt+code).then(function(h){
+      if(h!==o.h){o.tries++;try{sessionStorage.setItem(OTP_KEY,JSON.stringify(o));}catch(e){}throw new Error(o.tries>=MAX_TRIES?'Too many wrong codes. Please send a new code.':'This code is not right. Please check the e-mail and try again.');}
+      return window.adminSetPasswordAfterOtp(p1);
+    }).then(function(id){
+      try{sessionStorage.removeItem(OTP_KEY);}catch(e){}
+      ['fpCode','fpNew','fpNew2'].forEach(function(x){$(x).value='';});
+      show('loginPanel-admin');
+      if($('adminLoginId'))$('adminLoginId').value=id;
+      if($('adminLoginPassword'))$('adminLoginPassword').value='';
+      if(typeof showLoginError==='function')showLoginError('');
+      var h=$('adminPwHint');if(h){h.textContent='✅ Password changed. Log in with the new password.';h.hidden=false;}
+    },function(err){say(err.message||String(err));})
+    .then(function(){$('fpSave').disabled=false;});
+  });
+})();}catch(err){console.error('Forgot password failed to start:',err);}
 </script>
 </body>
 </html>
