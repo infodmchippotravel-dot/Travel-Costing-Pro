@@ -11589,11 +11589,16 @@ html body .topbar.scrolled::after{content:"";position:absolute;left:0;right:0;bo
 body.has-easy-bar .sfx-top{bottom:100px}
 @media (max-width:600px){.sfx-top{right:14px;width:48px;height:48px}body.has-easy-bar .sfx-top{bottom:150px}}
 
+/* "Reduce motion" setting on: an older site-wide rule cuts every animation and
+   transition to 0.01ms. Give the scroll effects their real timing back so
+   laptops with that setting look the same as phones. */
 @media (prefers-reduced-motion:reduce){
-  .sfx,.sfx.sfx-left,.sfx.sfx-right,.sfx.sfx-zoom{opacity:1!important;transform:none!important;filter:none!important;transition:none!important;animation:none!important}
-  .page .card .card-title,.page .builder-title{transition:none!important}
-  .page.active>.page-header{transform:none!important;opacity:1!important}
-  .topbar.scrolled::after{animation:none}
+  html body .sfx{transition-duration:.8s,.9s,.8s!important}
+  html body .sfx.sfx-in.card,html body .sfx.sfx-in.stat-card,html body .sfx.sfx-in.big-act,html body .sfx.sfx-in.home-guide,html body .sfx.sfx-in.summary{animation-duration:1.6s!important}
+  html body .page .card .card-title,html body .page .builder-title{transition-duration:1s!important}
+  html body .topbar.scrolled::after{animation-duration:.6s,6s!important;animation-iteration-count:1,infinite!important}
+  html body .sfx-top{transition-duration:.3s!important}
+  html body .sfx-top .sfx-ring{transition-duration:.1s!important}
 }
 @media print{
   .sfx{opacity:1!important;transform:none!important;filter:none!important}
@@ -11606,7 +11611,9 @@ body.has-easy-bar .sfx-top{bottom:100px}
 /* SCROLL EFFECTS — see the comment in <style id="scrollFx"> above. */
 try{(function(){
   'use strict';
-  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* Scroll effects run on every device, also when the system "reduce motion"
+     setting is on (site owner's choice, so laptops look the same as phones). */
+  var reduce=false;
   var SEL=[
     '.page .card','.page .stat-card','.page .qa','.page .big-act','.page .home-guide',
     '.page .section-title','.page .summary','.page .summarybox','.page .flow li',
@@ -11848,8 +11855,9 @@ html body.dark .easy-bar .eb-info strong{color:#fff!important}
 
 @media (max-width:600px){html body .page>.page-header,html body #dashboard.page>.page-header{padding:20px 18px!important;border-radius:18px!important}}
 @media (prefers-reduced-motion:reduce){
-  html body .page .stat-card:hover,html body .page .qa:hover,html body .page .big-act:hover,html body .page .hg-steps li:hover,html body .page button.green:hover,html body .page button.blue:hover,html body .easy-bar button.green:hover,html body .login-card button.blue:hover{transform:none!important}
-  html body .big-act-primary::before,html body .hdr-new::before{display:none}
+  html body .page .card,html body .page .home-guide,html body .page .summary,html body .page .stat-card,html body .page .flow-step,html body .page .big-act,html body .page .qa,html body .page .hg-steps li{transition-duration:.35s!important}
+  html body .page button.green,html body .page button.blue,html body .easy-bar button.green,html body .login-card button.blue{transition-duration:.2s,.25s,.25s!important}
+  html body .big-act-primary::before,html body .hdr-new::before,html body .lx-shine::before{transition-duration:.8s!important}
 }
 /* The bottom-bar Save button always stays visible while scrolling.
    (It used to hide when the big Save button was even 1px on screen — including
@@ -11865,6 +11873,10 @@ html body .pw-wrap .pw-toggle,html body .pw-wrap .pw-toggle:hover,html body .pw-
   background:var(--card,#fff)!important;color:var(--text,#0f172a)!important;box-shadow:none!important;filter:none!important;animation:none!important;z-index:2}
 html body .pw-wrap .pw-toggle:hover{border-color:var(--lx-gold,#c6a76b)!important;background:rgba(198,167,107,.12)!important}
 html body .pw-wrap .pw-toggle::before,html body .pw-wrap .pw-toggle::after{display:none!important}
+/* While a card is waiting for / playing its scroll animation, the scroll
+   effect's own timing wins over the card hover transition (otherwise the
+   card snapped in instead of fading and sliding in). */
+html body main .page .sfx{transition:opacity .8s cubic-bezier(.16,.84,.3,1),transform .9s cubic-bezier(.16,.84,.3,1),filter .8s ease!important;transition-delay:var(--sfx-d,0ms)!important}
 /* Login screen flying planes: show the same on every device. Laptops with the
    system setting "reduce motion" / Windows "Animation effects" off used to hide
    the planes and the dotted route completely, so the phone and laptop login
