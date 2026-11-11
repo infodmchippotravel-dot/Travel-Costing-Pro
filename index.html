@@ -2569,7 +2569,8 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
       <label for="adminLoginId" style="margin-top:12px">Admin ID</label>
       <div class="field-icon"><span aria-hidden="true">🆔</span><input id="adminLoginId" autocomplete="username" type="text" placeholder="Admin ID"></div>
       <label for="adminLoginPassword" style="margin-top:12px">Password</label>
-      <div class="field-icon"><span aria-hidden="true">🔒</span><input id="adminLoginPassword" type="password" placeholder="Password" autocomplete="current-password"></div>
+      <div class="field-icon"><span aria-hidden="true">🔒</span><input id="adminLoginPassword" type="password" placeholder="Password" autocomplete="off" data-lpignore="true" data-1p-ignore spellcheck="false" autocapitalize="off"></div>
+      <p class="login-field-hint" id="adminPwHint" role="status" aria-live="polite" hidden></p>
       <button class="blue login-main-btn" onclick="loginAsAdmin()" type="button">Login as Admin ➜</button>
       <div class="login-hint">Only the admin can manage rates, transfers, services, tickets and admin settings.</div>
       <details class="admin-recover" id="adminRecover"><summary>Forgot admin password?</summary>
@@ -12310,6 +12311,39 @@ try{(function(){
   });
   inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();btn.click();}});
 })();}catch(err){console.error('Admin recovery failed to start:',err);}
+</script>
+<script>
+/* =====================================================================
+   ADMIN PASSWORD BOX — type it yourself
+     • A password the browser filled in by itself (an old saved one) is
+       cleared, with a short note, so the typed password is what is checked.
+     • "Caps Lock is ON" warning while typing the password.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  var pw=document.getElementById('adminLoginPassword'),hint=document.getElementById('adminPwHint');
+  if(!pw||!hint)return;
+  function note(t){hint.textContent=t||'';hint.hidden=!t;}
+  function autofilled(el){try{return el.matches(':-webkit-autofill')||el.matches(':autofill');}catch(e){try{return el.matches(':-webkit-autofill');}catch(e2){return false;}}}
+  function clearFilled(){
+    if(pw.value&&autofilled(pw)){pw.value='';note('Your browser filled in a saved password. Please type the admin password yourself.');}
+  }
+  pw.addEventListener('focus',clearFilled);
+  var prevPanel=window.showAdminLoginPanel;
+  if(typeof prevPanel==='function')window.showAdminLoginPanel=function(){
+    var r=prevPanel.apply(this,arguments);
+    pw.value='';note('');
+    setTimeout(clearFilled,400);
+    return r;
+  };
+  function caps(e){
+    var on=e.getModifierState&&e.getModifierState('CapsLock');
+    if(on)note('⚠️ Caps Lock is ON — the password needs small and capital letters exactly.');
+    else if(/Caps Lock/.test(hint.textContent))note('');
+  }
+  pw.addEventListener('keydown',caps);pw.addEventListener('keyup',caps);
+  pw.addEventListener('input',function(){if(/saved password/.test(hint.textContent))note('');});
+})();}catch(err){console.error('Admin password box helper failed to start:',err);}
 </script>
 </body>
 </html>
