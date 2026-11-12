@@ -12454,6 +12454,22 @@ try{(function(){
   window.__adminToken=token;
   function say(t,ok){msg.textContent=t;msg.hidden=!t;msg.style.color=ok?'#166534':'#b42318';}
   function stamp(){try{return (JSON.parse(localStorage.getItem('travelAdminCreds')||'null')||{}).updatedAt||'';}catch(e){return '';}}
+  /* after a new admin password is saved, this admin page logs out by itself (no "Log out?" question),
+     and the admin login opens with the ID filled in */
+  function autoLogout(id,note){
+    setTimeout(function(){
+      if(!(typeof isAdminSession==='function'&&isAdminSession()))return;
+      var nc=window.confirm;window.confirm=function(){return true;};
+      try{if(typeof logoutUser==='function')logoutUser();}catch(e){console.error(e);}finally{window.confirm=nc;}
+      setTimeout(function(){
+        try{if(typeof showAdminLoginPanel==='function')showAdminLoginPanel();}catch(e){}
+        var li=document.getElementById('adminLoginId');if(li)li.value=id;
+        var lp=document.getElementById('adminLoginPassword');if(lp){lp.value='';try{lp.focus();}catch(e){}}
+        var h=document.getElementById('adminPwHint');if(h){h.textContent=note;h.hidden=false;}
+        msg.hidden=true;pwEl.value='';
+      },350);
+    },3000);
+  }
   var prev=window.updateAdminCreds;
   window.updateAdminCreds=function(){
     var id=(idEl.value||'').trim(),pass=pwEl.value||'';
@@ -12467,12 +12483,16 @@ try{(function(){
       tries++;
       if(stamp()!==before){
         var t=token();
-        if(!t){say('✅ Saved on THIS browser only. To use the new password on every computer and phone, paste the GitHub token below and press Update Credentials again.',true);return;}
+        var BYE=' You will be logged out in 3 seconds — log in again with the new password.';
+        if(!t){say('✅ Saved on THIS browser only. To use the new password on every computer and phone, paste the GitHub token and press Update Credentials again after you log in.'+BYE,true);
+          autoLogout(id,'✅ Password changed on this browser only. Log in with the new password.');return;}
         say('Saving for every computer and phone…',true);
         var em='';try{em=localStorage.getItem('travelAdminEmail')||'';}catch(e){}
         window.adminPublishLogin(t,em||null).then(function(){
-          say('✅ Saved for every computer and phone. Log in as Admin with ID "'+id+'" and the new password. Other devices get it in about 1–2 minutes (refresh the page there). Write the password down.',true);
-        },function(err){say('Saved on this browser, but not for everyone: '+err.message);});
+          say('✅ Saved for every computer and phone. Other devices get it in about 1–2 minutes (refresh the page there). Write the password down.'+BYE,true);
+          autoLogout(id,'✅ Password changed for every computer and phone. Log in with the new password.');
+        },function(err){say('Saved on this browser, but not for everyone: '+err.message+BYE);
+          autoLogout(id,'✅ Password changed on this browser only (the GitHub token did not work). Log in with the new password.');});
         return;
       }
       var t=[].slice.call(document.querySelectorAll('.toast-msg')).map(function(x){return x.textContent;}).join(' ');
