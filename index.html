@@ -6930,7 +6930,10 @@ try{(function(){
     .then(function(r){return r.ok?r.json():null;}).then(function(g){if(validG(g)){window.__adminGlobal=g;saveJSON(GLOBAL_KEY,g);}}).catch(function(){}):Promise.resolve();
   function waitGlobal(){return Promise.race([globalReady,new Promise(function(r){setTimeout(r,4000);})]);}
   window.adminGlobalReady=waitGlobal;
-  function globalC(){var g=window.__adminGlobal||loadJSON(GLOBAL_KEY,null);return validG(g)?g:null;}
+  function globalC(){
+    /* the newest of: this page's copy, and the copy kept in the browser (another tab may have read a newer one) */
+    var m=window.__adminGlobal,k=loadJSON(GLOBAL_KEY,null);m=validG(m)?m:null;k=validG(k)?k:null;
+    if(!m)return k;if(!k)return m;return time(k)>time(m)?k:m;}
   function localC(){var c=loadJSON('travelAdminCreds',null);return c&&c.id?c:null;}
   function time(c){var t=Date.parse(c&&c.updatedAt||'');return isFinite(t)?t:0;}
   function stored(){var l=localC(),g=globalC();if(!g)return l;if(!l)return g;return time(l)>time(g)?l:g;}
@@ -6971,7 +6974,47 @@ try{(function(){
     if(c.hash)return sha256(c.salt+pass).then(function(h){var g=idOk&&same(h,c.hash);return g?storeNew(c.id,pass).then(function(){return true;}):false;});
     return Promise.resolve(idOk&&c.password!=null&&same(c.password,pass)).then(function(g){return g?storeNew(c.id,pass).then(function(){return true;}):false;});
   }
-  window.verifyAdminCreds=function(id,pass){var a=arguments,t=this;return waitGlobal().then(function(){return verifyNow.apply(t,a);});};
+  window.verifyAdminCreds=function(id,pass){var a=arguments,t=this;return waitGlobal().then(function(){return verifyNow.apply(t,a);}).then(function(good){if(good)setStamp(stampOf());return good;});};
+  /* ---- the admin password was changed (on another computer, phone, browser or tab) →
+          every admin page that is still logged in logs out by itself ---- */
+  var STAMP='travelAdminSessionLogin';
+  function stampOf(){var c=stored();return c&&!c.isDefault?(String(c.id).toLowerCase()+':'+c.hash):'default';}
+  function getStamp(){try{return localStorage.getItem(STAMP)||'';}catch(e){return '';}}
+  function setStamp(v){try{if(v)localStorage.setItem(STAMP,v);else localStorage.removeItem(STAMP);}catch(e){}}
+  /* the login this admin page was made with — read now, before the shared file is read again */
+  if(isAdminSession()&&!getStamp())setStamp(stampOf());
+  var kicking=false;
+  function checkStamp(){
+    if(kicking)return;
+    if(!isAdminSession()){if(getStamp())setStamp('');return;}
+    var now=stampOf(),had=getStamp();
+    if(!had){setStamp(now);return;}
+    if(had===now)return;
+    kicking=true;setStamp('');
+    var nc=window.confirm;window.confirm=function(){return true;};
+    try{if(typeof logoutUser==='function')logoutUser();}catch(e){console.error(e);}finally{window.confirm=nc;}
+    setTimeout(function(){
+      kicking=false;
+      try{if(typeof showAdminLoginPanel==='function')showAdminLoginPanel();}catch(e){}
+      var li=$('adminLoginId'),c=stored();if(li&&c&&c.id)li.value=c.id;
+      var lp=$('adminLoginPassword');if(lp)lp.value='';
+      var h=$('adminPwHint');if(h){h.textContent='🔐 The admin password was changed. Please log in with the new password.';h.hidden=false;}
+    },350);
+  }
+  function refreshGlobal(){
+    if(!window.fetch||location.protocol==='file:')return Promise.resolve();
+    return fetch('assets/admin-login.json?v='+Date.now(),{cache:'no-store'})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(g){if(validG(g)){window.__adminGlobal=g;saveJSON(GLOBAL_KEY,g);}}).catch(function(){});
+  }
+  var lastCheck=0;
+  function recheck(){var n=Date.now();if(n-lastCheck<15000)return;lastCheck=n;if(isAdminSession())refreshGlobal().then(checkStamp);else checkStamp();}
+  globalReady.then(checkStamp);
+  setInterval(function(){if(!document.hidden)recheck();},60000);                 // every minute
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)recheck();});
+  window.addEventListener('focus',function(){recheck();});
+  window.addEventListener('storage',function(e){if(e.key==='travelAdminCreds'||e.key===GLOBAL_KEY||e.key==='travelCurrentUserKey')checkStamp();});
+  window.__adminCheckLogin=recheck;
   function verifyNow(id,pass){
     if(!subtle)return Promise.resolve(false);
     if(window.adminLoginLockedFor()>0)return Promise.resolve(false);
