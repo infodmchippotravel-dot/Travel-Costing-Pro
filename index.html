@@ -4933,7 +4933,7 @@ function onScrollEffect(){
     bar.style.width=pct+'%';
   }
 }
-window.addEventListener('scroll',onScrollEffect,{passive:true});
+var scrollFxQueued=false;window.addEventListener('scroll',function(){if(scrollFxQueued)return;scrollFxQueued=true;requestAnimationFrame(function(){scrollFxQueued=false;onScrollEffect();});},{passive:true});
 setInterval(updateHeaderClock,1000);
 /* =====================================================================
    ADULT / CHILD PRICING  (Transfers + Services + Tickets)
@@ -10673,8 +10673,10 @@ try{(function(){
   function sweep(root){
     root=root||document.body;
     if(root.nodeType!==1)return;
-    if(root.matches&&root.matches(SCOPE))processEl(root);
-    root.querySelectorAll(SCOPE).forEach(processEl);
+    if(ANY.test(root.textContent||'')){      // smooth: skip the slow search when this part has no emoji at all
+      if(root.matches&&root.matches(SCOPE))processEl(root);
+      root.querySelectorAll(SCOPE).forEach(processEl);
+    }
     root.querySelectorAll('input[placeholder]').forEach(function(i){var p=i.getAttribute('placeholder');var m=p&&p.match(EMO);if(m&&m[1])i.setAttribute('placeholder',p.slice(m[0].length));});
   }
 
@@ -10710,17 +10712,42 @@ try{(function(){
     if(th){var dark=document.body.classList.contains('dark');var want=dark?'sun':'moon';if(th.dataset.lux!==want){th.dataset.lux=want;th.innerHTML=svg(want);}}
   }
 
-  var queued=false;
-  function run(){queued=false;try{sweep(document.body);icons();}catch(e){console.error(e);}}
+  /* Smooth: only the parts of the page that really changed are checked again (not the whole page),
+     and class changes from scroll effects / hover do not start a check at all */
+  var queued=false,roots=[],full=false;
+  function run(){queued=false;var list=roots,all=full;roots=[];full=false;
+    try{
+      if(all)sweep(document.body);
+      else list.forEach(function(r){if(r.isConnected)sweep(r);});
+      icons();
+    }catch(e){console.error(e);}}
   function queue(){if(!queued){queued=true;(window.requestAnimationFrame||setTimeout)(run);}}
-  run();
+  full=true;run();
+  var SKIP='#headerClock,.toast,.lux-emo,#scrollProgress,.sfx-bg';
   new MutationObserver(function(list){
-    for(var i=0;i<list.length;i++){var t=list[i].target;if(t&&t.nodeType===1&&t.classList&&t.classList.contains('lux-emo'))continue;queue();return;}
+    var any=false;
+    for(var i=0;i<list.length;i++){
+      var m=list[i],t=m.target;
+      if(m.type==='attributes'){if(t===document.body){full=true;any=true;}continue;}   // dark / light theme
+      var el=t&&t.nodeType===1?t:(t&&t.parentNode);
+      if(!el||el.nodeType!==1||(el.closest&&el.closest(SKIP)))continue;
+      if(roots.length<600){if(roots.indexOf(el)<0)roots.push(el);}else full=true;
+      any=true;
+    }
+    if(any)queue();
   }).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class']});
 })();}catch(err){console.error('Classic theme helpers failed to start:',err);}
 
 </script>
 <style id="draftsCss">
+/* Smooth: the login and lock screens' moving parts stop while those screens are hidden */
+.login-gate.hide *,.idle-lock:not(.show) *,.splash.hide *,.welcome-screen:not(.show) *{animation-play-state:paused!important}
+/* Smooth: no live blur behind the top bar and the bottom bar (it was redrawn on every scroll step) */
+html body .topbar.topbar.scrolled,html body .easy-bar.easy-bar{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html body .topbar.topbar.scrolled{background:rgba(11,31,58,.97)!important}
+html body.dark .topbar.topbar.scrolled{background:rgba(10,24,48,.97)!important}
+html body .easy-bar.easy-bar{background:rgba(255,255,255,.97)!important}
+html body.dark .easy-bar.easy-bar{background:rgba(10,24,48,.97)!important}
 /* Auto drafts box on My Costings */
 .drafts-card{border:1.5px dashed rgba(198,167,107,.75)!important;background:linear-gradient(180deg,#fffbf2,#fff)!important;margin-bottom:16px}
 .drafts-card[hidden]{display:none!important}
@@ -11887,14 +11914,14 @@ try{(function(){
     blobs=[].slice.call(bg.children);
   }
 
-  var ticking=false;
+  var ticking=false,sweepT=0;
   function onScroll(){
     var y=window.scrollY||document.documentElement.scrollTop||0;
     var max=document.documentElement.scrollHeight-window.innerHeight;
     var pct=max>0?Math.min(1,y/max):0;
     btn.classList.toggle('show',y>400);
     if(ring)ring.style.strokeDashoffset=(150.8*(1-pct)).toFixed(1);
-    if(io)sweep();
+    if(io){clearTimeout(sweepT);sweepT=setTimeout(sweep,120);}   // smooth: the safety check waits until scrolling slows
     if(blobs.length){
       var sp=[-0.18,0.12,-0.3],t=Date.now()/4000;
       blobs.forEach(function(b,i){
