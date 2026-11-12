@@ -2436,10 +2436,9 @@ body.dark .rates-tab.is-on{background:var(--gold)!important;color:#0B1F3A!import
 #rates .card-title>span.step-no{display:inline-flex!important}
 #rates .card-title{display:flex;align-items:center;gap:10px}
 /* forms moved out of the old panels: name on its own line, prices side by side */
-@media (max-width:1400px){
-  #rates .fr-3{--cols:2}
-  #rates .fr-3>:first-child{grid-column:1/-1}
-}
+/* every screen size: the form card is only ~500px wide even on a big screen */
+#rates .fr-3{--cols:2}
+#rates .fr-3>:first-child{grid-column:1/-1}
 #rates .fr-2.fr-name{--cols:2}
 @media (max-width:420px){#rates .fr-2.fr-name{--cols:1}}
 
