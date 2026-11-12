@@ -11673,7 +11673,37 @@ try{(function(){
     {id:'thanks',kw:['thank','thanks','dhanyavad','shukriya','धन्यवाद'],
      en:'You are welcome! 😊',hi:'आपका स्वागत है! 😊'}
   ];
-  function norm(s){return String(s||'').toLowerCase().replace(/[?!.,;:()"“”']/g,' ').replace(/\s+/g,' ').trim();}
+  /* same word, many spellings (Hinglish + common typos) → one word, for the question and the keywords alike */
+  var SYN={kese:'kaise',kaisay:'kaise',kayse:'kaise',kaese:'kaise',kaisa:'kaise',kasie:'kaise',kaisee:'kaise',
+    kre:'kare',karein:'kare',karen:'kare',karu:'kare',krna:'karna',kro:'karo',krein:'kare',
+    bnaye:'banaye',banau:'banaye',banaen:'banaye',banaiye:'banaye',bnau:'banaye',bnao:'banao',bnana:'banana',banae:'banaye',
+    kahan:'kaha',kidhar:'kaha',gya:'gaya',gyi:'gayi',bhul:'bhool',bhula:'bhool',kha:'kaha',nhi:'nahi',nahin:'nahi',nai:'nahi',
+    downlod:'download',donwload:'download',dwnld:'download',dowload:'download',
+    itenary:'itinerary',itinarary:'itinerary',itinery:'itinerary',itinarery:'itinerary',iternary:'itinerary',itnerary:'itinerary',itinary:'itinerary',itineray:'itinerary',itenerary:'itinerary',itinearary:'itinerary',
+    vouchar:'voucher',vochar:'voucher',vocher:'voucher',vaucher:'voucher',vouher:'voucher',voucer:'voucher',vouchers:'voucher',
+    costig:'costing',kosting:'costing',costin:'costing',cosating:'costing',costings:'costing',
+    qoutation:'quotation',quatation:'quotation',cotation:'quotation',quotaion:'quotation',
+    watsapp:'whatsapp',whatsap:'whatsapp',whtsapp:'whatsapp',
+    pasword:'password',passward:'password',pwd:'password',paswrd:'password',
+    hotal:'hotel',hotle:'hotel',hotels:'hotel',tiket:'ticket',tikat:'ticket',tickets:'ticket',
+    trasfer:'transfer',tranfer:'transfer',transfar:'transfer',transfers:'transfer',
+    flite:'flight',flght:'flight',flights:'flight',tours:'tour',tur:'tour',
+    pfd:'pdf',dpf:'pdf',prnt:'print',savr:'save',sav:'save'};
+  function norm(s){
+    return String(s||'').toLowerCase().replace(/[?!.,;:()"“”'’]/g,' ').replace(/\s+/g,' ').trim()
+      .split(' ').map(function(w){return SYN[w]||w;}).join(' ');
+  }
+  /* small typing mistakes: one letter wrong / missing / extra (two for long words) */
+  function near(a,b){
+    if(a===b)return true;
+    var la=a.length,lb=b.length,lim=Math.min(la,lb)>=8?2:1;
+    if(Math.min(la,lb)<5||Math.abs(la-lb)>lim||a[0]!==b[0])return false;
+    var prev=[],cur,i,j;for(j=0;j<=lb;j++)prev[j]=j;
+    for(i=1;i<=la;i++){cur=[i];var best=i;
+      for(j=1;j<=lb;j++){cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));if(cur[j]<best)best=cur[j];}
+      if(best>lim)return false;prev=cur;}
+    return prev[lb]<=lim;
+  }
   function lang_(){try{return chatbotLang==='hi'?'hi':'en';}catch(e){return 'en';}}
   function answer(e){var lang=lang_();var a=e[lang]||e.en;return typeof a==='function'?a():a;}
   /* the question is about Create Itinerary: it names it, or the person is on that page */
@@ -11683,21 +11713,41 @@ try{(function(){
     var pg=document.querySelector('.page.active');return !!(pg&&pg.id==='itinerary');
   }
   window.chatbotMatch=function(msg){
-    var m=' '+norm(msg)+' ',best=null,score=0,inItin=itinCtx(m);
+    return window.chatbotRank(msg).length?answer(byId[window.chatbotRank(msg)[0].id]):noAnswer();
+  };
+  window.chatbotRank=function(msg){
+    var m=' '+norm(msg)+' ',out=[],inItin=itinCtx(m);
+    var toks=norm(msg).split(' ').filter(function(t){return t.length>1;});
     KB.forEach(function(e,i){
       var s=0;
       function count(k){
         k=norm(k);if(!k)return;
+        var multi=k.indexOf(' ')!==-1;
         var hit=k.length<=4||e.exact?(m.indexOf(' '+k+' ')!==-1):(m.indexOf(k)!==-1);
-        if(hit)s+=k.length+(k.indexOf(' ')!==-1?6:0);
+        if(hit){s+=k.length+(multi?6:0);return;}
+        if(e.exact)return;
+        /* not written exactly: every word there (any order), allowing small typos */
+        var ws=k.split(' '),fuzzy=false;
+        var all=ws.every(function(w){
+          if(toks.indexOf(w)!==-1)return true;
+          if(w.length>=5&&toks.some(function(t){return near(t,w);})){fuzzy=true;return true;}
+          return false;
+        });
+        if(all&&(multi||fuzzy))s+=k.length+(multi?4:0)-(fuzzy?2:0);
       }
       e.kw.forEach(count);
       if(inItin&&e.ctx)e.ctx.forEach(count);              // e.g. “hotel” / “pdf” count for the voucher only when it is about the itinerary
       if(inItin&&s&&/^itin/.test(e.id))s+=e.id==='itin'?10:25;
       if(e.exact&&s&&norm(msg).split(' ').length>3)s=0;     // "hi" only counts as a greeting in a short message
-      if(s>score){score=s;best=e;}
+      if(s>0)out.push({id:e.id,score:s,i:i});
     });
-    if(best)return answer(best);
+    out.sort(function(a,b){return b.score-a.score||a.i-b.i;});
+    return out;
+  };
+  var byId={};KB.forEach(function(e){byId[e.id]=e;});
+  window.chatbotAnswerById=function(id){return byId[id]?answer(byId[id]):'';};
+  window.chatbotNoAnswer=function(){return noAnswer();};
+  function noAnswer(){
     var c=contactHtml();
     return lang_()==='hi'
       ?'माफ़ कीजिए, इसका सही जवाब मेरे पास नहीं है। ऐसे पूछें: “PDF कैसे मिलेगी?”, “होटल कैसे जोड़ें?”, “ड्राफ्ट कहाँ है?”। या ऊपर <b>Help</b> पेज देखें।'+(c?'<br>'+c:'')
@@ -11719,6 +11769,195 @@ try{(function(){
   /* chat messages from the bot use the HTML above; what the person types is always escaped (see chatbotAsk) */
 })();}catch(err){console.error('Help chat update failed:',err);}
 
+</script>
+<style id="chatPowerCss">
+/* Help chat: buttons under an answer */
+.chat-actions{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start;max-width:92%;margin:-2px 0 4px}
+.chat-actions button{border-radius:16px;font-size:12px;font-weight:700;padding:6px 11px;cursor:pointer;line-height:1.3;min-height:32px}
+.chat-actions .chat-go{background:linear-gradient(135deg,#0B1F3A,#163a63);color:#fff;border:1px solid #0B1F3A}
+.chat-actions .chat-go:hover{filter:brightness(1.15)}
+.chat-actions .chat-chip{background:var(--card,#fff);color:var(--text,#0B1F3A);border:1px dashed #C6A76B}
+.chat-actions .chat-chip:hover{border-style:solid;background:#FAF6EE}
+.chat-actions small{width:100%;font-size:11px;color:var(--muted,#667085);font-weight:700}
+body.dark .chat-actions .chat-chip{background:#16283f;color:#EBD9AC;border-color:#8a7347}
+body.dark .chat-actions .chat-chip:hover{background:#1c3350}
+body.dark .chat-actions .chat-go{background:linear-gradient(135deg,#C6A76B,#a8874f);color:#0B1F3A;border-color:#C6A76B}
+.chatbot-msg.typing{display:flex;gap:4px;align-items:center;min-height:20px}
+.chatbot-msg.typing i{width:7px;height:7px;border-radius:50%;background:#A8874F;opacity:.4;animation:chatDot 1s infinite}
+.chatbot-msg.typing i:nth-child(2){animation-delay:.15s}.chatbot-msg.typing i:nth-child(3){animation-delay:.3s}
+@keyframes chatDot{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+.chat-live b.num{color:#A8874F}
+@media (max-width:640px){.chat-actions button{min-height:40px;font-size:13px}}
+</style>
+<script>
+/* =====================================================================
+   HELP CHAT — more powerful
+     • understands small spelling mistakes and Hinglish ways of writing
+     • under each answer: a button that opens the right page, and
+       “Ask next” buttons for the questions people usually ask after it
+     • answers from your own data: how many costings / drafts you have,
+       the newest one, and the total of the costing on screen
+     • a question it has no answer for is looked up in the Help page;
+       if that has nothing either, it shows topics to choose from
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  if(typeof window.chatbotRank!=='function')return;
+  function $(id){return document.getElementById(id);}
+  function admin(){return typeof isAdminSession==='function'&&isAdminSession();}
+  function hi(){try{return chatbotLang==='hi';}catch(e){return false;}}
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  /* id: [English title, Hindi title, page to open, what to ask next, page is admin-only] */
+  var T={
+    costing:['How to make a costing','कॉस्टिंग कैसे बनाएं','dashboard',['hotel','transfer','pdf']],
+    pdf:['Get the PDF','PDF कैसे मिलेगी','pdf',['plain','word','saved']],
+    plain:['PDF without company details','बिना कंपनी डिटेल की PDF','pdf',['pdf','word']],
+    word:['Word file','Word फ़ाइल','pdf',['pdf','plain']],
+    draft:['I forgot to save','सेव करना भूल गया','saved',['saved','stats']],
+    saved:['My saved costings','मेरी सेव कॉस्टिंग','saved',['stats','pdf','draft']],
+    transfer:['Add a transfer','ट्रांसफर जोड़ें','dashboard',['sic','ticket','meal']],
+    sic:['SIC / custom item','SIC / अपना आइटम','dashboard',['transfer','ticket']],
+    ticket:['Add an entry ticket','एंट्री टिकट जोड़ें','dashboard',['transfer','meal','hotel']],
+    hotel:['Add a hotel','होटल जोड़ें','dashboard',['perperson','margin','meal']],
+    meal:['Add a meal','खाना जोड़ें','dashboard',['transfer','ticket']],
+    margin:['Margin & advance','मार्जिन और एडवांस','dashboard',['total','perperson','pdf']],
+    perperson:['Per person prices','पर पर्सन कीमत','pdf',['hotel','margin']],
+    login:['Login & password','लॉगिन और पासवर्ड',null,['safe','contact']],
+    rates:['Saved Rates (prices)','सेव रेट (कीमतें)','rates',['itinTour','backup'],true],
+    backup:['Backup','बैकअप','settings',['rates','safe'],true],
+    contact:['Contact us','संपर्क करें',null,['help','about']],
+    theme:['Dark mode & language','डार्क मोड और भाषा',null,['help']],
+    safe:['Is my data safe?','डेटा सुरक्षित है?',null,['backup','login']],
+    help:['Full guide','पूरी गाइड','help',['costing','itin']],
+    about:['About the company','कंपनी के बारे में','about',['contact']],
+    itin:['How to make an itinerary','Itinerary कैसे बनाएं','itinerary',['itinTour','itinHotel','itinPdf']],
+    itinTour:['Choose / change a tour','टूर चुनें / बदलें','itinerary',['itinHotel','itinPdf']],
+    itinHotel:['Hotel in the voucher','वाउचर में होटल','itinerary',['itinFlight','itinPdf']],
+    itinFlight:['Flight ticket in the voucher','वाउचर में फ्लाइट टिकट','itinerary',['itinPdf','itinSaved']],
+    itinPdf:['Voucher PDF / WhatsApp','वाउचर PDF / WhatsApp','itinerary',['itinCompany','itinSaved']],
+    itinCompany:['Company on the voucher','वाउचर पर कंपनी','itinerary',['itinPdf','itinYellow']],
+    itinYellow:['Yellow text','पीला text','itinerary',['itinBullet','itinPdf']],
+    itinBullet:['Bullets (•)','Bullet (•)','itinerary',['itinYellow','itinPdf']],
+    itinSaved:['Saved vouchers','सेव वाउचर','itinerary',['itinPdf','itin']],
+    undo:['Undo a mistake','गलती वापस लें',null,['draft','itinSaved']],
+    stats:['How many costings do I have?','मेरी कितनी कॉस्टिंग हैं?','saved',['saved','draft']],
+    total:['Total of this costing','इस कॉस्टिंग का टोटल','dashboard',['margin','pdf']]
+  };
+  var PAGE={dashboard:['Open Costing Sheet','कॉस्टिंग शीट खोलें'],pdf:['Open Print / PDF','Print / PDF खोलें'],saved:['Open My Costings','My Costings खोलें'],
+    itinerary:['Open Create Itinerary','Create Itinerary खोलें'],rates:['Open Saved Rates','Saved Rates खोलें'],settings:['Open Settings','Settings खोलें'],
+    help:['Open Help page','Help पेज खोलें'],about:['Open About','About खोलें']};
+  function title(id){var t=T[id];return t?(hi()?t[1]:t[0]):id;}
+
+  /* ---- answers from the person's own data ---- */
+  function sess(){try{return window.currentSession?currentSession():{};}catch(e){return {};}}
+  function mine(list){
+    var s=sess();if(!Array.isArray(list))return [];
+    if(admin())return list.slice();
+    return list.filter(function(r){return r&&r.createdBy&&r.createdBy.key===s.key;});
+  }
+  function costings(){var l;try{l=(typeof savedCostings!=='undefined'&&Array.isArray(savedCostings))?savedCostings:loadJSON('travelSavedCostings',[]);}catch(e){l=[];}return mine(l);}
+  function drafts(){var l;try{l=loadJSON('travelDraftCostings',[]);}catch(e){l=[];}return mine(l);}
+  function statsHtml(){
+    var c=costings(),d=drafts(),h=hi(),who=admin()?(h?' (सबकी, admin के रूप में)':' (everyone’s — you are the admin)'):'';
+    var newest=c.slice().sort(function(a,b){return String(b.updatedAt||'').localeCompare(String(a.updatedAt||''));})[0];
+    var line=newest?(h?'<br>सबसे नई: ':'<br>Newest: ')+'<b>'+esc(newest.name||'—')+'</b>'+(newest.costingNumber?' ('+esc(newest.costingNumber)+')':'')+(newest.date?' · '+esc(newest.date):''):'';
+    return '<span class="chat-live">'+(h
+      ?'आपकी <b class="num">'+c.length+'</b> सेव कॉस्टिंग और <b class="num">'+d.length+'</b> ड्राफ्ट हैं'+who+'।'
+      :'You have <b class="num">'+c.length+'</b> saved costing'+(c.length===1?'':'s')+' and <b class="num">'+d.length+'</b> draft'+(d.length===1?'':'s')+who+'.')+line+'</span>';
+  }
+  function totalHtml(){
+    var h=hi(),n=0;try{n=(typeof services!=='undefined'&&Array.isArray(services))?services.length:0;}catch(e){}
+    var tot=($('total')&&$('total').textContent||'0').trim(),cur=($('cur')&&$('cur').textContent||'').trim();
+    var name=($('personName')&&$('personName').value||'').trim();
+    if(!n)return h?'इस कॉस्टिंग में अभी कोई आइटम नहीं है। <b>Costing Sheet</b> में आइटम जोड़ें — टोटल अपने आप बनता है।':'This costing has no items yet. Add items in the <b>Costing Sheet</b> — the total is made by itself.';
+    return '<span class="chat-live">'+(h
+      ?(name?'<b>'+esc(name)+'</b>: ':'')+'<b class="num">'+n+'</b> आइटम, कुल <b class="num">'+esc(tot)+' '+esc(cur)+'</b> (margin के साथ)।'
+      :(name?'<b>'+esc(name)+'</b>: ':'')+'<b class="num">'+n+'</b> item'+(n===1?'':'s')+', total <b class="num">'+esc(tot)+' '+esc(cur)+'</b> (with the margin).')+'</span>';
+  }
+  var STATS_RE=/(how many|kitni|kitne|kitna|count|ginti|number of|कितनी|कितने|गिनती).{0,30}(costing|quotation|draft|कॉस्टिंग|ड्राफ्ट)|(costing|quotation|draft|कॉस्टिंग|ड्राफ्ट).{0,30}(how many|kitni|kitne|count|ginti|कितनी|कितने)|\b(last|latest|newest|recent|aakhri|akhri|nayi|new)\b.{0,12}(costing|quotation)\b.{0,12}(kaun|which|kya|konsi|batao|show)/;
+  var TOTAL_RE=/\b(total|grand total|टोटल|kul)\b.{0,25}(kitna|kya|hua|bana|batao|now|abhi|current|this|is|of)|(kitna|how much|kitne).{0,20}(total|hua|bana|ban gaya|cost|paisa)|current total|abhi ka total|is costing ka total/;
+  function live(q){
+    var m=' '+String(q||'').toLowerCase()+' ';
+    if(STATS_RE.test(m))return {id:'stats',html:statsHtml()};
+    if(TOTAL_RE.test(m)&&!/margin|extra|advance|मार्जिन/.test(m))return {id:'total',html:totalHtml()};
+    return null;
+  }
+
+  /* ---- nothing in the chat’s own answers: look in the Help page ---- */
+  var STOP=' the and for how what where when can you your with this that from have kaise kare karna karo hai hain kya mein main mujhe mera meri mere nahi aur bhi ko ka ki ke se me par pe kaha ho gaya gayi does need want please ';
+  function words(t){return String(t||'').toLowerCase().replace(/[^a-z0-9ऀ-ॿ ]+/g,' ').split(/\s+/).filter(function(w){return w.length>=3&&STOP.indexOf(' '+w+' ')===-1;});}
+  function helpSearch(q){
+    var ws=words(q);if(!ws.length)return null;
+    var best=null,score=0;
+    [].forEach.call(document.querySelectorAll('#help p, #help li, #help details, #help .help-step, #help h3+div'),function(el){
+      var t=(el.innerText||el.textContent||'').replace(/\s+/g,' ').trim();if(t.length<25)return;
+      var low=t.toLowerCase(),s=0;
+      ws.forEach(function(w){if(low.indexOf(w)!==-1)s+=w.length>=6?2:1;});
+      if(s>score){score=s;best=t;}
+    });
+    if(!best||score<3)return null;
+    if(best.length>460)best=best.slice(0,460).replace(/\s\S*$/,'')+' …';
+    return (hi()?'<b>Help पेज से:</b><br>':'<b>From the Help page:</b><br>')+esc(best);
+  }
+
+  /* ---- showing an answer with its buttons ---- */
+  function typing(){
+    var b=$('chatbotBody');if(!b)return null;
+    var d=document.createElement('div');d.className='chatbot-msg bot typing';d.setAttribute('aria-label',hi()?'लिख रहा है':'typing');
+    d.innerHTML='<i></i><i></i><i></i>';b.appendChild(d);b.scrollTop=b.scrollHeight;return d;
+  }
+  function render(html,id,also){
+    var msg=chatbotAddMsg(html,'bot');
+    var body=$('chatbotBody');if(!body||!msg)return;
+    var t=id&&T[id],bar=document.createElement('div');bar.className='chat-actions';
+    var page=t&&t[2];
+    if(page&&PAGE[page]&&!(t[4]&&!admin())){
+      var go=document.createElement('button');go.type='button';go.className='chat-go';go.textContent='➜ '+(hi()?PAGE[page][1]:PAGE[page][0]);
+      go.onclick=function(){
+        try{showPage(page);}catch(e){}
+        if((window.innerWidth||1000)<=640){try{var pn=$('chatbotPanel');if(pn&&pn.classList.contains('show'))toggleChatbot();}catch(e){}}
+      };
+      bar.appendChild(go);
+    }
+    var next=[];(also||[]).concat(t?t[3]:[]).forEach(function(n){
+      if(n!==id&&T[n]&&next.indexOf(n)===-1&&!(T[n][4]&&!admin()&&n==='rates'))next.push(n);
+    });
+    next=next.slice(0,3);
+    if(next.length){
+      var lab=document.createElement('small');lab.textContent=hi()?'आगे पूछें:':'Ask next:';bar.appendChild(lab);
+      next.forEach(function(n){
+        var c=document.createElement('button');c.type='button';c.className='chat-chip';c.textContent=title(n);
+        c.onclick=function(){chatbotAddMsg(esc(title(n)),'user',false);reply(null,n);};
+        bar.appendChild(c);
+      });
+    }
+    if(bar.children.length){body.appendChild(bar);body.scrollTop=body.scrollHeight;}
+  }
+  function reply(q,forceId){
+    var t=typing();
+    setTimeout(function(){
+      if(t&&t.parentNode)t.parentNode.removeChild(t);
+      try{
+        if(forceId){
+          if(forceId==='stats')return render(statsHtml(),'stats');
+          if(forceId==='total')return render(totalHtml(),'total');
+          return render(chatbotAnswerById(forceId),forceId);
+        }
+        var l=live(q);if(l)return render(l.html,l.id);
+        var r=chatbotRank(q);
+        if(r.length){
+          var also=[];if(r[1]&&r[1].score>=r[0].score*0.8&&T[r[1].id])also.push(r[1].id);
+          return render(chatbotAnswerById(r[0].id),r[0].id,also);
+        }
+        var h=helpSearch(q);if(h)return render(h,'help',['costing','itin']);
+        render(chatbotNoAnswer(),null,['costing','itin','pdf']);
+      }catch(e){console.error('Help chat answer failed:',e);chatbotAddMsg(chatbotNoAnswer(),'bot');}
+    },420);
+  }
+  window.chatbotAsk=function(text){chatbotAddMsg(esc(text),'user',false);reply(text);};
+  window.chatbotQuickAsk=function(btn){chatbotAddMsg(esc(btn.textContent),'user',false);reply(btn.getAttribute('data-kw')||btn.textContent);};
+  window.chatbotReply=reply;
+})();}catch(err){console.error('Help chat (more powerful) failed to start:',err);}
 </script>
 <script>
 /* =====================================================================
