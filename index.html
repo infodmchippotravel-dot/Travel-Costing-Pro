@@ -2,6 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+/* Browsers that block storage (Safari "Block all cookies", some private modes, some in-app browsers)
+   throw an error as soon as localStorage is touched. Then a stand-in that keeps data in memory for
+   this visit is used, so the website still works without errors. */
+(function(){
+  function mem(){var d={};return {getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null;},setItem:function(k,v){d[k]=String(v);},removeItem:function(k){delete d[k];},clear:function(){d={};},key:function(i){return Object.keys(d)[i]||null;},get length(){return Object.keys(d).length;}};}
+  ['localStorage','sessionStorage'].forEach(function(n){
+    var ok=false;try{var s=window[n];s.setItem('__t','1');s.removeItem('__t');ok=true;}catch(e){}
+    if(!ok){try{Object.defineProperty(window,n,{configurable:true,value:mem()});window.__storageInMemory=true;}catch(e){}}
+  });
+})();
+</script>
+
 <style id="antiClickjack">html{display:none!important}</style>
 <script>if(window.self===window.top){var _ac=document.getElementById("antiClickjack");_ac.parentNode.removeChild(_ac);}else{try{window.top.location=window.self.location;}catch(e){}}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -4080,7 +4093,7 @@ window.addEventListener('unhandledrejection',function(e){console.error('Safety n
 function $(id){return document.getElementById(id);}
 function getAppState(){
   return {
-    page:document.querySelector('.page.active')?.id||'dashboard'
+    page:(document.querySelector('.page.active')||{}).id||'dashboard'
   };
 }
 function saveAppState(){
@@ -4515,7 +4528,7 @@ function updateOtherVehicleHint(){let v=vehicleForPax(+(paxServices?paxServices.
 function renderCurrentCustomServices(){
   let list=$('currentCustomServicesList');
   if(!list)return;
-  let items=services.map((s,i)=>({...s,idx:i})).filter(s=>s.type==='Other Transfer');
+  let items=services.map((s,i)=>Object.assign({},s,{idx:i})).filter(s=>s.type==='Other Transfer');
   list.innerHTML=items.length?items.map((s,n)=>`<div class="row" style="grid-template-columns:2.1fr 1fr 90px 90px"><div><b>${n+1}. ${escapeHtml(s.name)}</b></div><div>${Number(s.price).toLocaleString('en-IN')}</div><div><button class="blue" onclick="editCurrentCustomService(${s.idx})" type="button">✏️ Edit</button></div><div><button class="red" onclick="services.splice(${s.idx},1);calculate()" type="button">🗑️ Remove</button></div></div>`).join(''):'<div class="empty">No custom service added yet</div>';
 }
 let editingCurrentTicketIdx=null;
@@ -4556,7 +4569,7 @@ function editCurrentTicket(idx,suffix){
   calculate();
 }
 function renderCurrentTickets(){
-  let items=services.map((s,i)=>({...s,idx:i})).filter(s=>s.type==='Ticket');
+  let items=services.map((s,i)=>Object.assign({},s,{idx:i})).filter(s=>s.type==='Ticket');
   [['currentTicketsList','currentTicketsBadge',''],['currentCustomTicketsList2',null,'3']].forEach(function(cfg){
     let list=$(cfg[0]),badge=cfg[1]?$(cfg[1]):null,suffix=cfg[2];
     if(!list)return;
@@ -4606,7 +4619,7 @@ function updateCustomVehicleHint(){let l=$('customTransferRateLabel');if(l)l.tex
 function renderCurrentTransfers(){
   let list=$('currentTransfersList'),badge=$('currentTransfersBadge');
   if(!list)return;
-  let items=services.map((s,i)=>({...s,idx:i})).filter(s=>s.type==='Transfer');
+  let items=services.map((s,i)=>Object.assign({},s,{idx:i})).filter(s=>s.type==='Transfer');
   if(badge)badge.textContent=items.length?`(${items.length} Added)`:'(0 Added)';
   list.innerHTML=items.length?items.map((s,n)=>`<div class="row" style="grid-template-columns:2.1fr 1fr 90px 90px"><div><b>${n+1}. ${escapeHtml(s.name)}</b></div><div>${Number(s.price).toLocaleString('en-IN')}</div><div><button class="blue" onclick="editCurrentTransfer(${s.idx})" type="button">✏️ Edit</button></div><div><button class="red" onclick="services.splice(${s.idx},1);calculate()" type="button">🗑️ Remove</button></div></div>`).join(''):'<div class="empty">No transfer added yet</div>';
 }
@@ -4675,7 +4688,7 @@ function deleteCosting(id){
   renderSavedCostings();
 }
 function renderSavedCostings(){
-  let q=(($('savedSearch')?.value)||'').trim().toLowerCase();
+  let q=((($('savedSearch')||{}).value)||'').trim().toLowerCase();
   let visible=savedCostings.filter(r=>window.canSeeCosting?canSeeCosting(r):false);
   let filtered=visible.filter(r=>{
     return !q || (r.name||'').toLowerCase().includes(q) || (r.taglineNumber||'').toLowerCase().includes(q) || (r.costingNumber||'').toLowerCase().includes(q);
@@ -4829,8 +4842,8 @@ function saveWORD(){
   a.href=URL.createObjectURL(blob);
   let fileName=(costingNumberField&&costingNumberField.value.trim())||costingNumber();
   a.download='Quotation_'+fileName+'.doc';
-  a.click();
-  URL.revokeObjectURL(a.href);
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
 }
 function initials(name){return (name||'').trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()||'TP'}
 function updateSettings(){footAddress.textContent=companyAddress.value||'---';footPhone.textContent=companyPhone.value||'---'}
@@ -4857,8 +4870,8 @@ function exportBackup(){
   let a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download='Travel_Pro_Backup_'+new Date().toISOString().slice(0,10)+'.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
 }
 function importBackup(event){
   if(!requireAdmin()){event.target.value='';return;}
@@ -10594,10 +10607,15 @@ try{(function(){
   }
 
   /* ---- hide colourful emoji (keep them in the text) ---- */
-  var EMO=/^[\s]*((?:\p{Extended_Pictographic}|️|‍|⃣|[\u{1F3FB}-\u{1F3FF}])+)\s*/u;
-  var EP='(?:\\p{Extended_Pictographic}|\\uFE0F|\\u200D|\\u20E3|[\\u{1F3FB}-\\u{1F3FF}]|[\\u{1F1E6}-\\u{1F1FF}])';
-  var ANY=new RegExp(EP,'u'),ANYG=new RegExp('(?:'+EP+')+\\s?','gu'),ANYG2=new RegExp('((?:'+EP+')+\\s?)|([^]+?(?=(?:'+EP+')|$))','gu');
-  var ONLY=/^\s*(?:\p{Extended_Pictographic}|️|‍|[\u{1F3FB}-\u{1F3FF}]|\s)+\s*$/u;
+  /* emoji patterns — built at run time, so a browser without \p{…} support (older Safari / Firefox)
+     gets a simpler pattern instead of a page-stopping error */
+  var UP=(function(){try{new RegExp('\\p{Extended_Pictographic}','u');return true;}catch(e){return false;}})();
+  var EP=UP?'(?:\\p{Extended_Pictographic}|\\uFE0F|\\u200D|\\u20E3|[\\u{1F3FB}-\\u{1F3FF}]|[\\u{1F1E6}-\\u{1F1FF}])'
+           :'(?:[\\u2190-\\u21FF\\u2300-\\u23FF\\u2460-\\u27BF\\u2900-\\u297F\\u2B00-\\u2BFF\\u3030\\u303D\\u3297\\u3299]|[\\uD83C-\\uDBFF][\\uDC00-\\uDFFF]|\\uFE0F|\\u200D|\\u20E3)';
+  var FL=UP?'u':'';
+  var EMO=new RegExp('^[\\s]*((?:'+EP+')+)\\s*',FL);
+  var ANY=new RegExp(EP,FL),ANYG=new RegExp('(?:'+EP+')+\\s?','g'+FL),ANYG2=new RegExp('((?:'+EP+')+\\s?)|([^]+?(?=(?:'+EP+')|$))','g'+FL);
+  var ONLY=new RegExp('^\\s*(?:'+EP+'|\\s)+\\s*$',FL);
   var SCOPE='.login-eyebrow,.role-badge,#userChipName,.ph-sub,.ph-sub b,.field-hint b,.hg-steps small,.pkg-empty,.sb-text span,.foot-info>span,.foot-credit,.stat-sub,button,summary,h1,h2,h3,h4,h5,label,.section-title,.summary-title,.card-title,.builder-title,.ph-title,.pdf-page .section-title,.hg-steps b,.qa b,.big-act b,.sb-text b,.legend,.ct-sub-btn,.rt-count,a.btn,.acct-actions button,th';
   function processEl(el){
     if(!el||el.nodeType!==1||el.closest('select,option,textarea,.toast,.lux-keep,svg'))return;

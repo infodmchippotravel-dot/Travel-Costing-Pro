@@ -2,6 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+/* Browsers that block storage (Safari "Block all cookies", some private modes, some in-app browsers)
+   throw an error as soon as localStorage is touched. Then a stand-in that keeps data in memory for
+   this visit is used, so the website still works without errors. */
+(function(){
+  function mem(){var d={};return {getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null;},setItem:function(k,v){d[k]=String(v);},removeItem:function(k){delete d[k];},clear:function(){d={};},key:function(i){return Object.keys(d)[i]||null;},get length(){return Object.keys(d).length;}};}
+  ['localStorage','sessionStorage'].forEach(function(n){
+    var ok=false;try{var s=window[n];s.setItem('__t','1');s.removeItem('__t');ok=true;}catch(e){}
+    if(!ok){
+      /* inside the website: use the website's stand-in, so the login and data are the same */
+      var shared=null;try{if(window.parent!==window&&window.parent.__storageInMemory)shared=window.parent[n];}catch(e){}
+      try{Object.defineProperty(window,n,{configurable:true,value:shared||mem()});window.__storageInMemory=true;}catch(e){}
+    }
+  });
+})();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Create Itinerary – Hippo Travel</title>
 <meta name="description" content="Make, save and print tour vouchers and itineraries — simple, step by step.">
@@ -669,7 +686,7 @@ function dayTitle(d, idx, total) {
 }
 const hotelClean = n => n.replace(/Confirmation.*$/i, '').replace(/\s[–-]\s*\d+\s*Pax.*$/i, '').replace(/\(.*?\)\s*$/, '').replace(/\s+/g, ' ').replace(/[.,\s]+$/, '').trim();
 const titleHotel = n => /[a-z]/.test(n) ? n : cap(n);
-const topOf = m => [...m.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+const topOf = m => ([...m.entries()].sort((a, b) => b[1] - a[1])[0] || [])[0];
 const hkey = s => (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
 /* ---------------- 4. Build the library ---------------- */
@@ -781,7 +798,7 @@ return { extract, build };
 const $ = id => document.getElementById(id);
 // safe check: does the element that got the event match this selector? (false for the page itself)
 const tm = (e, sel) => !!(e.target && e.target.matches && e.target.matches(sel));
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const pad2 = n => String(n).padStart(2, '0');
 const clone = o => JSON.parse(JSON.stringify(o));
 const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
