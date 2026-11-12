@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://translate.googleapis.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com https://api.emailjs.com; frame-src 'self' https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://translate.googleapis.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com https://api.emailjs.com https://api.github.com; frame-src 'self' https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <script>
 /* ===== Guaranteed stale-cache buster (safe version) =====
@@ -6744,7 +6744,7 @@ try{(function(){
         if(window.adminIdIsRight&&!adminIdIsRight(id)){idEl.setAttribute('aria-invalid','true');showLoginError('The Admin ID is not right. Please check the Admin ID (not your name).');}
         else showLoginError('The password is not right. Type it again and press Show to see what you typed.');
         if(window.adminTypedOldDefault)adminTypedOldDefault(id,pass).then(function(old){
-          if(old)showLoginError('This is the old default password. The admin ID or password was changed in Settings on this browser — please use the new one.');
+          if(old)showLoginError('This is the old default password. The admin password was changed — please use the new one (or press “Forgot password?”).');
         });
         return;
       }
@@ -6923,7 +6923,17 @@ try{(function(){
   }
   function same(a,b){a=String(a);b=String(b);if(a.length!==b.length)return false;var d=0;for(var i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0;}
   function newSalt(){var a=new Uint8Array(16);crypto.getRandomValues(a);return hex(a.buffer);}
-  function stored(){var c=loadJSON('travelAdminCreds',null);return c&&c.id?c:null;}
+  /* ---- one admin login for every computer and phone: assets/admin-login.json ---- */
+  var GLOBAL_KEY='travelAdminGlobal';
+  function validG(g){return !!(g&&typeof g==='object'&&g.id&&g.salt&&g.kdf==='pbkdf2'&&/^[0-9a-f]{64}$/.test(g.hash||''));}
+  var globalReady=(window.fetch&&location.protocol!=='file:')?fetch('assets/admin-login.json?v='+Date.now(),{cache:'no-store'})
+    .then(function(r){return r.ok?r.json():null;}).then(function(g){if(validG(g)){window.__adminGlobal=g;saveJSON(GLOBAL_KEY,g);}}).catch(function(){}):Promise.resolve();
+  function waitGlobal(){return Promise.race([globalReady,new Promise(function(r){setTimeout(r,4000);})]);}
+  window.adminGlobalReady=waitGlobal;
+  function globalC(){var g=window.__adminGlobal||loadJSON(GLOBAL_KEY,null);return validG(g)?g:null;}
+  function localC(){var c=loadJSON('travelAdminCreds',null);return c&&c.id?c:null;}
+  function time(c){var t=Date.parse(c&&c.updatedAt||'');return isFinite(t)?t:0;}
+  function stored(){var l=localC(),g=globalC();if(!g)return l;if(!l)return g;return time(l)>time(g)?l:g;}
   function isDefaultPass(id,pass){
     if(String(id).trim().toLowerCase()!==DEFAULT.id.toLowerCase())return Promise.resolve(false);
     return pbkdf2(pass,DEFAULT.salt,DEFAULT.iter).then(function(h){return same(h,DEFAULT.hash);});
@@ -6931,7 +6941,8 @@ try{(function(){
   function storeNew(id,pass){
     var salt=newSalt();
     return Promise.all([pbkdf2(pass,salt,ITER),isDefaultPass(id,pass)]).then(function(r){
-      saveJSON('travelAdminCreds',{id:id,salt:salt,hash:r[0],kdf:'pbkdf2',iter:ITER,isDefault:r[1],updatedAt:new Date().toISOString()});
+      var rec={id:id,salt:salt,hash:r[0],kdf:'pbkdf2',iter:ITER,isDefault:r[1],updatedAt:new Date().toISOString()};
+      saveJSON('travelAdminCreds',rec);window.__adminLastSaved=rec;return rec;
     });
   }
 
@@ -6960,7 +6971,8 @@ try{(function(){
     if(c.hash)return sha256(c.salt+pass).then(function(h){var g=idOk&&same(h,c.hash);return g?storeNew(c.id,pass).then(function(){return true;}):false;});
     return Promise.resolve(idOk&&c.password!=null&&same(c.password,pass)).then(function(g){return g?storeNew(c.id,pass).then(function(){return true;}):false;});
   }
-  window.verifyAdminCreds=function(id,pass){
+  window.verifyAdminCreds=function(id,pass){var a=arguments,t=this;return waitGlobal().then(function(){return verifyNow.apply(t,a);});};
+  function verifyNow(id,pass){
     if(!subtle)return Promise.resolve(false);
     if(window.adminLoginLockedFor()>0)return Promise.resolve(false);
     var c=stored();id=normId(id);var idIn=id.toLowerCase();
@@ -6973,7 +6985,7 @@ try{(function(){
     var i=0;
     function next(g){if(g||i>=tries.length)return g;return checkOnce(c,idIn,id,tries[i++]).then(next);}
     return next(false).then(function(g){noteResult(g);return g;});
-  };
+  }
   function nfkc(t){try{return String(t).normalize('NFKC');}catch(e){return String(t);}}
   function normId(id){return nfkc(String(id)).replace(/\s+/g,'').trim();}
   /* After a failed login: is the Admin ID the one this browser expects? (says which box to check) */
@@ -7006,6 +7018,27 @@ try{(function(){
     });
   };
   /* After a correct e-mail OTP: save the new admin password (same rules and hashing as Settings) */
+  var GH_REPO='infodmchippotravel-dot/Travel-Costing-Pro',GH_BRANCH='main',GH_PATH='assets/admin-login.json';
+  function b64(t){return btoa(unescape(encodeURIComponent(t)));}
+  window.adminPublishLogin=function(token,email){
+    var c=stored();if(!c||!c.hash)return Promise.reject(new Error('Nothing to publish.'));
+    var g=globalC()||{};
+    var rec={_note:'Admin login for every computer and phone. Only a salted PBKDF2 hash — never the password. Changed from Settings → Admin Login Credentials.',
+      id:c.id,salt:c.salt,iter:+c.iter||ITER,hash:c.hash,kdf:'pbkdf2',isDefault:!!c.isDefault,email:email!=null?String(email):(g.email||''),updatedAt:c.updatedAt||new Date().toISOString()};
+    var url='https://api.github.com/repos/'+GH_REPO+'/contents/'+GH_PATH;
+    var h={'Authorization':'Bearer '+String(token).trim(),'Accept':'application/vnd.github+json'};
+    function why(r){return r.text().then(function(t){var m='';try{m=JSON.parse(t).message||'';}catch(e){}
+      if(r.status===401)throw new Error('The GitHub token is not right (or has expired). Make a new one and try again.');
+      if(r.status===403||r.status===404)throw new Error('This GitHub token cannot change the website. Give it "Contents: Read and write" for the Travel-Costing-Pro repository.');
+      if(r.status===409||r.status===422)throw new Error('Someone changed the login at the same moment. Please press Update again.');
+      throw new Error('GitHub did not accept the change ('+r.status+(m?': '+m:'')+'). Please try again.');});}
+    return fetch(url+'?ref='+GH_BRANCH,{headers:h,cache:'no-store'}).then(function(r){if(r.status===404)return null;if(!r.ok)return why(r);return r.json();})
+      .then(function(cur){
+        var body={message:'Admin login updated from the website',content:b64(JSON.stringify(rec,null,2)+'\n'),branch:GH_BRANCH};
+        if(cur&&cur.sha)body.sha=cur.sha;
+        return fetch(url,{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},h),body:JSON.stringify(body)});
+      }).then(function(r){if(!r.ok)return why(r);window.__adminGlobal=rec;saveJSON(GLOBAL_KEY,rec);return rec;});
+  };
   window.adminSetPasswordAfterOtp=function(pass){
     pass=String(pass||'');
     if(!subtle)return Promise.reject(new Error('This browser cannot store the password safely. Please open the site with https://'));
@@ -12376,6 +12409,22 @@ try{(function(){
   rules.className='field-hint';rules.style.cssText='margin:6px 0 0';
   rules.textContent='At least 8 characters, with letters and numbers (e.g. Phuket2026Trip). Not the old default password.';
   var pwBox=pwEl.closest('.pw-wrap')||pwEl;pwBox.parentNode.insertBefore(rules,pwBox.nextSibling);
+  /* GitHub token: lets "Update Credentials" change the login for every computer and phone */
+  var TOK='travelGhToken';
+  var gh=document.createElement('div');gh.id='ghTokenBox';gh.style.cssText='margin-top:14px';
+  gh.innerHTML='<label for="ghTokenInput">GitHub token <span class="opt-tag">to change it for every computer and phone</span></label>'
+    +'<input id="ghTokenInput" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">'
+    +'<label class="switch-row" style="margin-top:6px;font-weight:600"><input type="checkbox" id="ghTokenRemember"> Remember the token on this browser</label>'
+    +'<details style="margin-top:6px"><summary style="cursor:pointer;font-weight:700;color:#7a5f2c">How do I get a GitHub token?</summary><ol style="margin:6px 0 0;padding-left:20px;line-height:1.7;color:var(--muted)">'
+    +'<li>On github.com open <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens</b> → <b>Generate new token</b>.</li>'
+    +'<li>Repository access: <b>Only select repositories</b> → <b>Travel-Costing-Pro</b>.</li>'
+    +'<li>Permissions → Repository permissions → <b>Contents: Read and write</b>.</li>'
+    +'<li>Press <b>Generate token</b>, copy it (it starts with <b>github_pat_</b>) and paste it here. Never send it to anyone.</li></ol></details>';
+  pwBox.parentNode.insertBefore(gh,rules.nextSibling);
+  var tokEl=document.getElementById('ghTokenInput'),remEl=document.getElementById('ghTokenRemember');
+  try{var savedTok=localStorage.getItem(TOK);if(savedTok){tokEl.value=savedTok;remEl.checked=true;}}catch(e){}
+  function token(){var t=(tokEl.value||'').trim();try{if(remEl.checked&&t)localStorage.setItem(TOK,t);else localStorage.removeItem(TOK);}catch(e){}return t;}
+  window.__adminToken=token;
   function say(t,ok){msg.textContent=t;msg.hidden=!t;msg.style.color=ok?'#166534':'#b42318';}
   function stamp(){try{return (JSON.parse(localStorage.getItem('travelAdminCreds')||'null')||{}).updatedAt||'';}catch(e){return '';}}
   var prev=window.updateAdminCreds;
@@ -12389,7 +12438,16 @@ try{(function(){
     var before=stamp(),r=prev.apply(this,arguments),tries=0;
     (function check(){
       tries++;
-      if(stamp()!==before){say('✅ Saved. From now on log in as Admin with ID "'+id+'" and the new password. Write the password down.',true);return;}
+      if(stamp()!==before){
+        var t=token();
+        if(!t){say('✅ Saved on THIS browser only. To use the new password on every computer and phone, paste the GitHub token below and press Update Credentials again.',true);return;}
+        say('Saving for every computer and phone…',true);
+        var em='';try{em=localStorage.getItem('travelAdminEmail')||'';}catch(e){}
+        window.adminPublishLogin(t,em||null).then(function(){
+          say('✅ Saved for every computer and phone. Log in as Admin with ID "'+id+'" and the new password. Other devices get it in about 1–2 minutes (refresh the page there). Write the password down.',true);
+        },function(err){say('Saved on this browser, but not for everyone: '+err.message);});
+        return;
+      }
       var t=[].slice.call(document.querySelectorAll('.toast-msg')).map(function(x){return x.textContent;}).join(' ');
       if(/old default password/i.test(t)){say('This is the old default password. Please choose a new one.');return;}
       if(tries<40)setTimeout(check,150);else say('The password could not be saved. Please try again.');
@@ -12423,7 +12481,9 @@ try{(function(){
   function $(id){return document.getElementById(id);}
   var EMAIL_KEY='travelAdminEmail',OTP_KEY='travelAdminOtp',OTP_MIN=10,MAX_TRIES=5,RESEND_S=60;
   var subtle=window.crypto&&window.crypto.subtle;
-  function getEmail(){try{return (localStorage.getItem(EMAIL_KEY)||'').trim();}catch(e){return '';}}
+  function getEmail(){var e='';try{e=(localStorage.getItem(EMAIL_KEY)||'').trim();}catch(x){}
+    if(!e){try{var g=window.__adminGlobal||JSON.parse(localStorage.getItem('travelAdminGlobal')||'null');e=((g&&g.email)||'').trim();}catch(x){}}
+    return e;}
   function okEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);}
   function mask(e){var m=/^(.)(.*)(@.*)$/.exec(e);return m?m[1]+m[2].replace(/./g,'•').slice(0,6)+m[3]:e;}
   function configured(){var c=EMAILJS_CONFIG;return !!(c.serviceId&&c.templateId&&c.publicKey);}
@@ -12452,6 +12512,9 @@ try{(function(){
       var e=inp.value.trim();
       if(!okEmail(e)){inp.focus();return say('Please type a correct e-mail address.');}
       try{localStorage.setItem(EMAIL_KEY,e);}catch(x){return say('Could not save — browser storage is full.');}
+      var t=window.__adminToken&&window.__adminToken();
+      if(t&&window.adminPublishLogin){say('Saving for every computer and phone…',true);
+        window.adminPublishLogin(t,e).then(function(){say('✅ Saved for every computer and phone. The “Forgot password?” code will go to '+e+'.',true);},function(err){say('Saved on this browser, but not for everyone: '+err.message);});return;}
       say('✅ Saved. The “Forgot password?” code will go to '+e+'.',true);
     });
   })();
@@ -12509,6 +12572,9 @@ try{(function(){
       return window.adminSetPasswordAfterOtp(p1);
     }).then(function(id){
       try{sessionStorage.removeItem(OTP_KEY);}catch(e){}
+      /* a remembered GitHub token → the new password is saved for every computer and phone too */
+      var tk='';try{tk=localStorage.getItem('travelGhToken')||'';}catch(e){}
+      if(tk&&window.adminPublishLogin)window.adminPublishLogin(tk,null).catch(function(err){console.error('Could not save the new password for every device:',err);});
       ['fpCode','fpNew','fpNew2'].forEach(function(x){$(x).value='';});
       show('loginPanel-admin');
       if($('adminLoginId'))$('adminLoginId').value=id;
