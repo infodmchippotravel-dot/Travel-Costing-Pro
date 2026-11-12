@@ -1,11 +1,11 @@
 {
-  "_note": "Admin login for every computer and phone. Only a salted PBKDF2 hash \u2014 never the password. Changed from Settings \u2192 Admin Login Credentials.",
+  "_note": "Admin login for every computer and phone. Only a salted PBKDF2 hash — never the password. Changed from Settings → Admin Login Credentials.",
   "id": "Hippotravel.in",
-  "salt": "d8353856ac1ded2b4b491cdae34c91f5",
+  "salt": "e2a6a811a3acde9d1e3ae0b14e92d9cf",
   "iter": 310000,
-  "hash": "7e3d7217d8edae3ada0424e2a2930ff7090c229381b9171041648a891d5b39b9",
+  "hash": "3caf9839db111910d5a1ac67daa7fc17a313fb45ee08800a5d37b1e53cbdf43c",
   "kdf": "pbkdf2",
-  "isDefault": true,
+  "isDefault": false,
   "email": "",
-  "updatedAt": "2026-11-12T02:25:09Z"
+  "updatedAt": "2026-11-12T03:14:48.429Z"
 }
