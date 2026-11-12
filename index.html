@@ -11644,7 +11644,7 @@ try{(function(){
     {id:'perperson',kw:['per person','adult rate','child rate','adult price','child price','alag alag','separate rate','final cost'],
      en:'The PDF shows <b>Total Package Cost</b> and a separate box for each per-person rate that is used: Adult (Single / Double / Triple sharing), Child (With Bed) and Child (No Bed).',
      hi:'PDF में <b>Total Package Cost</b> और हर per person रेट का अलग बॉक्स आता है: Adult (Single / Double / Triple sharing), Child (With Bed) और Child (No Bed) — जो इस्तेमाल हुए हों।'},
-    {id:'login',kw:['forgot password','password','login','log in','sign in','logout','log out','locked','पासवर्ड','लॉगिन'],
+    {id:'login',kw:['password bhool','password bhul','password yaad nahi','password nahi yaad','password forgot','password change','password badalna','forgot password','password','login','log in','sign in','logout','log out','locked','पासवर्ड','लॉगिन'],
      en:function(){return '<b>Users</b> log in with their name only — no password.<br><b>Admin</b> logs in with name, Admin ID and password ('+(admin()?'change it in <b>Settings → Admin Login Credentials</b>':'only the admin has these')+'). After 5 wrong passwords the admin login locks for a while.<br>Forgot the admin password? On the admin login press <b>Forgot password?</b> — a 6-digit code goes to the admin e-mail saved in <b>Settings → Admin Login Credentials</b>; type the code and choose a new password.';},
      hi:function(){return '<b>User</b> सिर्फ अपने नाम से लॉगिन करते हैं — पासवर्ड नहीं।<br><b>Admin</b> नाम, Admin ID और पासवर्ड से लॉगिन करता है ('+(admin()?'<b>Settings → Admin Login Credentials</b> में बदलें':'ये सिर्फ admin के पास होते हैं')+')। 5 बार गलत पासवर्ड पर admin login कुछ देर के लिए बंद हो जाता है।<br>Admin पासवर्ड भूल गए? Admin login पर <b>Forgot password?</b> दबाएं — <b>Settings → Admin Login Credentials</b> में सेव admin e-mail पर 6 अंकों का कोड जाएगा; कोड डालकर नया पासवर्ड रखें।';}},
     {id:'rates',kw:['saved rates','rate list','rates','rate','price list','change price','add price','kimat','daam','admin','रेट','कीमत'],
@@ -11725,8 +11725,9 @@ try{(function(){
     var toks=norm(msg).split(' ').filter(function(t){return t.length>1;});
     KB.forEach(function(e,i){
       var s=0;
+      var seen={};
       function count(k){
-        k=norm(k);if(!k)return;
+        k=norm(k);if(!k||seen[k])return;seen[k]=1;     // many spellings become one word: count it once
         var multi=k.indexOf(' ')!==-1;
         var hit=k.length<=4||e.exact?(m.indexOf(' '+k+' ')!==-1):(m.indexOf(k)!==-1);
         if(hit){s+=k.length+(multi?6:0);return;}
@@ -11738,7 +11739,9 @@ try{(function(){
           if(w.length>=5&&toks.some(function(t){return near(t,w);})){fuzzy=true;return true;}
           return false;
         });
-        if(all&&(multi||fuzzy))s+=k.length+(multi?4:0)-(fuzzy?2:0);
+        /* a typo in one word keeps most of the weight; words found in another order count only a little */
+        if(all&&!multi&&fuzzy)s+=k.length-2;
+        else if(all&&multi)s+=Math.max(2,Math.round(k.length/3))-(fuzzy?1:0);
       }
       e.kw.forEach(count);
       if(inItin&&e.ctx)e.ctx.forEach(count);              // e.g. “hotel” / “pdf” count for the voucher only when it is about the itinerary
