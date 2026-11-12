@@ -2520,6 +2520,7 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
     <button id="qq2" data-kw="pdf" onclick="chatbotQuickAsk(this)" type="button">How do I download the PDF?</button>
     <button id="qq3" data-kw="password" onclick="chatbotQuickAsk(this)" type="button">Forgot password</button>
     <button id="qq4" data-kw="contact" onclick="chatbotQuickAsk(this)" type="button">Contact number</button>
+    <button id="qq5" data-kw="contact" onclick="chatbotQuickAsk(this)" type="button">Contact number</button>
   </div>
   <div class="chatbot-input-row" id="chatbotInputRow">
     <input id="chatbotInput" type="text" aria-label="Type your question" placeholder="Type your question..." onkeydown="if(event.key==='Enter')chatbotSend()">
@@ -11590,7 +11591,40 @@ try{(function(){
     {id:'sic',kw:['sic','shared','private transfer','custom service','custom transfer','not in the list','list me nahi','apna service'],
      en:'<b>SIC Transfer</b> is a shared transfer priced per adult and child. For anything not in the list use <b>＋ Add Custom Transfer</b> or <b>＋ Add Custom Service</b> — type the name and the price; it is only for this costing.',
      hi:'<b>SIC Transfer</b> शेयर्ड ट्रांसफर है, जिसकी कीमत हर adult और child की होती है। लिस्ट में न हो तो <b>＋ Add Custom Transfer</b> या <b>＋ Add Custom Service</b> से नाम और कीमत लिखें — यह सिर्फ इसी कॉस्टिंग के लिए है।'},
-    {id:'ticket',kw:['entry ticket','ticket','tour','टिकट'],
+    /* ---- Create Itinerary (day-by-day tour voucher) ---- */
+    {id:'itin',kw:['create itinerary','make itinerary','make an itinerary','new itinerary','itinerary kaise','itinerary bana','itinerary banao','itinerary','itenary','itinarary','itinery','itinarery','iternary','tour voucher','new voucher','voucher kaise','voucher bana','voucher banao','voucher','vouchar','day by day','day plan','आइटिनररी','इटिनररी','वाउचर'],
+     en:'<b>To make an itinerary (tour voucher):</b><br>Open <b>Create Itinerary</b> in the top menu and press <b>＋ New Voucher</b>.<br>1. <b>Client</b> — Client Name, Adults, Kids and the travel start date. The Voucher Number comes by itself.<br>2. <b>Day by day plan</b> — in each day press <b>🔍 Choose tour</b>, tap a city or type a word (e.g. <i>coral</i>, <i>safari</i>, <i>airport</i>) and click the tour. <b>＋ Add next day</b> for more days, <b>✕</b> removes a day.<br>3. <b>Hotel details</b> — <b>＋ Add hotel</b>, type the name and click it; add the Confirmation #.<br>4. <b>Flight details</b> — <b>📎 Upload ticket</b> (photo, screenshot or PDF).<br>5. Press <b>🖨️ Print / PDF</b> — it saves by itself.<br>Ask me about: choose tour, hotel, flight, PDF, yellow text, company on PDF or saved vouchers.',
+     hi:'<b>Itinerary (टूर वाउचर) बनाने के लिए:</b><br>ऊपर मेन्यू में <b>Create Itinerary</b> खोलें और <b>＋ New Voucher</b> दबाएं।<br>1. <b>Client</b> — क्लाइंट का नाम, Adults, Kids और यात्रा की पहली तारीख। Voucher Number अपने आप आता है।<br>2. <b>Day by day plan</b> — हर दिन में <b>🔍 Choose tour</b> दबाएं, शहर चुनें या कोई शब्द लिखें (जैसे <i>coral</i>, <i>safari</i>, <i>airport</i>) और टूर पर क्लिक करें। और दिन के लिए <b>＋ Add next day</b>, दिन हटाने के लिए <b>✕</b>।<br>3. <b>Hotel details</b> — <b>＋ Add hotel</b> दबाएं, होटल का नाम लिखकर चुनें; Confirmation # डालें।<br>4. <b>Flight details</b> — <b>📎 Upload ticket</b> (फोटो, स्क्रीनशॉट या PDF)।<br>5. <b>🖨️ Print / PDF</b> दबाएं — वाउचर अपने आप सेव हो जाता है।<br>मुझसे पूछें: choose tour, hotel, flight, PDF, पीला text, company on PDF या saved vouchers।'},
+    {id:'itinTour',ctx:['add','change','badal'],kw:['choose tour','change tour','select tour','pick tour','add tour','tour add','tour kaise','tour change','tour badal','tour list','tour not in the list','type my own','apna tour','tours','tour','city','pattaya','bangkok','phuket','krabi','टूर'],
+     en:function(){return '<b>Tour in a day (Create Itinerary):</b> in the day row press <b>🔍 Choose tour</b>. Tap a city (Pattaya, Bangkok…) or type a word, then click the tour — the day fills itself. To change it press <b>🔄 Change tour</b>. Not in the list? Press <b>✏️ Type my own</b>.'
+       +(admin()?'<br><b>Admin:</b> to add, edit or delete tours in the list go to <b>Saved Rates → 🏝️ Tours</b>, fill the tour and press <b>💾 Save Tour</b> (or <b>Edit</b> / <b>Delete</b>). It shows in Create Itinerary straight away.':'<br>Only the admin can add new tours to the list.');},
+     hi:function(){return '<b>दिन में टूर (Create Itinerary):</b> दिन वाली लाइन में <b>🔍 Choose tour</b> दबाएं। शहर चुनें (Pattaya, Bangkok…) या कोई शब्द लिखें, फिर टूर पर क्लिक करें — दिन अपने आप भर जाता है। बदलने के लिए <b>🔄 Change tour</b>। लिस्ट में नहीं है? <b>✏️ Type my own</b> दबाएं।'
+       +(admin()?'<br><b>Admin:</b> लिस्ट में टूर जोड़ने, बदलने या हटाने के लिए <b>Saved Rates → 🏝️ Tours</b> में जाएं, टूर भरें और <b>💾 Save Tour</b> दबाएं (या <b>Edit</b> / <b>Delete</b>)। Create Itinerary में तुरंत दिखता है।':'<br>लिस्ट में नया टूर सिर्फ admin जोड़ सकता है।');}},
+    {id:'itinHotel',ctx:['hotel','check in','check out','checkin'],kw:['hotel in itinerary','itinerary hotel','voucher hotel','hotel voucher','hotel in voucher','add hotel in voucher','confirmation number','confirmation','check in hotel','hotel name in day'],
+     en:'<b>Hotel in the voucher:</b> in <b>3 Hotel details</b> press <b>＋ Add hotel</b>, type the hotel name and click it. Check-in and check-out fill by themselves (change them if needed). Add the <b>Confirmation #</b> — it always prints in yellow. The hotel name also comes by itself in the day of its check-in date (in CAPITALS and bold).',
+     hi:'<b>वाउचर में होटल:</b> <b>3 Hotel details</b> में <b>＋ Add hotel</b> दबाएं, होटल का नाम लिखकर उस पर क्लिक करें। Check-in और check-out अपने आप भरते हैं (ज़रूरत हो तो बदलें)। <b>Confirmation #</b> डालें — यह हमेशा पीले रंग में छपता है। होटल का नाम check-in वाले दिन में अपने आप आता है (बड़े अक्षरों में, bold)।'},
+    {id:'itinFlight',ctx:['ticket'],kw:['flight','flight ticket','air ticket','upload ticket','ticket upload','plane ticket','फ्लाइट','हवाई'],
+     en:'<b>Flight ticket in the voucher:</b> in <b>4 Flight details</b> press <b>📎 Upload ticket</b> and choose the photo, screenshot or PDF of the ticket. It prints full size under <b>Flight Details</b>.',
+     hi:'<b>वाउचर में फ्लाइट टिकट:</b> <b>4 Flight details</b> में <b>📎 Upload ticket</b> दबाएं और टिकट की फोटो, स्क्रीनशॉट या PDF चुनें। यह <b>Flight Details</b> के नीचे पूरे साइज़ में छपता है।'},
+    {id:'itinPdf',ctx:['pdf','print','download','share'],kw:['voucher pdf','itinerary pdf','pdf of voucher','pdf of itinerary','print voucher','voucher print','itinerary print','print itinerary','voucher download','itinerary download','whatsapp','send voucher','voucher bhejna','voucher send'],
+     en:'<b>Voucher PDF (for WhatsApp / Email):</b> in Create Itinerary press <b>🖨️ Print / PDF</b>. In the print window choose <b>“Save as PDF”</b> and press Save. The voucher is saved by itself when you print.',
+     hi:'<b>वाउचर की PDF (WhatsApp / Email के लिए):</b> Create Itinerary में <b>🖨️ Print / PDF</b> दबाएं। प्रिंट विंडो में <b>“Save as PDF”</b> चुनें और Save दबाएं। प्रिंट करते समय वाउचर अपने आप सेव हो जाता है।'},
+    {id:'itinCompany',ctx:['company','logo','phone','address'],kw:['company on pdf','company on voucher','which company','anup','anup group','no company','hippo or anup','voucher company','company change'],
+     en:function(){return '<b>Company on the voucher:</b> at the top of Create Itinerary choose it in <b>Company on PDF</b> (Hippo Travel, Anup Group or no company) before printing. Each voucher shows only one company.'+(admin()?' The admin changes their phone and address in <b>⚙️ Settings</b> at the bottom of Create Itinerary.':'');},
+     hi:function(){return '<b>वाउचर पर कंपनी:</b> प्रिंट से पहले Create Itinerary में ऊपर <b>Company on PDF</b> में चुनें (Hippo Travel, Anup Group या कोई कंपनी नहीं)। हर वाउचर पर एक ही कंपनी दिखती है।'+(admin()?' Admin उनका फोन और पता Create Itinerary के नीचे <b>⚙️ Settings</b> में बदलता है।':'');}},
+    {id:'itinYellow',kw:['yellow','highlight','peela','pila','पीला','हाइलाइट'],
+     en:'<b>Yellow text:</b> in a day’s <b>Itinerary details</b> select the words (or click on the line) and press <b>🖍 Yellow</b>. Press it again to remove the yellow. The hotel Confirmation # is always yellow.',
+     hi:'<b>पीला text:</b> दिन की <b>Itinerary details</b> में शब्द चुनें (या लाइन पर क्लिक करें) और <b>🖍 Yellow</b> दबाएं। हटाने के लिए फिर से दबाएं। होटल का Confirmation # हमेशा पीला रहता है।'},
+    {id:'itinBullet',kw:['bullet','bullets','dot','point'],
+     en:'<b>Bullets (•):</b> you don’t add them — the PDF puts a • before each line by itself. The hotel name, NOTE, Check in Hotel and the What to bring list have no bullet.',
+     hi:'<b>Bullet (•):</b> आपको नहीं डालने — PDF हर लाइन के आगे • अपने आप लगाती है। होटल का नाम, NOTE, Check in Hotel और What to bring लिस्ट में bullet नहीं होता।'},
+    {id:'itinSaved',ctx:['saved','open','edit','search','find','old','purana','list','delete'],kw:['all vouchers','saved voucher','saved vouchers','open voucher','old voucher','old vouchers','purana voucher','purane voucher','find voucher','search voucher','edit voucher','voucher edit','my vouchers','saved itinerary','open itinerary','edit itinerary'],
+     en:function(){return '<b>Saved vouchers:</b> go down to <b>📒 All vouchers</b> in Create Itinerary, search the name and press <b>Open →</b> (🖨️ prints it straight away). Newest travel date comes first. '+(admin()?'As admin you see everyone’s vouchers and the old PDF vouchers too.':'You see the vouchers you saved.');},
+     hi:function(){return '<b>सेव किए वाउचर:</b> Create Itinerary में नीचे <b>📒 All vouchers</b> में जाएं, नाम खोजें और <b>Open →</b> दबाएं (🖨️ से सीधे प्रिंट)। सबसे नई यात्रा तारीख सबसे ऊपर आती है। '+(admin()?'Admin के रूप में आपको सबके वाउचर और पुराने PDF वाउचर भी दिखते हैं।':'आपको अपने सेव किए वाउचर दिखते हैं।');}},
+    {id:'undo',kw:['undo','mistake','galti','galat ho gaya','wapas lao','go back','गलती'],
+     en:'<b>Made a mistake?</b> Press <b>↶ Undo</b> in the black message at the bottom right just after the change (in Create Itinerary and after deleting a costing). Your work is also kept in this browser as you type.',
+     hi:'<b>गलती हो गई?</b> बदलाव के तुरंत बाद नीचे दाईं ओर काले मैसेज में <b>↶ Undo</b> दबाएं (Create Itinerary में और कॉस्टिंग डिलीट करने के बाद)। आपका काम लिखते-लिखते इसी browser में सेव होता रहता है।'},
+    {id:'ticket',kw:['entry ticket','ticket','टिकट'],
      en:'<b>Entry Ticket:</b> tap <b>Entry Ticket</b> and choose the ticket. Adults and children come from the client details; adult and child prices are separate.',
      hi:'<b>Entry Ticket:</b> <b>Entry Ticket</b> दबाएं और टिकट चुनें। Adult और child की गिनती client details से आती है; दोनों की कीमत अलग होती है।'},
     {id:'hotel',kw:['hotel','room','sharing','extra bed','child with bed','child no bed','without bed','check in','check-in','check out','single','double','triple','होटल'],
@@ -11628,29 +11662,38 @@ try{(function(){
      en:'Your work is saved in this browser. The admin password is stored only as a secure code, and wrong passwords lock the admin login. Do not share the admin password, and log out on shared computers.',
      hi:'आपका काम इसी browser में सेव रहता है। Admin पासवर्ड सिर्फ सुरक्षित कोड के रूप में रखा जाता है, और गलत पासवर्ड पर admin login लॉक हो जाता है। Admin पासवर्ड किसी को न बताएं, और shared computer पर logout करें।'},
     {id:'help',kw:['help','madad','guide','मदद'],
-     en:'Open <b>Help</b> in the top menu for the full guide, or ask me about: costing, PDF, hotel, transfer, ticket, meal, drafts, saved costings or contact.',
-     hi:'पूरी जानकारी के लिए ऊपर मेन्यू में <b>Help</b> खोलें, या मुझसे पूछें: costing, PDF, hotel, transfer, ticket, meal, drafts, saved costings या contact।'},
+     en:'Open <b>Help</b> in the top menu for the full guide, or ask me about: costing, PDF, hotel, transfer, ticket, meal, drafts, saved costings, <b>itinerary / voucher</b>, choose tour or contact.',
+     hi:'पूरी जानकारी के लिए ऊपर मेन्यू में <b>Help</b> खोलें, या मुझसे पूछें: costing, PDF, hotel, transfer, ticket, meal, drafts, saved costings, <b>itinerary / voucher</b>, choose tour या contact।'},
     {id:'about',kw:['about','hippo','who made','kisne banaya'],
      en:'Details about the company are on the <b>About</b> page (click your name at the top right → About).',
      hi:'कंपनी की जानकारी <b>About</b> पेज पर है (ऊपर अपने नाम पर क्लिक करें → About)।'},
     {id:'hello',kw:['hello','hi','hey','namaste','namaskar','नमस्ते'],exact:true,
-     en:'👋 Hello! Ask me anything about making a costing — for example “how do I add a hotel?” or “how do I get the PDF?”.',
-     hi:'👋 नमस्ते! कॉस्टिंग के बारे में कुछ भी पूछें — जैसे “होटल कैसे जोड़ें?” या “PDF कैसे मिलेगी?”।'},
+     en:'👋 Hello! Ask me anything about making a costing or an itinerary — for example “how do I add a hotel?”, “how do I get the PDF?” or “how do I make an itinerary?”.',
+     hi:'👋 नमस्ते! कॉस्टिंग या itinerary के बारे में कुछ भी पूछें — जैसे “होटल कैसे जोड़ें?”, “PDF कैसे मिलेगी?” या “itinerary कैसे बनाएं?”।'},
     {id:'thanks',kw:['thank','thanks','dhanyavad','shukriya','धन्यवाद'],
      en:'You are welcome! 😊',hi:'आपका स्वागत है! 😊'}
   ];
   function norm(s){return String(s||'').toLowerCase().replace(/[?!.,;:()"“”']/g,' ').replace(/\s+/g,' ').trim();}
   function lang_(){try{return chatbotLang==='hi'?'hi':'en';}catch(e){return 'en';}}
   function answer(e){var lang=lang_();var a=e[lang]||e.en;return typeof a==='function'?a():a;}
+  /* the question is about Create Itinerary: it names it, or the person is on that page */
+  var ITIN_RE=/itiner|itenar|itinar|itinery|iternar|voucher|vouchar|वाउचर|आइटिन|इटिन/;
+  function itinCtx(m){
+    if(ITIN_RE.test(m))return true;
+    var pg=document.querySelector('.page.active');return !!(pg&&pg.id==='itinerary');
+  }
   window.chatbotMatch=function(msg){
-    var m=' '+norm(msg)+' ',best=null,score=0;
+    var m=' '+norm(msg)+' ',best=null,score=0,inItin=itinCtx(m);
     KB.forEach(function(e,i){
       var s=0;
-      e.kw.forEach(function(k){
+      function count(k){
         k=norm(k);if(!k)return;
         var hit=k.length<=4||e.exact?(m.indexOf(' '+k+' ')!==-1):(m.indexOf(k)!==-1);
         if(hit)s+=k.length+(k.indexOf(' ')!==-1?6:0);
-      });
+      }
+      e.kw.forEach(count);
+      if(inItin&&e.ctx)e.ctx.forEach(count);              // e.g. “hotel” / “pdf” count for the voucher only when it is about the itinerary
+      if(inItin&&s&&/^itin/.test(e.id))s+=e.id==='itin'?10:25;
       if(e.exact&&s&&norm(msg).split(' ').length>3)s=0;     // "hi" only counts as a greeting in a short message
       if(s>score){score=s;best=e;}
     });
@@ -11664,8 +11707,8 @@ try{(function(){
 
   /* quick questions that match today’s website */
   var QUICK={
-    en:[['How do I create a costing?','costing'],['How do I get the PDF?','pdf'],['I forgot to save a costing','forgot to save'],['Contact number','contact']],
-    hi:[['कॉस्टिंग कैसे बनाएं?','costing'],['PDF कैसे मिलेगी?','pdf'],['कॉस्टिंग सेव करना भूल गया','forgot to save'],['कॉन्टैक्ट नंबर','contact']]
+    en:[['How do I create a costing?','costing'],['How do I make an itinerary?','create itinerary'],['How do I get the PDF?','pdf'],['I forgot to save a costing','forgot to save'],['Contact number','contact']],
+    hi:[['कॉस्टिंग कैसे बनाएं?','costing'],['Itinerary कैसे बनाएं?','create itinerary'],['PDF कैसे मिलेगी?','pdf'],['कॉस्टिंग सेव करना भूल गया','forgot to save'],['कॉन्टैक्ट नंबर','contact']]
   };
   function setQuick(lang){
     (QUICK[lang]||QUICK.en).forEach(function(q,i){var b=$('qq'+(i+1));if(b){b.textContent=q[0];b.setAttribute('data-kw',q[1]);}});
@@ -11697,7 +11740,9 @@ try{(function(){
   /* Help chat: taller and easier to read on a phone */
   var st=document.createElement('style');st.id='chatFixCss';
   st.textContent='@media (max-width:640px){html body #chatbotPanel.chatbot-panel{left:10px!important;right:10px!important;width:auto!important;max-width:none!important;top:80px!important;bottom:88px!important;height:auto!important;max-height:none!important;display:flex;flex-direction:column}'
-    +'html body #chatbotPanel .chatbot-body{flex:1 1 auto;min-height:0}html body #chatbotPanel .chatbot-quick{flex-shrink:0;max-height:34vh;overflow:auto}}'
+    +'html body #chatbotPanel .chatbot-body{flex:1 1 auto;min-height:0}html body #chatbotPanel .chatbot-quick{flex-shrink:0;max-height:34vh;overflow:auto}'
+    +'html body #chatbotPanel .chatbot-quick{flex-wrap:nowrap!important;overflow-x:auto;overflow-y:hidden;max-height:none;padding-bottom:8px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}'
+    +'html body #chatbotPanel .chatbot-quick button{flex:0 0 auto;white-space:nowrap;scroll-snap-align:start}}'
     +'@media (min-width:641px){html body #chatbotPanel.chatbot-panel{width:380px!important;height:min(560px,calc(100vh - 150px))!important;max-height:none!important;display:flex;flex-direction:column}'
     +'html body #chatbotPanel .chatbot-body{flex:1 1 auto;min-height:0}html body #chatbotPanel .chatbot-quick{flex-shrink:0;flex-direction:row!important;flex-wrap:wrap!important}}';
   document.head.appendChild(st);
