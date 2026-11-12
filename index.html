@@ -11624,6 +11624,11 @@ try{(function(){
     {id:'undo',kw:['undo','mistake','galti','galat ho gaya','wapas lao','go back','गलती'],
      en:'<b>Made a mistake?</b> Press <b>↶ Undo</b> in the black message at the bottom right just after the change (in Create Itinerary and after deleting a costing). Your work is also kept in this browser as you type.',
      hi:'<b>गलती हो गई?</b> बदलाव के तुरंत बाद नीचे दाईं ओर काले मैसेज में <b>↶ Undo</b> दबाएं (Create Itinerary में और कॉस्टिंग डिलीट करने के बाद)। आपका काम लिखते-लिखते इसी browser में सेव होता रहता है।'},
+    {id:'closed',kw:['closed day','closed on','is closed','closed','band hai','band rehta','bandh','holiday','chutti','off day','weekly off','बंद','छुट्टी'],
+     en:function(){return '<b>Closed days:</b> a SIC transfer or entry ticket can be closed on some days (e.g. Mon, Tue). When you add it to a costing for such a date, a red message says so and the item is not added — choose another date. Items already in the costing on a closed day are listed above the form.'
+       +(admin()?'<br><b>Admin:</b> in <b>Saved Rates → SIC Transfers</b> or <b>Entry Tickets</b>, press <b>Edit</b> (or add a new one), tap the days in <b>Closed on</b> (they turn red) and press <b>Save</b>. The list shows “Closed: Mon, Tue”.':'');},
+     hi:function(){return '<b>बंद दिन:</b> कोई SIC transfer या entry ticket कुछ दिन बंद रह सकता है (जैसे Mon, Tue)। ऐसी तारीख पर कॉस्टिंग में जोड़ेंगे तो लाल मैसेज आएगा और आइटम नहीं जुड़ेगा — दूसरी तारीख चुनें। कॉस्टिंग में पहले से जुड़े ऐसे आइटम फॉर्म के ऊपर दिखते हैं।'
+       +(admin()?'<br><b>Admin:</b> <b>Saved Rates → SIC Transfers</b> या <b>Entry Tickets</b> में <b>Edit</b> दबाएं (या नया जोड़ें), <b>Closed on</b> में दिन चुनें (लाल हो जाते हैं) और <b>Save</b> दबाएं। लिस्ट में “Closed: Mon, Tue” दिखता है।':'');}},
     {id:'ticket',kw:['entry ticket','ticket','टिकट'],
      en:'<b>Entry Ticket:</b> tap <b>Entry Ticket</b> and choose the ticket. Adults and children come from the client details; adult and child prices are separate.',
      hi:'<b>Entry Ticket:</b> <b>Entry Ticket</b> दबाएं और टिकट चुनें। Adult और child की गिनती client details से आती है; दोनों की कीमत अलग होती है।'},
@@ -11840,6 +11845,7 @@ try{(function(){
     itinBullet:['Bullets (•)','Bullet (•)','itinerary',['itinYellow','itinPdf']],
     itinSaved:['Saved vouchers','सेव वाउचर','itinerary',['itinPdf','itin']],
     undo:['Undo a mistake','गलती वापस लें',null,['draft','itinSaved']],
+    closed:['Closed days (Mon, Tue …)','बंद दिन (Mon, Tue …)','rates',['ticket','sic'],true],
     stats:['How many costings do I have?','मेरी कितनी कॉस्टिंग हैं?','saved',['saved','draft']],
     total:['Total of this costing','इस कॉस्टिंग का टोटल','dashboard',['margin','pdf']]
   };
@@ -13088,5 +13094,285 @@ try{(function(){
   };
 })();}catch(err){console.error('Word quotation builder failed to start:',err);}
 </script>
+<style id="closedDaysCss">
+/* Closed days for SIC transfers and entry tickets */
+.cd-box{border:1px solid var(--gold-line,#E6DCC7);border-radius:12px;padding:10px 12px;margin:12px 0 4px;background:rgba(250,246,238,.6)}
+.cd-box legend{font-weight:800;font-size:14px;padding:0 6px;color:var(--text,#0B1F3A)}
+.cd-box legend .opt-tag{margin-left:4px}
+.cd-days{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.cd-day{position:relative}
+.cd-day input{position:absolute;opacity:0;width:1px;height:1px}
+.cd-day span{display:inline-flex;align-items:center;justify-content:center;min-width:52px;min-height:40px;padding:0 10px;border-radius:10px;border:1.5px solid #d9cdb4;background:#fff;color:#0B1F3A;font-weight:800;font-size:13px;cursor:pointer;user-select:none}
+.cd-day input:checked+span{background:#b42318;border-color:#b42318;color:#fff}
+.cd-day input:checked+span::before{content:'✕';margin-right:5px;font-size:11px}
+.cd-day input:focus-visible+span{outline:3px solid #2563eb;outline-offset:2px}
+.cd-hint{font-size:12.5px;color:var(--muted,#667085);margin:6px 0 0}
+.cd-tag{display:inline-block;margin-left:8px;font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:#fdecea;color:#b42318;border:1px solid #f5c2bd;vertical-align:middle;white-space:nowrap}
+.cd-warn{display:block;margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#fdecea;border:1px solid #f5c2bd;color:#912018;font-weight:700;font-size:14px;line-height:1.45}
+.cd-warn[hidden]{display:none}
+.cd-warn.cd-shake{animation:cdShake .4s}
+@keyframes cdShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.cd-banner{margin:0 0 12px;padding:10px 14px;border-radius:12px;background:#fdecea;border:1px solid #f5c2bd;color:#912018;font-weight:700;font-size:14px;line-height:1.5}
+.cd-banner[hidden]{display:none}
+.cd-banner ul{margin:4px 0 0;padding-left:20px;font-weight:600}
+body.dark .cd-box{background:rgba(255,255,255,.04);border-color:#2b3f5f}
+body.dark .cd-day span{background:#16283f;border-color:#3a5070;color:#e8eef7}
+body.dark .cd-day input:checked+span{background:#d92d20;border-color:#d92d20;color:#fff}
+body.dark .cd-tag{background:#3b1512;color:#ffb4ab;border-color:#7a2a24}
+body.dark .cd-warn,body.dark .cd-banner{background:#3b1512;color:#ffd4cf;border-color:#7a2a24}
+@media print{.cd-banner,.cd-warn{display:none!important}}
+</style>
+<script>
+/* =====================================================================
+   CLOSED DAYS — SIC transfers and entry tickets
+     • Saved Rates → SIC Transfers / Entry Tickets: a “Closed on” box
+       (Mon … Sun). Saved in travelClosedDays {sic:{name:[days]},ticket:{…}}
+       (0 = Sunday … 6 = Saturday), also in the backup.
+     • Costing: choosing one of these for a closed day shows a red message,
+       and “Add to Costing” is stopped until another date is chosen.
+       Items already in the costing that fall on a closed day are listed too.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  var KEY='travelClosedDays';
+  var ORDER=[1,2,3,4,5,6,0];
+  var SHORT=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var LONG=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  function $(id){return document.getElementById(id);}
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function load(){var d;try{d=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){d=null;}
+    if(!d||typeof d!=='object')d={};if(!d.sic||typeof d.sic!=='object')d.sic={};if(!d.ticket||typeof d.ticket!=='object')d.ticket={};return d;}
+  function save(d){try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){console.error('Closed days could not be saved',e);}}
+  function clean(a){return (Array.isArray(a)?a:[]).map(Number).filter(function(n,i,s){return n>=0&&n<=6&&s.indexOf(n)===i;}).sort(function(a,b){return ORDER.indexOf(a)-ORDER.indexOf(b);});}
+  function daysOf(kind,name){
+    if(!name)return [];var m=load()[kind]||{};
+    if(m[name])return clean(m[name]);
+    var low=String(name).trim().toLowerCase();
+    for(var k in m){if(k.trim().toLowerCase()===low)return clean(m[k]);}
+    return [];
+  }
+  function setDays(kind,name,days,oldName){
+    var d=load();name=String(name||'').trim();if(!name)return;
+    if(oldName&&oldName!==name)delete d[kind][oldName];
+    days=clean(days);if(days.length)d[kind][name]=days;else delete d[kind][name];
+    save(d);
+  }
+  function removeName(kind,name){var d=load();if(d[kind][name]){delete d[kind][name];save(d);}}
+  function dayList(days){return days.map(function(n){return SHORT[n];}).join(', ');}
+  window.closedDaysOf=daysOf;
+
+  /* ---------- Saved Rates: the “Closed on” box ---------- */
+  function box(id){
+    var f=document.createElement('fieldset');f.className='cd-box';f.id=id;
+    f.innerHTML='<legend>Closed on <span class="opt-tag">optional</span></legend><div class="cd-days">'
+      +ORDER.map(function(n){return '<label class="cd-day"><input type="checkbox" value="'+n+'" aria-label="Closed on '+LONG[n]+'"><span>'+SHORT[n]+'</span></label>';}).join('')
+      +'</div><p class="cd-hint">Tap the days it is closed (red). When a costing uses it on such a day, the website shows a message.</p>';
+    return f;
+  }
+  function read(id){var f=$(id);return f?[].map.call(f.querySelectorAll('input:checked'),function(i){return +i.value;}):[];}
+  function fill(id,days){var f=$(id);if(!f)return;[].forEach.call(f.querySelectorAll('input'),function(i){i.checked=days.indexOf(+i.value)!==-1;});}
+  var scName=$('scAdminName'),tkName=$('ticketName2');
+  if(scName){var hint=$('scAdminRateHint');var bx=box('scClosedDays');(hint&&hint.parentNode?hint.parentNode.insertBefore(bx,hint.nextSibling):scName.parentNode.appendChild(bx));}
+  if(tkName){var tkSec=$('masterTicketSection'),act=tkSec&&tkSec.querySelector('.builder-actions');var bx2=box('tkClosedDays');if(act)act.parentNode.insertBefore(bx2,act);else if(tkSec)tkSec.appendChild(bx2);}
+
+  /* SIC transfer: remember the name it had when Edit was pressed, save the days after a real save */
+  var scOrig=null;
+  var prevEditCat=window.editCategoryService;
+  if(typeof prevEditCat==='function')window.editCategoryService=function(p,name){
+    var r=prevEditCat.apply(this,arguments);
+    if(p==='sc'){scOrig=name;fill('scClosedDays',daysOf('sic',name));}
+    return r;
+  };
+  var prevCancelCat=window.cancelCategoryEdit;
+  if(typeof prevCancelCat==='function')window.cancelCategoryEdit=function(p){
+    var r=prevCancelCat.apply(this,arguments);
+    if(p==='sc'&&!saving){scOrig=null;fill('scClosedDays',[]);}
+    return r;
+  };
+  var saving=false;
+  var prevSaveCat=window.saveCategoryService;
+  if(typeof prevSaveCat==='function')window.saveCategoryService=function(p){
+    if(p!=='sc')return prevSaveCat.apply(this,arguments);
+    var name=(scName&&scName.value||'').trim(),days=read('scClosedDays'),orig=scOrig;
+    saving=true;var r;
+    try{r=prevSaveCat.apply(this,arguments);}finally{saving=false;}
+    var o={};try{o=getOther();}catch(e){}
+    if(name&&o[name]!=null&&(scName.value||'').trim()===''){   // saved (the form was cleared)
+      setDays('sic',name,days,orig);scOrig=null;fill('scClosedDays',[]);refreshLists();
+    }
+    return r;
+  };
+  var prevDelSv=window.deleteService;
+  if(typeof prevDelSv==='function')window.deleteService=function(name){
+    var r=prevDelSv.apply(this,arguments);
+    try{if(name&&getOther()[name]==null)removeName('sic',name);}catch(e){}
+    refreshLists();return r;
+  };
+
+  /* Entry ticket */
+  var tkOrig=null;
+  var prevEditTk=window.editTicket2;
+  if(typeof prevEditTk==='function')window.editTicket2=function(name){
+    var r=prevEditTk.apply(this,arguments);tkOrig=name;fill('tkClosedDays',daysOf('ticket',name));return r;
+  };
+  var prevCancelTk=window.cancelTicketEdit;
+  if(typeof prevCancelTk==='function')window.cancelTicketEdit=function(){
+    var r=prevCancelTk.apply(this,arguments);tkOrig=null;fill('tkClosedDays',[]);return r;
+  };
+  var prevAddTk=window.addTicket2;
+  if(typeof prevAddTk==='function')window.addTicket2=function(){
+    var name=(tkName&&tkName.value||'').trim(),days=read('tkClosedDays'),orig=tkOrig;
+    var r=prevAddTk.apply(this,arguments);
+    var t={};try{t=getTickets();}catch(e){}
+    if(name&&t[name]!=null&&(tkName.value||'').trim()===''){
+      setDays('ticket',name,days,orig);tkOrig=null;fill('tkClosedDays',[]);refreshLists();
+    }
+    return r;
+  };
+  var prevDelTk=window.deleteTicket;
+  if(typeof prevDelTk==='function')window.deleteTicket=function(name){
+    var r=prevDelTk.apply(this,arguments);
+    try{if(name&&getTickets()[name]==null)removeName('ticket',name);}catch(e){}
+    refreshLists();return r;
+  };
+
+  /* “Closed: Mon, Tue” next to the name in the saved lists */
+  function tagLists(){
+    [['rateScList','sic'],['rateTkList','ticket']].forEach(function(c){
+      var tb=$(c[0]);if(!tb)return;
+      [].forEach.call(tb.querySelectorAll('tr'),function(tr){
+        var cell=tr.querySelector('.cell-name');if(!cell)return;
+        var old=cell.querySelector('.cd-tag');if(old)old.remove();
+        var b=cell.querySelector('b');var name=b?b.textContent:'';
+        var days=daysOf(c[1],name);
+        if(days.length){var t=document.createElement('span');t.className='cd-tag';t.textContent='Closed: '+dayList(days);t.title='Closed on '+days.map(function(n){return LONG[n];}).join(', ');cell.appendChild(t);}
+      });
+    });
+  }
+  function refreshLists(){try{if(typeof renderRateList==='function')renderRateList();}catch(e){}tagLists();}
+  var prevRender=window.renderRateList;
+  if(typeof prevRender==='function')window.renderRateList=function(){var r=prevRender.apply(this,arguments);try{tagLists();}catch(e){}return r;};
+  tagLists();
+
+  /* ---------- Costing: stop a closed day ---------- */
+  function fmt(iso){
+    var d=new Date(iso+'T12:00:00');if(isNaN(d))return iso;
+    var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return SHORT[d.getDay()]+' '+d.getDate()+' '+M[d.getMonth()]+' '+d.getFullYear();
+  }
+  function dow(iso){if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||''))return -1;var d=new Date(iso+'T12:00:00');return isNaN(d)?-1:d.getDay();}
+  function clash(kind,name,iso){
+    var w=dow(iso);if(w<0||!name)return null;
+    var days=daysOf(kind,name);
+    return days.indexOf(w)!==-1?{kind:kind,name:name,date:iso,day:w,days:days}:null;
+  }
+  function msg(c){
+    return '⛔ “'+c.name+'” is closed on '+LONG[c.day]+'. '+fmt(c.date)+' is a '+LONG[c.day]+' — please choose another date.'
+      +(c.days.length>1?' (Closed on: '+dayList(c.days)+')':'');
+  }
+  function formClashes(){
+    var cat=$('efCat')&&$('efCat').value,pick=$('efPick')&&$('efPick').value;
+    var iso=($('efDate')&&$('efDate').value)||($('travelDate')&&$('travelDate').value)||'';
+    var out=[];
+    if(cat==='sic'&&pick)out.push(clash('sic',pick,iso));
+    if(cat==='ticket'&&pick)out.push(clash('ticket',pick,iso));
+    /* tickets added with a transfer */
+    if($('efTicket')&&$('efTicket').value==='with'){
+      var tp=$('efTkPick');if(tp&&tp.value)out.push(clash('ticket',tp.value,iso));
+      [].forEach.call(document.querySelectorAll('#efTkRows .tkx-pick'),function(s){if(s.value)out.push(clash('ticket',s.value,iso));});
+    }
+    return out.filter(Boolean);
+  }
+  var form=$('entryForm'),warn=null;
+  if(form){
+    warn=document.createElement('p');warn.className='cd-warn';warn.id='efClosedWarn';warn.setAttribute('role','alert');warn.hidden=true;
+    var err=$('efError');if(err&&err.parentNode)err.parentNode.insertBefore(warn,err.nextSibling);else form.appendChild(warn);
+  }
+  function showWarn(){
+    if(!warn)return [];
+    var c=formClashes();
+    warn.hidden=!c.length;warn.textContent=c.map(msg).join(' ');
+    var d=$('efDate');if(d){if(c.length){d.classList.add('v-invalid');d.setAttribute('aria-invalid','true');}else if(d.classList.contains('v-invalid')&&d.dataset.cdMarked){d.classList.remove('v-invalid');d.removeAttribute('aria-invalid');}d.dataset.cdMarked=c.length?'1':'';}
+    return c;
+  }
+  ['change','input'].forEach(function(ev){
+    document.addEventListener(ev,function(e){
+      var t=e.target;if(!t||!t.id&&!t.classList)return;
+      if(/^(efCat|efPick|efDate|efTkPick|efTicket|travelDate)$/.test(t.id||'')||(t.classList&&t.classList.contains('tkx-pick')))setTimeout(showWarn,0);
+    },true);
+  });
+  document.addEventListener('click',function(e){
+    var b=e.target&&e.target.closest&&e.target.closest('#efTicketGroup button,#efTkRows button,#efTkAdd,.efc,[data-cat]');if(b)setTimeout(showWarn,30);
+  },true);
+  /* before the item is added: stop it on a closed day */
+  window.addEventListener('submit',function(e){
+    if(e.target!==form)return;
+    var c=showWarn();
+    if(c.length){
+      e.preventDefault();e.stopImmediatePropagation();
+      var er=$('efError');if(er)er.textContent='';          // the red box below already says why
+      var d=$('efDate');if(d){try{d.focus();}catch(x){}}
+      if(warn){warn.classList.remove('cd-shake');void warn.offsetWidth;warn.classList.add('cd-shake');}
+    }
+  },true);
+  window.addEventListener('click',function(e){
+    var b=e.target&&e.target.closest&&e.target.closest('#efAdd');if(!b||!form)return;
+    var c=showWarn();
+    if(c.length){e.preventDefault();e.stopImmediatePropagation();var er=$('efError');if(er)er.textContent='';var d=$('efDate');if(d){try{d.focus();}catch(x){}}
+      if(warn){warn.classList.remove('cd-shake');void warn.offsetWidth;warn.classList.add('cd-shake');}}
+  },true);
+
+  /* items already in the costing on a closed day */
+  var banner=null;
+  if(form){banner=document.createElement('div');banner.className='cd-banner';banner.id='closedBanner';banner.setAttribute('role','status');banner.hidden=true;form.parentNode.insertBefore(banner,form);}
+  function costingClashes(){
+    var list=[];try{list=(typeof services!=='undefined'&&Array.isArray(services))?services:[];}catch(e){}
+    var start=($('travelDate')&&$('travelDate').value)||'';
+    var out=[];
+    list.forEach(function(s){
+      if(!s||s.custom)return;
+      var kind=(s.type==='Ticket'||s.category==='ticket')?'ticket':(s.category==='sic'?'sic':null);if(!kind)return;
+      var name=String(s.name||'').split(' • ')[0].trim();
+      var c=clash(kind,name,s.date||start);if(c)out.push(c);
+    });
+    return out;
+  }
+  function showBanner(){
+    if(!banner)return;
+    var c=costingClashes();
+    banner.hidden=!c.length;
+    banner.innerHTML=c.length?'⛔ Closed on that day — please change the date:<ul>'+c.map(function(x){return '<li><b>'+esc(x.name)+'</b> — '+esc(fmt(x.date))+' (closed on '+esc(LONG[x.day])+')</li>';}).join('')+'</ul>':'';
+  }
+  window.closedDaysCheckCosting=costingClashes;
+  var prevOpen=window.openSheetEntry;
+  if(typeof prevOpen==='function')window.openSheetEntry=function(){var r=prevOpen.apply(this,arguments);setTimeout(showWarn,60);return r;};
+  var prevCalc=window.calculate;
+  if(typeof prevCalc==='function')window.calculate=function(){var r=prevCalc.apply(this,arguments);try{showBanner();}catch(e){}return r;};
+  document.addEventListener('change',function(e){if(e.target&&e.target.id==='travelDate')setTimeout(showBanner,0);},true);
+  window.addEventListener('storage',function(e){if(e.key===KEY){tagLists();showBanner();showWarn();}});
+  showBanner();
+
+  /* ---------- Backup ---------- */
+  var prevAll=window.allSavedData;
+  if(typeof prevAll==='function')window.allSavedData=function(){
+    var d=prevAll.apply(this,arguments);
+    try{var c=load();if(Object.keys(c.sic).length||Object.keys(c.ticket).length)d.closedDays=c;}catch(e){}
+    return d;
+  };
+  var prevImport=window.importBackup;
+  if(typeof prevImport==='function')window.importBackup=function(event){
+    var file=event&&event.target&&event.target.files&&event.target.files[0];
+    if(file&&/\.json$/i.test(file.name)&&file.size<=10*1024*1024&&typeof isAdminSession==='function'&&isAdminSession()){
+      var rd=new FileReader();
+      rd.onload=function(){try{var d=JSON.parse(rd.result);if(d&&d.closedDays&&typeof d.closedDays==='object'){
+        var c={sic:{},ticket:{}};['sic','ticket'].forEach(function(k){var m=d.closedDays[k];if(m&&typeof m==='object')Object.keys(m).forEach(function(n){var v=clean(m[n]);if(v.length)c[k][String(n).slice(0,200)]=v;});});
+        save(c);tagLists();showBanner();}}catch(e){}};
+      rd.readAsText(file);
+    }
+    return prevImport.apply(this,arguments);
+  };
+})();}catch(err){console.error('Closed days failed to start:',err);}
+</script>
+
 </body>
 </html>
