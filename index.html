@@ -2527,7 +2527,7 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
   </div>
 </div>
 <div class="idle-lock no-print" id="idleLock" role="dialog" aria-modal="true" aria-label="Screen locked" aria-hidden="true">
-  <img class="idle-lock-logo" alt="">
+  <img class="idle-lock-logo" data-same-logo alt="Hippo Travel">
   <div class="idle-lock-icon" aria-hidden="true">🔒</div>
   <div class="idle-lock-title">Screen Locked</div>
   <div class="idle-lock-sub">Move the Mouse and Press any key to continue</div>
@@ -8515,6 +8515,9 @@ function toggleChatbot(){
   let idleTimer=null;
   function lockScreen(){
     let el=$('idleLock');
+    /* the lock screen always shows the same logo as the top of the page */
+    let lg=el&&el.querySelector('.idle-lock-logo'),top=document.querySelector('.brand-logo img');
+    if(lg&&top&&top.src&&lg.src!==top.src)lg.src=top.src;
     if(el){el.classList.add('show');el.setAttribute('aria-hidden','false');}
   }
   function unlockScreen(){
@@ -8683,9 +8686,9 @@ function toggleChatbot(){
   });
 
   /* ---- Re-use the welcome logo for the lock screen (saves a duplicate image) ---- */
-  var welcomeLogo=document.querySelector('.welcome-brand-logo');
+  var topLogo=document.querySelector('.brand-logo img');
   var lockLogo=document.querySelector('.idle-lock-logo');
-  if(welcomeLogo&&lockLogo)lockLogo.src=welcomeLogo.src;
+  if(topLogo&&lockLogo&&topLogo.src)lockLogo.src=topLogo.src;
 })();
 
 </script>
