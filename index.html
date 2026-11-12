@@ -13377,5 +13377,22 @@ try{(function(){
 })();}catch(err){console.error('Closed days failed to start:',err);}
 </script>
 
+<style id="wideItemCss">
+/* SIC / private transfer, entry ticket, meal and custom items: the name box is as wide as the Transfer one (long names fit) */
+@media (min-width:721px){
+  html body .entry-form.ef-wide-item .ef-item{flex:1 1 420px!important;min-width:min(420px,100%)}
+  html body .entry-form.ef-wide-item .ef-tkpick{flex:1 1 320px}
+}
+</style>
+<script>
+/* mark the costing form when a SIC transfer, private transfer or entry ticket is being added */
+try{(function(){
+  var f=document.getElementById('entryForm'),cat=document.getElementById('efCat');if(!f||!cat)return;
+  function sync(){var w=/^(sic|private|ticket|ctransfer|cservice|meal)$/.test(cat.value);if(f.classList.contains('ef-wide-item')!==w)f.classList.toggle('ef-wide-item',w);}
+  new MutationObserver(sync).observe(f,{attributes:true,attributeFilter:['class']});
+  cat.addEventListener('change',sync);document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.efc'))setTimeout(sync,0);},true);
+  sync();
+})();}catch(e){console.error('Wide item box failed:',e);}
+</script>
 </body>
 </html>
