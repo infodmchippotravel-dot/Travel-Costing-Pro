@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://translate.googleapis.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com https://api.emailjs.com https://api.github.com; frame-src 'self' https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://translate.googleapis.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com https://api.emailjs.com https://api.github.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src 'self' https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <script>
 /* ===== Guaranteed stale-cache buster (safe version) =====
@@ -11633,6 +11633,9 @@ try{(function(){
     {id:'share',kw:['sab ko dikhe','sabko dikhe','sab jagah','everyone','every computer','all computers','other computer','dusre computer','doosre computer','other device','share prices','share rates','rates share','not showing on','phone par nahi','सबको'],
      en:function(){return '<b>Admin changes for everyone:</b> Saved Rates (transfers, SIC, tickets, meals), tours, closed days and the company details are shared with every computer and phone. '+(admin()?'When you save, it is shared by itself if the GitHub token is saved in <b>Settings → Admin Login Credentials</b> (tick “Remember”). The box at the top of Saved Rates and Settings says if it is shared. Other devices get it in about 1–2 minutes.':'You always see the newest prices from the admin (refresh the page if you just heard about a change).')+' Costings and vouchers stay in each browser.';},
      hi:function(){return '<b>Admin के बदलाव सबके लिए:</b> Saved Rates (transfers, SIC, tickets, meals), tours, closed days और company details हर कंप्यूटर और फोन पर दिखते हैं। '+(admin()?'Save करते ही अपने आप share होता है, अगर GitHub token <b>Settings → Admin Login Credentials</b> में सेव है (“Remember” टिक करें)। Saved Rates और Settings में ऊपर का बॉक्स बताता है कि share हुआ या नहीं। दूसरे devices पर 1–2 मिनट में आता है।':'आपको हमेशा admin की नई कीमतें दिखती हैं (अभी बदलाव हुआ हो तो पेज refresh करें)।')+' Costings और vouchers हर browser में अपने रहते हैं।';}},
+    {id:'cloud',kw:['cloud','online copy','firebase','everyone costing','everyones costing','all users costing','sab ki costing','sabki costing','users ki costing','user ki costing','other users','dusre user','doosre user','sab ke voucher','all vouchers of users','online backup'],
+     en:function(){return '<b>Online copy (Cloud):</b> saved costings, drafts and vouchers are copied online by themselves, so they are safe even if the browser is cleared. '+(admin()?'To see <b>everyone’s</b> costings, drafts and vouchers, open <b>Settings → ☁️ Online copy</b> and connect once with the Firebase e-mail and password. They then show in My Costings, Drafts and Create Itinerary → All vouchers, with who made each one.':'Only you (and the admin) can see your records.');},
+     hi:function(){return '<b>Online copy (Cloud):</b> सेव कॉस्टिंग, ड्राफ्ट और वाउचर अपने आप online भी सेव होते हैं, browser साफ होने पर भी सुरक्षित रहते हैं। '+(admin()?'<b>सबकी</b> कॉस्टिंग, ड्राफ्ट और वाउचर देखने के लिए <b>Settings → ☁️ Online copy</b> में एक बार Firebase e-mail और password से connect करें। फिर ये My Costings, Drafts और Create Itinerary → All vouchers में दिखेंगे, किसने बनाया उसके साथ।':'आपके रिकॉर्ड सिर्फ आप (और admin) देख सकते हैं।');}},
     {id:'ticket',kw:['entry ticket','ticket','टिकट'],
      en:'<b>Entry Ticket:</b> tap <b>Entry Ticket</b> and choose the ticket. Adults and children come from the client details; adult and child prices are separate.',
      hi:'<b>Entry Ticket:</b> <b>Entry Ticket</b> दबाएं और टिकट चुनें। Adult और child की गिनती client details से आती है; दोनों की कीमत अलग होती है।'},
@@ -11854,6 +11857,7 @@ try{(function(){
     undo:['Undo a mistake','गलती वापस लें',null,['draft','itinSaved']],
     closed:['Closed days (Mon, Tue …)','बंद दिन (Mon, Tue …)','rates',['ticket','sic'],true],
     share:['Admin changes for everyone','सबके लिए admin बदलाव','rates',['rates','closed'],true],
+    cloud:['Everyone’s costings (Cloud)','सबकी कॉस्टिंग (Cloud)','settings',['saved','itinSaved']],
     stats:['How many costings do I have?','मेरी कितनी कॉस्टिंग हैं?','saved',['saved','draft']],
     total:['Total of this costing','इस कॉस्टिंग का टोटल','dashboard',['margin','pdf']]
   };
@@ -13735,6 +13739,279 @@ try{(function(){
   document.addEventListener('visibilitychange',function(){if(!document.hidden)sync();});
   window.__sharedSync=sync;
 })();}catch(err){console.error('Shared data failed to start:',err);}
+</script>
+<style id="cloudCss">
+/* Cloud (Firebase): costings, drafts and vouchers online; the admin sees everyone's */
+#cloudCard .cl-status{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--gold-line,#E6DCC7);background:#FAF6EE;font-weight:700;font-size:14px;line-height:1.45;margin:8px 0 12px}
+#cloudCard .cl-status.ok{background:#eefaf2;border-color:#cfe3d6;color:#14532d}
+#cloudCard .cl-status.warn{background:#fff7e6;border-color:#f3d28b;color:#7a4b00}
+#cloudCard .cl-status.err{background:#fdecea;border-color:#f5c2bd;color:#912018}
+#cloudCard .cl-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end}
+#cloudCard .cl-row button{min-height:44px}
+#cloudCard .cl-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+#cloudCard .cl-hint{font-size:13px;color:var(--muted,#667085);margin:6px 0 0}
+#cloudCard [hidden]{display:none!important}
+body.dark #cloudCard .cl-status{background:#13243b;border-color:#2b3f5f;color:#e8eef7}
+body.dark #cloudCard .cl-status.ok{background:#10291c;border-color:#24513a;color:#bff0d0}
+body.dark #cloudCard .cl-status.warn{background:#33260b;border-color:#6b5320;color:#ffe2a8}
+body.dark #cloudCard .cl-status.err{background:#3b1512;border-color:#7a2a24;color:#ffd4cf}
+@media (max-width:720px){#cloudCard .cl-row{grid-template-columns:1fr}}
+</style>
+<script>
+/* =====================================================================
+   CLOUD (Firebase, private) — saved costings, drafts and vouchers
+     • Every browser has its own hidden (anonymous) Firebase account. What is
+       saved there is copied online (Firestore) by itself.
+     • The admin connects once in Settings with the Firebase e-mail and
+       password; then the admin sees everyone's costings, drafts and vouchers
+       on every computer and phone.
+     • The Firestore rules let a user read and write only their own records;
+       only the admin e-mail can read everything and delete.
+     • Works without internet: changes are sent when it is back.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  var CFG={apiKey:'AIzaSyAZlu---1cqIQ_FXzdK_xYzKDQU32aqgCE',projectId:'hippo-travel-b1006'};
+  var BASE='https://firestore.googleapis.com/v1/projects/'+CFG.projectId+'/databases/(default)/documents';
+  var COLS={costings:'travelSavedCostings',drafts:'travelDraftCostings',vouchers:'tv.saved.v1'};
+  var K_USER='travelCloudUser',K_ADMIN='travelCloudAdmin',K_MAP='travelCloudMap',K_AT='travelCloudAt';
+  function $(id){return document.getElementById(id);}
+  function admin(){return typeof isAdminSession==='function'&&isAdminSession();}
+  function get(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+  function set(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v);return true;}catch(e){return false;}}
+  function parse(s,d){try{var v=JSON.parse(s);return v==null?d:v;}catch(e){return d;}}
+  function hash(str){var h=5381;for(var i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36)+':'+str.length;}
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  if(!window.fetch||location.protocol==='file:'||window.__storageInMemory)return;
+
+  /* ---------- sign in ---------- */
+  var idt={};   // which → {token, exp, uid}
+  function post(url,body,form){
+    return fetch(url,{method:'POST',headers:{'Content-Type':form?'application/x-www-form-urlencoded':'application/json'},body:form?body:JSON.stringify(body)})
+      .then(function(r){return r.json().then(function(j){if(!r.ok){var m=(j&&j.error&&j.error.message)||('error '+r.status);var e=new Error(m);e.code=m;throw e;}return j;});});
+  }
+  function refresh(which,rec){
+    return post('https://securetoken.googleapis.com/v1/token?key='+CFG.apiKey,'grant_type=refresh_token&refresh_token='+encodeURIComponent(rec.rt),true)
+      .then(function(j){rec.rt=j.refresh_token||rec.rt;set(which==='admin'?K_ADMIN:K_USER,JSON.stringify(rec));
+        idt[which]={token:j.id_token,uid:j.user_id,exp:Date.now()+((+j.expires_in||3600)-120)*1000};return idt[which];});
+  }
+  function identity(){
+    var which=admin()&&parse(get(K_ADMIN),null)?'admin':'user';
+    var c=idt[which];if(c&&c.exp>Date.now())return Promise.resolve(Object.assign({which:which},c));
+    var rec=parse(get(which==='admin'?K_ADMIN:K_USER),null);
+    if(rec&&rec.rt)return refresh(which,rec).then(function(x){return Object.assign({which:which},x);},function(e){
+      if(which==='admin'&&/TOKEN_EXPIRED|USER_NOT_FOUND|INVALID_REFRESH_TOKEN|USER_DISABLED/.test(e.code||'')){set(K_ADMIN,null);lastErr='The admin cloud login has ended. Please connect again in Settings.';}
+      if(which==='user'&&/TOKEN_EXPIRED|USER_NOT_FOUND|INVALID_REFRESH_TOKEN|USER_DISABLED/.test(e.code||''))set(K_USER,null);
+      throw e;});
+    if(which==='admin')return Promise.reject(new Error('not connected'));
+    return post('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+CFG.apiKey,{returnSecureToken:true}).then(function(j){
+      set(K_USER,JSON.stringify({rt:j.refreshToken,uid:j.localId}));
+      idt.user={token:j.idToken,uid:j.localId,exp:Date.now()+((+j.expiresIn||3600)-120)*1000};
+      return Object.assign({which:'user'},idt.user);
+    });
+  }
+  window.cloudConnectAdmin=function(email,pass){
+    return post('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+CFG.apiKey,{email:email,password:pass,returnSecureToken:true}).then(function(j){
+      set(K_ADMIN,JSON.stringify({rt:j.refreshToken,uid:j.localId,email:j.email}));
+      idt.admin={token:j.idToken,uid:j.localId,exp:Date.now()+((+j.expiresIn||3600)-120)*1000};
+      return j.email;
+    });
+  };
+
+  /* ---------- Firestore (REST) ---------- */
+  function api(path,opt,tok){
+    opt=opt||{};opt.headers=Object.assign({'Content-Type':'application/json','Authorization':'Bearer '+tok},opt.headers||{});
+    return fetch(BASE+path,opt).then(function(r){return r.json().catch(function(){return {};}).then(function(j){if(!r.ok){var e=new Error((j&&j.error&&j.error.message)||('error '+r.status));e.status=r.status;throw e;}return j;});});
+  }
+  function slim(rec){   /* big pictures (e.g. a flight ticket) stay on the computer that made them */
+    return JSON.stringify(rec,function(k,v){return typeof v==='string'&&v.length>150000&&/^data:/.test(v)?'':v;});
+  }
+  function fields(owner,rec,deleted,col){
+    var who=rec&&rec.createdBy||{};
+    return {fields:{owner:{stringValue:owner},ownerKey:{stringValue:String(who.key||'')},ownerName:{stringValue:String(who.name||'')},
+      data:{stringValue:deleted?'{}':slim(rec)},updatedAt:{timestampValue:new Date().toISOString()},deleted:{booleanValue:!!deleted},kind:{stringValue:col}}};
+  }
+  function val(f,k){var x=f&&f[k];return x?(x.stringValue!=null?x.stringValue:x.booleanValue!=null?x.booleanValue:x.timestampValue):null;}
+
+  /* ---------- the lists in this browser ---------- */
+  function listOf(col){var l=parse(get(COLS[col]),[]);return Array.isArray(l)?l:[];}
+  var writing=false;
+  function putList(col,list){writing=true;var ok=set(COLS[col],JSON.stringify(list));writing=false;return ok;}
+  /* map: col → doc → {id (local id), sig, owner, del} */
+  function map(){var m=parse(get(K_MAP),{});['costings','drafts','vouchers'].forEach(function(c){if(!m[c]||typeof m[c]!=='object')m[c]={};});return m;}
+  function saveMap(m){set(K_MAP,JSON.stringify(m));}
+  function sig(rec){return hash(slim(rec));}
+  function safe(id){return String(id).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,120);}
+
+  /* ---------- send what changed ---------- */
+  var busy=false,again=false,lastErr='',lastOk=0,pending=0,explicitDel={costings:{},drafts:{},vouchers:{}};
+  function upload(me){
+    var m=map(),jobs=[];
+    Object.keys(COLS).forEach(function(col){
+      var list=listOf(col),byId={};
+      Object.keys(m[col]).forEach(function(doc){byId[m[col][doc].id]=doc;});
+      var present={};
+      list.forEach(function(rec){
+        if(!rec||rec.id==null)return;
+        var doc=byId[rec.id],e=doc&&m[col][doc];
+        if(!doc){doc=me.uid+'_'+safe(rec.id);e=m[col][doc]={id:rec.id,sig:'',owner:me.uid};}
+        present[doc]=1;
+        var s=sig(rec);
+        if(slim(rec).length>880000)return;   // too big for the cloud (stays only here)
+        if(e.sig!==s||e.del){jobs.push({col:col,doc:doc,owner:e.owner||me.uid,rec:rec,s:s});}
+      });
+      Object.keys(m[col]).forEach(function(doc){
+        var e=m[col][doc];if(present[doc]||e.del)return;
+        /* gone from this browser: delete online only if it is this browser's own record, or the admin pressed Delete */
+        var mine=e.owner===me.uid;
+        if(mine||explicitDel[col][e.id])jobs.push({col:col,doc:doc,owner:e.owner,del:true,id:e.id});
+        else delete m[col][doc];        // only not kept here (e.g. old drafts trimmed) — leave it online
+      });
+    });
+    saveMap(m);pending=jobs.length;show();
+    var chain=Promise.resolve();
+    jobs.forEach(function(j){
+      chain=chain.then(function(){
+        return api('/'+j.col+'/'+encodeURIComponent(j.doc),{method:'PATCH',body:JSON.stringify(fields(j.owner,j.rec,!!j.del,j.col))},me.token).then(function(){
+          var mm=map();
+          if(j.del){if(mm[j.col][j.doc]){mm[j.col][j.doc].del=true;mm[j.col][j.doc].sig='';}delete explicitDel[j.col][j.id];}
+          else{mm[j.col][j.doc]=Object.assign(mm[j.col][j.doc]||{},{id:j.rec.id,sig:j.s,owner:j.owner,del:false});}
+          saveMap(mm);pending=Math.max(0,pending-1);
+        });
+      });
+    });
+    return chain;
+  }
+
+  /* ---------- admin: bring everyone's records here ---------- */
+  function listAll(col,tok){
+    var out=[];
+    function page(t){return api('/'+col+'?pageSize=300'+(t?'&pageToken='+encodeURIComponent(t):''),{},tok).then(function(j){(j.documents||[]).forEach(function(d){out.push(d);});return j.nextPageToken?page(j.nextPageToken):out;});}
+    return page('');
+  }
+  var stats={costings:0,drafts:0,vouchers:0,people:0};
+  function download(me){
+    var chain=Promise.resolve(),people={};
+    Object.keys(COLS).forEach(function(col){
+      chain=chain.then(function(){return listAll(col,me.token);}).then(function(docs){
+        var m=map(),list=listOf(col),idx={},changed=false;
+        list.forEach(function(r,i){if(r&&r.id!=null)idx[r.id]=i;});
+        var live=0;
+        docs.forEach(function(d){
+          var f=d.fields||{},doc=d.name.split('/').pop(),kind=val(f,'kind'),del=val(f,'deleted')===true,owner=val(f,'owner')||'';
+          if(kind==='test')return;
+          var e=m[col][doc];
+          if(del){
+            if(e&&!e.del){var li=idx[e.id];if(li!=null&&sig(list[li])===e.sig){list.splice(li,1);changed=true;list.forEach(function(r,i){if(r&&r.id!=null)idx[r.id]=i;});}e.del=true;}
+            return;
+          }
+          var rec=parse(val(f,'data'),null);if(!rec||typeof rec!=='object')return;
+          live++;if(val(f,'ownerName'))people[val(f,'ownerKey')||val(f,'ownerName')]=1;
+          if(e){
+            var at=idx[e.id];
+            if(at==null){if(!e.del){rec.id=e.id;list.push(rec);idx[rec.id]=list.length-1;e.sig=sig(rec);changed=true;}return;}
+            var local=list[at];
+            /* changed online by someone else, not changed here: take it */
+            if(sig(local)===e.sig&&sig(rec)!==e.sig&&!e.del){rec.id=e.id;list[at]=rec;e.sig=sig(rec);changed=true;}
+            return;
+          }
+          /* new to this browser */
+          if(rec.id==null||idx[rec.id]!=null)rec.id=(col==='vouchers'?'v':'R')+hash(doc).replace(':','');
+          list.push(rec);idx[rec.id]=list.length-1;
+          m[col][doc]={id:rec.id,sig:sig(rec),owner:owner,del:false};changed=true;
+        });
+        stats[col]=live;
+        if(changed){
+          if(col==='costings'||col==='drafts')list.sort(function(a,b){return String(b.updatedAt||'').localeCompare(String(a.updatedAt||''));});
+          if(!putList(col,list)){lastErr='This browser is full — not every record could be shown here.';}
+          else{saveMap(m);redraw(col);}
+        }else saveMap(m);
+      });
+    });
+    return chain.then(function(){stats.people=Object.keys(people).length;});
+  }
+  function redraw(col){
+    try{
+      if(col==='costings'){try{savedCostings=listOf('costings');}catch(e){}window.dispatchEvent(new StorageEvent('storage',{key:COLS.costings}));if(typeof renderSavedCostings==='function')renderSavedCostings();}
+      if(col==='drafts')window.dispatchEvent(new StorageEvent('storage',{key:COLS.drafts}));
+      if(col==='vouchers'){var f=$('itinFrame');if(f&&f.contentWindow)try{f.contentWindow.dispatchEvent(new StorageEvent('storage',{key:COLS.vouchers}));}catch(e){}}
+    }catch(e){}
+  }
+
+  /* ---------- run ---------- */
+  function run(){
+    if(busy){again=true;return Promise.resolve();}
+    if(!navigator.onLine){lastErr='';show();return Promise.resolve();}
+    busy=true;show();
+    return identity().then(function(me){
+      return upload(me).then(function(){return me.which==='admin'?download(me):null;}).then(function(){lastErr='';lastOk=Date.now();set(K_AT,new Date().toISOString());});
+    }).catch(function(e){if(!/not connected/.test(e.message))lastErr=lastErr||('Could not reach the cloud: '+e.message);})
+      .then(function(){busy=false;show();if(again){again=false;setTimeout(run,500);}});
+  }
+  var t=0;function soon(ms){clearTimeout(t);t=setTimeout(run,ms||3000);}
+  var proto=window.Storage&&Storage.prototype,origSet=proto&&proto.setItem;
+  if(origSet)proto.setItem=function(k,v){var r=origSet.apply(this,arguments);try{if(!writing&&this===window.localStorage&&(k===COLS.costings||k===COLS.drafts||k===COLS.vouchers))soon();}catch(e){}return r;};
+  window.addEventListener('storage',function(e){if(e.key===COLS.vouchers&&!writing)soon();});
+  window.addEventListener('message',function(e){
+    if(e.origin!==location.origin||!e.data||!e.data.tvCloudDelete)return;
+    if(admin())explicitDel.vouchers[e.data.tvCloudDelete]=1;soon(1500);
+  });
+  ['deleteCosting','deleteCostingDraft'].forEach(function(fn){
+    var p=window[fn];if(typeof p!=='function')return;
+    window[fn]=function(id){var r=p.apply(this,arguments);if(admin())explicitDel[fn==='deleteCosting'?'costings':'drafts'][id]=1;soon(1500);return r;};
+  });
+  window.addEventListener('online',function(){soon(500);});
+  setInterval(function(){if(!document.hidden)run();},120000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)soon(800);});
+  ['finishLogin','logoutUser'].forEach(function(fn){var p=window[fn];if(typeof p==='function')window[fn]=function(){var r=p.apply(this,arguments);setTimeout(function(){show();soon(1500);},300);return r;};});
+  var prevShow=window.showPage;if(typeof prevShow==='function')window.showPage=function(id){var r=prevShow.apply(this,arguments);if(id==='saved'||id==='itinerary'||id==='settings'){show();if(admin())soon(500);}return r;};
+  window.cloudSync=run;
+
+  /* ---------- Settings card ---------- */
+  var card=null;
+  function build(){
+    var anchor=$('backupSettingsCard')||$('companySettingsCard');if(!anchor||$('cloudCard'))return;
+    card=document.createElement('div');card.className='card';card.id='cloudCard';
+    card.innerHTML='<h3>☁️ Online copy (Cloud)</h3>'
+      +'<p class="cl-hint" style="margin-top:-4px">Saved costings, drafts and vouchers are copied online by themselves, so they are safe even if this browser is cleared.</p>'
+      +'<div class="cl-status" id="clStatus" role="status" aria-live="polite"></div>'
+      +'<div id="clAdmin" hidden><h4 style="margin:6px 0">Admin: see everyone’s costings, drafts and vouchers</h4>'
+      +'<div id="clLogin"><div class="cl-row"><div><label for="clEmail">Firebase admin e-mail</label><input id="clEmail" type="email" autocomplete="username" placeholder="the admin e-mail in Firebase"></div>'
+      +'<div><label for="clPass">Firebase password</label><input id="clPass" type="password" autocomplete="current-password" placeholder="Firebase password"></div>'
+      +'<button type="button" class="blue" id="clConnect">Connect</button></div>'
+      +'<p class="cl-hint">Use the e-mail and password you made in Firebase → Authentication → Users (not the website admin password). You do this once on each computer.</p></div>'
+      +'<div id="clConnected" hidden><div class="cl-actions"><button type="button" class="blue" id="clNow">🔄 Get everyone’s now</button><button type="button" class="btn-ghost" id="clOut">Disconnect</button></div></div>'
+      +'<p class="cl-hint" id="clMsg" role="alert"></p></div>';
+    anchor.parentNode.insertBefore(card,anchor);
+    $('clConnect').addEventListener('click',function(){
+      var em=$('clEmail').value.trim(),pw=$('clPass').value;
+      if(!em||!pw){$('clMsg').textContent='Please type the Firebase admin e-mail and password.';return;}
+      $('clMsg').textContent='Connecting…';
+      cloudConnectAdmin(em,pw).then(function(){$('clPass').value='';$('clMsg').textContent='✅ Connected. Bringing everyone’s costings, drafts and vouchers…';lastErr='';show();return run();})
+        .then(function(){$('clMsg').textContent=lastErr?'':'✅ Done. You see everyone’s records in My Costings, Drafts and Create Itinerary → All vouchers.';},
+          function(e){var c=e.code||e.message||'';$('clMsg').textContent=/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL/.test(c)?'The e-mail or password is not right (use the Firebase one).':/TOO_MANY_ATTEMPTS/.test(c)?'Too many tries. Please wait a few minutes.':'Could not connect: '+c;});
+    });
+    $('clNow').addEventListener('click',function(){$('clMsg').textContent='';run();});
+    $('clOut').addEventListener('click',function(){if(!confirm('Disconnect the admin cloud view on this computer? (Nothing is deleted.)'))return;set(K_ADMIN,null);idt.admin=null;$('clMsg').textContent='Disconnected.';show();});
+  }
+  function fmt(ms){var d=new Date(ms);return d.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}
+  function show(){
+    build();if(!$('clStatus'))return;
+    var st=$('clStatus'),a=parse(get(K_ADMIN),null),isA=admin();
+    $('clAdmin').hidden=!isA;
+    if(isA){$('clLogin').hidden=!!a;$('clConnected').hidden=!a;if(!a&&!$('clEmail').value){var ae=get('travelAdminEmail');if(ae)$('clEmail').value=ae;}}
+    var cls='',txt='';
+    if(!navigator.onLine){cls='warn';txt='📴 No internet. Changes are kept here and sent when the internet is back.';}
+    else if(busy){txt='⏳ '+(pending?'Sending '+pending+' change'+(pending===1?'':'s')+'…':'Checking the cloud…');}
+    else if(lastErr){cls='err';txt='⚠️ '+esc(lastErr);}
+    else if(lastOk||get(K_AT)){cls='ok';txt='✅ Saved online'+(isA&&a?' · showing everyone’s: '+stats.costings+' costings, '+stats.drafts+' drafts, '+stats.vouchers+' vouchers':'')+' (checked '+fmt(lastOk||Date.parse(get(K_AT)))+').';}
+    else{txt='☁️ Your records will be copied online by themselves.';}
+    if(isA&&!a&&!lastErr)txt+=' <b>To see everyone’s records, connect below.</b>';
+    st.className='cl-status '+cls;st.innerHTML=txt;
+  }
+  build();show();
+  setTimeout(run,2500);
+})();}catch(err){console.error('Cloud failed to start:',err);}
 </script>
 </body>
 </html>

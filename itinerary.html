@@ -1526,6 +1526,7 @@ const ACT = {
     const list = savedList(), v = list.find(x => x.id === id); if (!v) return;
     if (!(await confirmBox(`Delete voucher ${v.no} — ${v.client}?\nThis cannot be undone.`, '🗑️ Delete'))) return;
     LS.set(K.saved, list.filter(x => x.id !== id));
+    try { if (window.parent !== window) window.parent.postMessage({ tvCloudDelete: id }, location.origin); } catch (e) {}
     if (draft.id === id) { draft.id = null; draft.no = ''; dirty = true; LS.set(K.draft, draft); }
     renderList(); renderClient(); toast(`Deleted ${v.no}`);
   },
@@ -1961,6 +1962,8 @@ window.addEventListener('storage',function(e){
   if(e.key==='travelTheme')document.documentElement.classList.toggle('theme-dark',e.newValue==='dark');
   if(e.key==='travelCurrentUserKey'&&(e.newValue||'')!==((window.ITIN_SESSION||{}).key||''))location.reload();
   if(e.key==='travelTourList')location.reload();
+  /* vouchers brought from the cloud (admin) or saved in another tab: show the new list */
+  if(e.key==='tv.saved.v1'){try{renderList();}catch(x){}}
   /* company / notes settings shared by the admin (from the website): use them, keep this browser's voucher number */
   if(e.key==='tv.settings.v1'&&e.newValue){try{var n=JSON.parse(e.newValue)||{};['company','partner','prefix','currency','notes','closing'].forEach(function(k){if(n[k]!==undefined)settings[k]=n[k];});if(typeof renderSettings==='function')renderSettings();if(typeof refreshPreview==='function')refreshPreview();}catch(x){}}
 });
