@@ -13397,106 +13397,70 @@ try{(function(){
 })();}catch(e){console.error('Wide item box failed:',e);}
 </script>
 <style id="hotelRoomsCss">
-/* Hotel: people & prices as one clear table (same boxes, new layout) */
-html body .ef-hpx{flex:1 1 100%!important;width:100%;display:block!important}
-html body .ef-hpx[hidden]{display:none!important}
-.hx-wrap{flex:1 1 100%;min-width:0;margin-top:2px}
-.hx-title{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;margin:0 0 8px}
-.hx-title b{font-size:15px;color:var(--navy,#0B1F3A)}
-.hx-title small{font-size:13px;color:var(--muted,#667085)}
-.hx-table{border:1px solid var(--gold-line,#D8C9A6);border-radius:14px;overflow:hidden;background:var(--card,#fff)}
-.hx-row{display:grid;grid-template-columns:minmax(180px,1.6fr) 110px minmax(150px,1fr) minmax(120px,.9fr);align-items:center;gap:12px;padding:8px 14px;border-top:1px solid var(--gold-line,#E6DCC7)}
-.hx-row:first-child{border-top:0}
-.hx-head{background:#0B1F3A;color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:10px 14px}
-.hx-head span:nth-child(n+2){text-align:center}
-.hx-head span:last-child{text-align:right}
-.hx-name{font-weight:800;font-size:14.5px;color:var(--text,#0B1F3A);line-height:1.25}
-.hx-name small{display:block;font-weight:600;font-size:12px;color:var(--muted,#667085)}
-.hx-row input{width:100%;height:44px!important;min-height:44px!important;font-size:16px!important;text-align:center;padding:0 8px!important}
-.hx-row .hx-price input{text-align:right}
-.hx-amt{text-align:right;font-weight:800;font-size:15px;color:var(--muted,#98a2b3);white-space:nowrap}
-.hx-row.is-on{background:rgba(198,167,107,.12)}
-.hx-row.is-on .hx-amt{color:var(--navy,#0B1F3A)}
-.hx-row.is-on .hx-name::before{content:'✓ ';color:#16794a}
-.hx-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border-top:2px solid var(--gold-line,#D8C9A6);background:#FAF6EE;font-weight:800}
-.hx-foot .hx-total{font-size:17px;color:var(--navy,#0B1F3A)}
-.hx-lbl{display:none;font-size:12px;font-weight:800;color:var(--muted,#667085);margin-bottom:4px}
-body.dark .hx-table{background:#0f2036;border-color:#2b3f5f}
-body.dark .hx-row{border-color:#22385a}
-body.dark .hx-head{background:#0a1628}
-body.dark .hx-name,body.dark .hx-title b,body.dark .hx-foot .hx-total,body.dark .hx-row.is-on .hx-amt{color:#EBD9AC}
-body.dark .hx-foot{background:#13243b;border-color:#2b3f5f}
-body.dark .hx-row.is-on{background:rgba(198,167,107,.10)}
-@media (max-width:720px){
-  .hx-head{display:none}
-  .hx-row{grid-template-columns:1fr 1fr;gap:8px 10px;padding:12px}
-  .hx-name{grid-column:1/-1}
-  .hx-lbl{display:block}
-  .hx-amt{grid-column:1/-1;text-align:left;font-size:14px}
-  .hx-amt::before{content:'Amount: ';font-weight:700;color:var(--muted,#667085)}
-  .hx-foot{flex-wrap:wrap}
-  .hx-foot span{white-space:nowrap}
-}
+/* Hotel: the five boxes in one row (same design), cleaner and easier to read */
+html body .ef-hpx:not([hidden]){display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;flex:1 1 100%!important;width:100%}
+html body .ef-hpx>.hx-note{grid-column:1/-1;max-width:none;margin:0;font-size:13px;color:var(--muted,#667085)}
+html body .ef-hpx>.hx-note b{color:var(--text,#0B1F3A)}
+html body .ef-hpx>.ef-hint{grid-column:1/-1}
+html body .ef-hpx .ef-hgrp{display:grid!important;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:8px;align-items:end;padding:8px 10px 10px!important;border:1.5px solid var(--gold-line,#E6DCC7);border-radius:12px;background:var(--card,#fff);min-width:0;transition:border-color .15s,background-color .15s}
+html body .ef-hpx .ef-hgrp legend{font-size:13px!important;font-weight:800;padding:0 6px;color:var(--navy,#0B1F3A);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+html body .ef-hpx .ef-hgrp .ef-mini,html body .ef-hpx .ef-hgrp .ef-rate{flex:none!important;min-width:0;width:auto}
+html body .ef-hpx .ef-hgrp label{font-size:12px!important;color:var(--muted,#667085)!important;font-weight:700!important;margin:0 0 4px!important}
+html body .ef-hpx .ef-hgrp input{width:100%;height:42px!important;min-height:42px!important;font-size:16px!important}
+html body .ef-hpx .ef-hgrp .ef-mini input{text-align:center;padding:0 4px!important}
+html body .ef-hpx .ef-hgrp .ef-rate input{text-align:right;padding:0 10px!important}
+html body .ef-hpx .ef-hgrp input[type=number]{-moz-appearance:textfield;appearance:textfield}
+html body .ef-hpx .ef-hgrp input[type=number]::-webkit-outer-spin-button,html body .ef-hpx .ef-hgrp input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+html body .ef-hpx .hx-amt{grid-column:1/-1;font-size:12.5px;font-weight:700;color:var(--muted,#98a2b3);text-align:right;min-height:16px;margin-top:-2px}
+html body .ef-hpx .ef-hgrp.is-on{border-color:#A8874F;background:rgba(198,167,107,.10)}
+html body .ef-hpx .ef-hgrp.is-on legend::before{content:'✓ ';color:#16794a}
+html body .ef-hpx .ef-hgrp.is-on .hx-amt{color:var(--navy,#0B1F3A)}
+html body .ef-hpx>.hx-sum{grid-column:1/-1;display:flex;justify-content:flex-end;gap:16px;font-weight:800;font-size:14px;color:var(--navy,#0B1F3A)}
+body.dark .ef-hpx .ef-hgrp{background:#0f2036;border-color:#2b3f5f}
+body.dark .ef-hpx .ef-hgrp legend,body.dark .ef-hpx .ef-hgrp.is-on .hx-amt,body.dark .ef-hpx>.hx-sum,body.dark .ef-hpx>.hx-note b{color:#EBD9AC}
+body.dark .ef-hpx .ef-hgrp.is-on{border-color:#C6A76B;background:rgba(198,167,107,.10)}
+@media (max-width:1180px){html body .ef-hpx:not([hidden]){grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:720px){html body .ef-hpx:not([hidden]){grid-template-columns:1fr}}
 </style>
 <script>
-/* =====================================================================
-   HOTEL — people and prices as one clear table
-     Room / sharing | How many people | Price per person (whole stay) | Amount
-   The same input boxes (same ids) are moved into the table, so saving,
-   editing and the totals work exactly as before.
-   ===================================================================== */
+/* Hotel boxes: a short note, the amount in each box, a tick on the boxes in use and the hotel total */
 try{(function(){
   'use strict';
   var box=document.querySelector('.ef-hpx');if(!box)return;
-  var R=[['efHA1','efHA1R','Adult – Single sharing','1 adult in a room'],
-         ['efHA','efHAR','Adult – Double sharing','2 adults in a room'],
-         ['efHA3','efHA3R','Adult – Triple sharing','3 adults in a room'],
-         ['efHCB','efHCBR','Child with extra bed','child gets own bed'],
-         ['efHCN','efHCNR','Child without extra bed','child shares the bed']];
+  var R=[['efHA1','efHA1R'],['efHA','efHAR'],['efHA3','efHA3R'],['efHCB','efHCBR'],['efHCN','efHCNR']];
   function $(id){return document.getElementById(id);}
   if(!R.every(function(r){return $(r[0])&&$(r[1]);}))return;
   function num(v){v=parseFloat(v);return isFinite(v)?v:0;}
   function cur(){var c=$('currency');return (c&&c.value||'').trim();}
   function money(n){return (Math.round(n*100)/100).toLocaleString('en-IN',{maximumFractionDigits:2});}
-  var wrap=document.createElement('div');wrap.className='hx-wrap';
-  wrap.innerHTML='<div class="hx-title"><b>Who stays &amp; price</b><small>Price is <b>per person for the whole stay</b> (not per night). Leave 0 for a row you do not need.</small></div>'
-    +'<div class="hx-table" role="table" aria-label="Hotel: people and price per person"><div class="hx-row hx-head" role="row"><span role="columnheader">Room / sharing</span><span role="columnheader">How many</span><span role="columnheader">Price / person</span><span role="columnheader">Amount</span></div></div>';
-  var table=wrap.querySelector('.hx-table'),amts=[];
-  R.forEach(function(r,k){
-    var row=document.createElement('div');row.className='hx-row';row.setAttribute('role','row');
-    var nm='hxName'+k;
-    row.innerHTML='<div class="hx-name" id="'+nm+'" role="rowheader">'+r[2]+'<small>'+r[3]+'</small></div>'
-      +'<div class="hx-count" role="cell"><span class="hx-lbl">How many</span></div>'
-      +'<div class="hx-price" role="cell"><span class="hx-lbl">Price / person</span></div>'
-      +'<output class="hx-amt" role="cell" aria-live="off">—</output>';
-    var cnt=$(r[0]),pr=$(r[1]);
-    /* keep the old <label for> working for screen readers, then move the boxes */
-    cnt.setAttribute('aria-label',r[2]+': how many people');pr.setAttribute('aria-label',r[2]+': price per person');
-    row.querySelector('.hx-count').appendChild(cnt);row.querySelector('.hx-price').appendChild(pr);
-    table.appendChild(row);amts.push({row:row,cnt:cnt,pr:pr,out:row.querySelector('.hx-amt')});
+  var note=document.createElement('p');note.className='hx-note';
+  note.innerHTML='Write <b>how many people</b> and the <b>price per person for the whole stay</b> (not per night). Leave 0 in a box you do not need.';
+  box.insertBefore(note,box.firstChild);
+  var items=R.map(function(r){
+    var c=$(r[0]),p=$(r[1]),g=c.closest('.ef-hgrp');
+    var cl=g.querySelector('label[for="'+r[0]+'"]'),pl=g.querySelector('label[for="'+r[1]+'"]');
+    if(cl)cl.textContent='People';if(pl)pl.textContent='Price / person';
+    var o=document.createElement('output');o.className='hx-amt';o.setAttribute('aria-live','off');g.appendChild(o);
+    return {c:c,p:p,g:g,o:o};
   });
-  var foot=document.createElement('div');foot.className='hx-foot';foot.innerHTML='<span id="hxPeople">0 people</span><span class="hx-total" id="hxTotal">Hotel total: 0</span>';
-  table.appendChild(foot);
-  /* the old small boxes are now empty: hide them, put the table in their place */
-  [].forEach.call(box.querySelectorAll('.ef-hgrp'),function(f){f.hidden=true;f.style.display='none';});
-  box.insertBefore(wrap,box.firstChild);
+  var sum=document.createElement('div');sum.className='hx-sum';sum.innerHTML='<span id="hxPeople"></span><span id="hxTotal"></span>';
+  var hint=$('efHPaxHint');if(hint)box.insertBefore(sum,hint);else box.appendChild(sum);
   function upd(){
-    var tot=0,ppl=0,c=cur();
-    amts.forEach(function(a){
-      var n=Math.max(0,Math.round(num(a.cnt.value))),p=num(a.pr.value),v=n*p;
-      ppl+=n;tot+=v;a.row.classList.toggle('is-on',n>0);
-      a.out.textContent=n>0?(money(v)+(c?' '+c:'')):'—';
+    var t=0,n=0,cu=cur();
+    items.forEach(function(it){
+      var k=Math.max(0,Math.round(num(it.c.value))),v=k*num(it.p.value);
+      n+=k;t+=v;it.g.classList.toggle('is-on',k>0);
+      it.o.textContent=k>0?'= '+money(v)+(cu?' '+cu:''):'';
     });
-    $('hxPeople').textContent=ppl+(ppl===1?' person':' people');
-    $('hxTotal').textContent='Hotel total: '+money(tot)+(c?' '+c:'');
+    $('hxPeople').textContent=n?n+(n===1?' person':' people'):'';
+    $('hxTotal').textContent=n?'Hotel total: '+money(t)+(cu?' '+cu:''):'';
   }
   box.addEventListener('input',upd);box.addEventListener('change',upd);
-  /* the form fills these boxes by code (edit, new item, check-in): look again */
   ['click','focusin'].forEach(function(ev){document.addEventListener(ev,function(){setTimeout(upd,0);},true);});
   var cc=$('currency');if(cc)cc.addEventListener('input',upd);
   new MutationObserver(function(){if(!box.hidden)upd();}).observe(box,{attributes:true,attributeFilter:['hidden']});
   upd();
-})();}catch(err){console.error('Hotel table failed to start:',err);}
+})();}catch(err){console.error('Hotel boxes failed to start:',err);}
 </script>
 </body>
 </html>
