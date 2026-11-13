@@ -13587,6 +13587,7 @@ try{(function(){
       return r.ok?r.json():null;
     }).then(function(j){
       if(j&&j.data&&typeof j.data==='object'){remote=j;remoteMissing=false;}
+      else if(j&&!j.data)remoteMissing=true;     // the empty starting file: nothing shared yet
       return remote;
     }).catch(function(){return null;}).then(function(x){loading=null;return x;});
     return loading;
