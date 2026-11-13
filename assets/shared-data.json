@@ -1,0 +1,132 @@
+{
+ "_note": "Shared by the admin for every computer and phone: Saved Rates, tours, closed days and company details. Changed from the website.",
+ "updatedAt": "2026-11-13T09:11:30.817Z",
+ "by": "Rishab",
+ "data": {
+  "transfers": [
+   {
+    "name": "Phuket Airport - Krabi Hotel",
+    "car": 1900,
+    "suv": 2000,
+    "van": 2100
+   },
+   {
+    "name": "Krabi Hotel - Phuket Airport",
+    "car": 1900,
+    "suv": 2000,
+    "van": 2100
+   },
+   {
+    "name": "Phuket Hotel - Krabi Hotel",
+    "car": 2100,
+    "suv": 2200,
+    "van": 2300
+   },
+   {
+    "name": "Krabi Hotel - Phuket Hotel",
+    "car": 2100,
+    "suv": 2200,
+    "van": 2300
+   },
+   {
+    "name": "Phuket Airport - Phuket Hotel",
+    "car": 650,
+    "suv": 700,
+    "van": 750
+   },
+   {
+    "name": "Phuket Hotel - Phuket Airport",
+    "car": 650,
+    "suv": 700,
+    "van": 750
+   },
+   {
+    "name": "BKK Airport - Pattaya Hotel",
+    "car": 1000,
+    "suv": 1100,
+    "van": 1500
+   },
+   {
+    "name": "Pattaya Hotel - BKK Airport",
+    "car": 1000,
+    "suv": 1100,
+    "van": 1500
+   },
+   {
+    "name": "Bangkok Hotel - Pattaya Hotel",
+    "car": 1100,
+    "suv": 1200,
+    "van": 1600
+   },
+   {
+    "name": "Pattaya Hotel - Bangkok Hotel",
+    "car": 1100,
+    "suv": 1200,
+    "van": 1600
+   },
+   {
+    "name": "BKK Airport - Bangkok Hotel",
+    "car": 600,
+    "suv": 700,
+    "van": 800
+   },
+   {
+    "name": "Bangkok Hotel - BKK Airport",
+    "car": 600,
+    "suv": 700,
+    "van": 800
+   },
+   {
+    "name": "DMK Airport - Pattaya Hotel",
+    "car": 1300,
+    "suv": 1400,
+    "van": 1900
+   },
+   {
+    "name": "Pattaya Hotel - DMK Airport",
+    "car": 1300,
+    "suv": 1400,
+    "van": 1900
+   },
+   {
+    "name": "DMK Airport - Bangkok Hotel",
+    "car": 800,
+    "suv": 900,
+    "van": 1000
+   },
+   {
+    "name": "Bangkok Hotel - DMK Airport",
+    "car": 800,
+    "suv": 900,
+    "van": 1000
+   }
+  ],
+  "tickets": {},
+  "otherTransfers": {},
+  "tourList": null,
+  "closedDays": null,
+  "companyName": "HIPPO TRAVEL",
+  "itinSettings": {
+   "company": {
+    "name": "Hippo Travel",
+    "phone": "",
+    "email": "",
+    "web": "",
+    "address": "",
+    "emergency": ""
+   },
+   "partner": {
+    "name": "Anup Group Co., Ltd.",
+    "phone": "+66 62 759 0981 · +91 98730 66433",
+    "email": "",
+    "web": "www.anupholidays.com",
+    "address": "Pattaya City, Thailand · Karol Bagh, New Delhi · Kota, Rajasthan  |  TAT No. 14/03182 · ATTA No. 04838",
+    "emergency": "EMERGENCY CALL: 0823727123 - Ms. Sabeena Rai & 0627590981 - Mr. Ranjit K"
+   },
+   "prefix": "HT",
+   "currency": "INR",
+   "notes": "*No Refunds will be given for any unused services and tours*\nStandard Hotel check in time: 02:00 PM | Standard Hotel check out time: 12:00 PM\nA refundable security deposit is required from guests upon check-in. In case of any damage to the hotel property, the cost will be deducted from the deposit.\nKindly be punctual as per the timing mentioned in the Itinerary. Please do not follow outside representative, guide or driver, we strongly request you to follow the given itinerary. Please DO NOT Amend / Alter / Delete the timing given in the Itinerary as Guides, Tour Operator and Vehicles are set in Schedule accordingly.\nDriver will not wait more than 10 minutes for any type of pick up. Thereafter, it will be considered as \"NO SHOW / CANCELLATION\". No refunds will be provided for \"NO SHOW\".",
+   "closing": "BON VOYAGE"
+  }
+ }
+}
