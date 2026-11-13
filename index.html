@@ -13508,6 +13508,8 @@ try{(function(){
   function get(k){try{return localStorage.getItem(k);}catch(e){return null;}}
   function set(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}}
   function parse(s,d){try{var v=JSON.parse(s);return v==null?d:v;}catch(e){return d;}}
+  /* a computer where the admin has logged in before (even if logged out now): its saved prices are the admin's work */
+  function adminBrowser(){if(admin())return true;var u=parse(get('travelLoginUsers'),{});return !!(u&&u['admin:main']);}
   function hash(str){var h=5381;for(var i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36)+':'+str.length;}
 
   /* ---- company name: kept in the browser (it was lost on refresh before) ---- */
@@ -13549,6 +13551,28 @@ try{(function(){
     try{window.dispatchEvent(new CustomEvent('travel:shared-applied'));}catch(e){}
   }
 
+  /* ---- join two copies: everything from the shared copy, plus what only this computer has ---- */
+  function joinObj(sh,lo){var o={};if(lo&&typeof lo==='object')Object.keys(lo).forEach(function(k){o[k]=lo[k];});if(sh&&typeof sh==='object')Object.keys(sh).forEach(function(k){o[k]=sh[k];});return o;}
+  function joinList(sh,lo,key){
+    sh=Array.isArray(sh)?sh:[];lo=Array.isArray(lo)?lo:[];
+    var seen={};sh.forEach(function(x){if(x)seen[String(key(x)||'').trim().toLowerCase()]=1;});
+    return sh.concat(lo.filter(function(x){var k=x&&String(key(x)||'').trim().toLowerCase();return k&&!seen[k];}));
+  }
+  function join(sh,lo){
+    sh=sh||{};lo=lo||{};
+    var cd=null;
+    if(sh.closedDays||lo.closedDays){var a=sh.closedDays||{},b=lo.closedDays||{};cd={sic:joinObj(a.sic,b.sic),ticket:joinObj(a.ticket,b.ticket)};}
+    return {
+      transfers:joinList(sh.transfers,lo.transfers,function(x){return x.name;}),
+      tickets:joinObj(sh.tickets,lo.tickets),
+      otherTransfers:joinObj(sh.otherTransfers,lo.otherTransfers),
+      tourList:(sh.tourList||lo.tourList)?joinList(sh.tourList,lo.tourList,function(x){return x.t||x.title||x.name||JSON.stringify(x);}):null,
+      closedDays:cd,
+      companyName:sh.companyName||lo.companyName||'',
+      itinSettings:sh.itinSettings||lo.itinSettings||null
+    };
+  }
+
   /* ---- read the shared file ---- */
   var remote=null,remoteMissing=false,loading=null;
   function fetchRemote(){
@@ -13567,13 +13591,25 @@ try{(function(){
   function sync(){
     return fetchRemote().then(function(r){
       if(!r){show();return;}
-      var rh=hashOf(r.data),dirty=get(K_DIRTY)==='1'&&admin();
+      var rh=hashOf(r.data),dirty=get(K_DIRTY)==='1'&&adminBrowser();   // also while the admin is logged out on this computer
       if(dirty){
         conflict=(r.updatedAt||'')>(get(K_AT)||'')&&rh!==get(K_HASH);
         show();if(!conflict)autoShare();return;
       }
       conflict=false;
-      if(rh!==hashOf(snapshot()))apply(r.data);
+      var local=snapshot();
+      /* an admin computer that was never shared before (e.g. a second laptop where the admin already
+         worked): keep its work — join it with the shared copy, then share the joined list */
+      if(adminBrowser()&&!get(K_HASH)&&rh!==hashOf(local)){
+        set('travelSafetyCopyBeforeShare',JSON.stringify({savedAt:new Date().toISOString(),data:local}));
+        var own=Object.assign({},local,{transfers:parse(get('travelTransfers'),[])});   // only what was saved here — not the built-in list
+        var m=join(r.data,own);
+        apply(m);set(K_AT,r.updatedAt||'');
+        if(hashOf(m)===rh){set(K_HASH,rh);set(K_DIRTY,null);}
+        else{set(K_HASH,rh);set(K_DIRTY,'1');autoShare();}
+        show();return;
+      }
+      if(rh!==hashOf(local))apply(r.data);
       set(K_HASH,rh);set(K_AT,r.updatedAt||'');set(K_DIRTY,null);
       show();
     });
@@ -13618,6 +13654,17 @@ try{(function(){
     if(!t){lastErr='';show();return Promise.reject(new Error('no token'));}
     if(busy)return Promise.resolve();
     busy=true;lastErr='';show();
+    /* someone else shared since this computer last looked: keep their additions too (this computer's changes win) */
+    var pre=force?Promise.resolve(null):fetchRemote();
+    return pre.then(function(r){
+      if(r&&r.data&&(r.updatedAt||'')>(get(K_AT)||'')&&hashOf(r.data)!==get(K_HASH)){
+        var mine=snapshot();set('travelSafetyCopyBeforeShare',JSON.stringify({savedAt:new Date().toISOString(),data:mine}));
+        apply(join(mine,r.data));
+      }
+      return doShare(t);
+    },function(){return doShare(t);});
+  }
+  function doShare(t){
     var d=snapshot(),now=new Date().toISOString(),who='';try{who=(window.currentSession&&currentSession().name)||'';}catch(e){}
     var file={_note:'Shared by the admin for every computer and phone: Saved Rates, tours, closed days and company details. Changed from the website.',updatedAt:now,by:who,data:d};
     var url='https://api.github.com/repos/'+REPO+'/contents/'+PATH,h={'Authorization':'Bearer '+t,'Accept':'application/vnd.github+json'};
@@ -13679,6 +13726,8 @@ try{(function(){
     if(b.dataset.sd==='load'){if(confirm('Use the shared prices? Your changes on this computer that are not shared will be replaced.'))loadSharedData();}
   });
   ['finishLogin','logoutUser','showPage'].forEach(function(fn){var p=window[fn];if(typeof p==='function')window[fn]=function(){var r=p.apply(this,arguments);setTimeout(show,0);return r;};});
+  /* the admin logs in: share what is waiting (e.g. joined on a second laptop) */
+  var prevFin=window.finishLogin;if(typeof prevFin==='function')window.finishLogin=function(){var r=prevFin.apply(this,arguments);setTimeout(function(){if(admin()&&get(K_DIRTY)==='1')sync();},800);return r;};
 
   /* ---- start, then keep checking ---- */
   sync();
