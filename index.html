@@ -13579,18 +13579,41 @@ try{(function(){
 
   /* ---- read the shared file ---- */
   var remote=null,remoteMissing=false,loading=null;
+  var FS='https://firestore.googleapis.com/v1/projects/hippo-travel-b1006/databases/(default)/documents/shared/main';
+  var fsMissing=false;
+  /* the shared copy in the private cloud (Firebase): read by every signed-in browser, written only by the admin */
+  function fetchCloud(){
+    if(typeof window.cloudToken!=='function')return Promise.resolve(undefined);
+    return window.cloudToken().then(function(me){return fetch(FS,{headers:{'Authorization':'Bearer '+me.token},cache:'no-store'});}).then(function(r){
+      if(r.status===404){fsMissing=true;return null;}
+      if(!r.ok)return undefined;
+      return r.json().then(function(j){
+        fsMissing=false;
+        var f=j.fields||{},file=parse(f.data&&f.data.stringValue,null);
+        if(file&&file.data&&typeof file.data==='object'){file.fs=true;return file;}
+        return null;
+      });
+    }).catch(function(){return undefined;});
+  }
   function fetchRemote(){
     if(!window.fetch||location.protocol==='file:')return Promise.resolve(null);
     if(loading)return loading;
-    loading=fetch(PATH+'?v='+Date.now(),{cache:'no-store'}).then(function(r){
+    loading=fetchCloud().then(function(c){
+      if(c){remote=c;remoteMissing=false;return 'cloud';}
+      return fetchFile();
+    }).then(function(x){return x==='cloud'?remote:x;});
+    var p=loading;p.then(function(){loading=null;},function(){loading=null;});
+    return p;
+  }
+  function fetchFile(){
+    return fetch(PATH+'?v='+Date.now(),{cache:'no-store'}).then(function(r){
       if(r.status===404){remoteMissing=true;return null;}
       return r.ok?r.json():null;
     }).then(function(j){
       if(j&&j.data&&typeof j.data==='object'){remote=j;remoteMissing=false;}
       else if(j&&!j.data)remoteMissing=true;     // the empty starting file: nothing shared yet
       return remote;
-    }).catch(function(){return null;}).then(function(x){loading=null;return x;});
-    return loading;
+    }).catch(function(){return null;});
   }
   var conflict=false;
   function sync(){
@@ -13602,6 +13625,7 @@ try{(function(){
         show();if(!conflict)autoShare();return;
       }
       conflict=false;
+      if(!r.fs&&canCloud()&&!movedOnce){movedOnce=true;setTimeout(function(){share().catch(function(){});},1500);}
       var local=snapshot();
       /* an admin computer that was never shared before (e.g. a second laptop where the admin already
          worked): keep its work — join it with the shared copy, then share the joined list */
@@ -13653,9 +13677,13 @@ try{(function(){
     var e=new Error(m);e.status=r.status;throw e;
   }
   var busy=false,lastErr='';
+  var movedOnce=false;
+  function canCloud(){return typeof window.cloudAdminReady==='function'&&window.cloudAdminReady();}
   function share(force){
     if(!admin())return Promise.reject(new Error('Only the admin can share changes.'));
-    var t=token();
+    var t=canCloud()?'cloud':token();
+    if(t!=='cloud'&&remote&&remote.fs){   /* the prices are kept in the cloud now: a GitHub copy would not be seen */
+      lastErr='The prices are kept in the cloud now. Connect in Settings → ☁️ Online copy (Firebase e-mail and password) to share.';show();return Promise.reject(new Error('connect'));}
     if(!t){lastErr='';show();return Promise.reject(new Error('no token'));}
     if(busy)return Promise.resolve();
     busy=true;lastErr='';show();
@@ -13672,6 +13700,15 @@ try{(function(){
   function doShare(t){
     var d=snapshot(),now=new Date().toISOString(),who='';try{who=(window.currentSession&&currentSession().name)||'';}catch(e){}
     var file={_note:'Shared by the admin for every computer and phone: Saved Rates, tours, closed days and company details. Changed from the website.',updatedAt:now,by:who,data:d};
+    if(t==='cloud')return window.cloudToken().then(function(me){
+      var body={fields:{data:{stringValue:JSON.stringify(file)},updatedAt:{timestampValue:now},by:{stringValue:who}}};
+      return fetch(FS,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+me.token},body:JSON.stringify(body)});
+    }).then(function(r){
+      if(!r.ok){var e=new Error(r.status===403?'The cloud did not allow it. Please check the Firebase rules (the “shared” part) and that you are connected in Settings → Online copy.':'The cloud did not save it (error '+r.status+'). Please try again.');throw e;}
+      file.fs=true;remote=file;remoteMissing=false;fsMissing=false;conflict=false;
+      set(K_HASH,hashOf(d));set(K_AT,now);set(K_DIRTY,null);
+      busy=false;lastShared=Date.now();show();
+    },function(e){busy=false;lastErr=e.message||String(e);show();throw e;});
     var url='https://api.github.com/repos/'+REPO+'/contents/'+PATH,h={'Authorization':'Bearer '+t,'Accept':'application/vnd.github+json'};
     function put(sha){
       var body={message:'Shared data updated from the website',content:b64(JSON.stringify(file,null,1)+'\n'),branch:BRANCH};if(sha)body.sha=sha;
@@ -13690,7 +13727,8 @@ try{(function(){
   }
   var autoT=0;
   function autoShare(){
-    if(!admin()||!token()||conflict)return;
+    if(!admin()||!(token()||canCloud())||conflict)return;
+    if(!canCloud()&&remote&&remote.fs){show();return;}
     clearTimeout(autoT);autoT=setTimeout(function(){share().catch(function(){});},2500);
   }
   window.shareAdminData=share;
@@ -13721,13 +13759,13 @@ try{(function(){
     if(busy){cls='is-busy';html='<span class="sd-txt">⏳ Sharing your changes with every computer and phone…</span>';}
     else if(lastErr){cls='is-err';html='<span class="sd-txt">⚠️ Not shared: '+escapeHtml(lastErr)+'</span><button type="button" data-sd="share">Try again</button>';}
     else if(conflict){cls='is-warn';html='<span class="sd-txt">⚠️ Someone shared newer prices'+(remote&&remote.by?' ('+escapeHtml(remote.by)+')':'')+(remote&&remote.updatedAt?' on '+escapeHtml(fmt(remote.updatedAt)):'')+'. Your changes here are not shared yet.</span><button type="button" data-sd="load" class="sd-ghost">Use the shared prices</button><button type="button" data-sd="share">Share mine instead</button>';}
-    else if(dirty||remoteMissing&&!get(K_HASH)){cls='is-warn';html='<span class="sd-txt">⚠️ '+(remoteMissing&&!get(K_HASH)?'Your prices, tours and company details are on this computer only.':'Your last changes are on this computer only.')+(token()?'':' Paste the GitHub token in <b>Settings → Admin Login Credentials</b> (tick “Remember”) to share automatically.')+'</span><button type="button" data-sd="share">Share with everyone</button>';}
-    else{html='<span class="sd-txt">✅ Every computer and phone uses these prices, tours and company details'+(get(K_AT)?' (shared '+escapeHtml(fmt(get(K_AT)))+')':'')+'.'+(lastShared&&Date.now()-lastShared<180000?' Other devices get it in about 1–2 minutes.':'')+'</span>';}
+    else if(dirty||remoteMissing&&!get(K_HASH)){cls='is-warn';html='<span class="sd-txt">⚠️ '+(remoteMissing&&!get(K_HASH)?'Your prices, tours and company details are on this computer only.':'Your last changes are on this computer only.')+(canCloud()||(token()&&!(remote&&remote.fs))?'':' Connect in <b>Settings → ☁️ Online copy</b> (Firebase e-mail and password) to share automatically.')+'</span><button type="button" data-sd="share">Share with everyone</button>';}
+    else{html='<span class="sd-txt">✅ Every computer and phone uses these prices, tours and company details'+(get(K_AT)?' (shared '+escapeHtml(fmt(get(K_AT)))+')':'')+'.'+(lastShared&&Date.now()-lastShared<180000?(remote&&remote.fs?' Other devices get it within about a minute.':' Other devices get it in about 1–2 minutes.'):'')+'</span>';}
     list.forEach(function(el){el.className='sd-pill '+cls;if(el.innerHTML!==html)el.innerHTML=html;el.hidden=false;});
   }
   document.addEventListener('click',function(e){
     var b=e.target.closest&&e.target.closest('[data-sd]');if(!b)return;
-    if(b.dataset.sd==='share'){if(!token()){lastErr='No GitHub token yet. Paste it in Settings → Admin Login Credentials and tick “Remember”.';show();try{showPage('settings');var g=$('ghTokenInput');if(g)g.focus();}catch(x){}return;}share(true).catch(function(){});}
+    if(b.dataset.sd==='share'){if(!token()&&!canCloud()){lastErr='Not connected yet. Connect in Settings → ☁️ Online copy with the Firebase e-mail and password.';show();try{showPage('settings');var g=$('clEmail');if(g)g.focus();}catch(x){}return;}share(true).catch(function(){});}
     if(b.dataset.sd==='load'){if(confirm('Use the shared prices? Your changes on this computer that are not shared will be replaced.'))loadSharedData();}
   });
   ['finishLogin','logoutUser','showPage'].forEach(function(fn){var p=window[fn];if(typeof p==='function')window[fn]=function(){var r=p.apply(this,arguments);setTimeout(show,0);return r;};});
@@ -13735,8 +13773,8 @@ try{(function(){
   var prevFin=window.finishLogin;if(typeof prevFin==='function')window.finishLogin=function(){var r=prevFin.apply(this,arguments);setTimeout(function(){if(admin()&&get(K_DIRTY)==='1')sync();},800);return r;};
 
   /* ---- start, then keep checking ---- */
-  sync();
-  setInterval(function(){if(!document.hidden)sync();},120000);
+  setTimeout(sync,600);
+  setInterval(function(){if(!document.hidden)sync();},60000);
   document.addEventListener('visibilitychange',function(){if(!document.hidden)sync();});
   window.__sharedSync=sync;
 })();}catch(err){console.error('Shared data failed to start:',err);}
@@ -13885,15 +13923,25 @@ try{(function(){
   }
 
   /* ---------- admin: bring everyone's records here ---------- */
+  /* only what changed since the last look (5 minutes back, for clock differences) — the free plan counts every record read */
+  var K_DL='travelCloudDl';
   function listAll(col,tok){
-    var out=[];
-    function page(t){return api('/'+col+'?pageSize=300'+(t?'&pageToken='+encodeURIComponent(t):''),{},tok).then(function(j){(j.documents||[]).forEach(function(d){out.push(d);});return j.nextPageToken?page(j.nextPageToken):out;});}
-    return page('');
+    var dl=parse(get(K_DL),{})||{},since=dl[col];
+    if(!since){
+      var out=[];
+      function page(t){return api('/'+col+'?pageSize=300'+(t?'&pageToken='+encodeURIComponent(t):''),{},tok).then(function(j){(j.documents||[]).forEach(function(d){out.push(d);});return j.nextPageToken?page(j.nextPageToken):out;});}
+      return page('');
+    }
+    var from=new Date(Date.parse(since)-300000).toISOString();
+    var q={structuredQuery:{from:[{collectionId:col}],where:{fieldFilter:{field:{fieldPath:'updatedAt'},op:'GREATER_THAN_OR_EQUAL',value:{timestampValue:from}}}}};
+    return api(':runQuery',{method:'POST',body:JSON.stringify(q)},tok).then(function(r){return (r||[]).filter(function(x){return x.document;}).map(function(x){return x.document;});});
   }
+  function markDl(col,at){var dl=parse(get(K_DL),{})||{};dl[col]=at;set(K_DL,JSON.stringify(dl));}
   var stats={costings:0,drafts:0,vouchers:0,people:0};
   function download(me){
     var chain=Promise.resolve(),people={};
     Object.keys(COLS).forEach(function(col){
+      var started=new Date().toISOString();
       chain=chain.then(function(){return listAll(col,me.token);}).then(function(docs){
         var m=map(),list=listOf(col),idx={},changed=false;
         list.forEach(function(r,i){if(r&&r.id!=null)idx[r.id]=i;});
@@ -13921,7 +13969,8 @@ try{(function(){
           list.push(rec);idx[rec.id]=list.length-1;
           m[col][doc]={id:rec.id,sig:sig(rec),owner:owner,del:false};changed=true;
         });
-        stats[col]=live;
+        markDl(col,started);
+        stats[col]=Object.keys(m[col]).filter(function(k){return !m[col][k].del;}).length;
         if(changed){
           if(col==='costings'||col==='drafts')list.sort(function(a,b){return String(b.updatedAt||'').localeCompare(String(a.updatedAt||''));});
           if(!putList(col,list)){lastErr='This browser is full — not every record could be shown here.';}
@@ -13967,6 +14016,8 @@ try{(function(){
   ['finishLogin','logoutUser'].forEach(function(fn){var p=window[fn];if(typeof p==='function')window[fn]=function(){var r=p.apply(this,arguments);setTimeout(function(){show();soon(1500);},300);return r;};});
   var prevShow=window.showPage;if(typeof prevShow==='function')window.showPage=function(id){var r=prevShow.apply(this,arguments);if(id==='saved'||id==='itinerary'||id==='settings'){show();if(admin())soon(500);}return r;};
   window.cloudSync=run;
+  window.cloudToken=function(){return identity();};
+  window.cloudAdminReady=function(){return admin()&&!!parse(get(K_ADMIN),null);};
 
   /* ---------- Settings card ---------- */
   var card=null;
@@ -13988,12 +14039,12 @@ try{(function(){
       var em=$('clEmail').value.trim(),pw=$('clPass').value;
       if(!em||!pw){$('clMsg').textContent='Please type the Firebase admin e-mail and password.';return;}
       $('clMsg').textContent='Connecting…';
-      cloudConnectAdmin(em,pw).then(function(){$('clPass').value='';$('clMsg').textContent='✅ Connected. Bringing everyone’s costings, drafts and vouchers…';lastErr='';show();return run();})
+      cloudConnectAdmin(em,pw).then(function(){set(K_DL,null);$('clPass').value='';$('clMsg').textContent='✅ Connected. Bringing everyone’s costings, drafts and vouchers…';lastErr='';show();return run();})
         .then(function(){$('clMsg').textContent=lastErr?'':'✅ Done. You see everyone’s records in My Costings, Drafts and Create Itinerary → All vouchers.';},
           function(e){var c=e.code||e.message||'';$('clMsg').textContent=/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL/.test(c)?'The e-mail or password is not right (use the Firebase one).':/TOO_MANY_ATTEMPTS/.test(c)?'Too many tries. Please wait a few minutes.':'Could not connect: '+c;});
     });
     $('clNow').addEventListener('click',function(){$('clMsg').textContent='';run();});
-    $('clOut').addEventListener('click',function(){if(!confirm('Disconnect the admin cloud view on this computer? (Nothing is deleted.)'))return;set(K_ADMIN,null);idt.admin=null;$('clMsg').textContent='Disconnected.';show();});
+    $('clOut').addEventListener('click',function(){if(!confirm('Disconnect the admin cloud view on this computer? (Nothing is deleted.)'))return;set(K_ADMIN,null);idt.admin=null;set(K_DL,null);$('clMsg').textContent='Disconnected.';show();});
   }
   function fmt(ms){var d=new Date(ms);return d.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}
   function show(){
