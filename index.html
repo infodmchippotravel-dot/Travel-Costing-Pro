@@ -11630,6 +11630,9 @@ try{(function(){
        +(admin()?'<br><b>Admin:</b> in <b>Saved Rates → SIC Transfers</b> or <b>Entry Tickets</b>, press <b>Edit</b> (or add a new one), tap the days in <b>Closed on</b> (they turn red) and press <b>Save</b>. The list shows “Closed: Mon, Tue”.':'');},
      hi:function(){return '<b>बंद दिन:</b> कोई SIC transfer या entry ticket कुछ दिन बंद रह सकता है (जैसे Mon, Tue)। ऐसी तारीख पर कॉस्टिंग में जोड़ेंगे तो लाल मैसेज आएगा और आइटम नहीं जुड़ेगा — दूसरी तारीख चुनें। कॉस्टिंग में पहले से जुड़े ऐसे आइटम फॉर्म के ऊपर दिखते हैं।'
        +(admin()?'<br><b>Admin:</b> <b>Saved Rates → SIC Transfers</b> या <b>Entry Tickets</b> में <b>Edit</b> दबाएं (या नया जोड़ें), <b>Closed on</b> में दिन चुनें (लाल हो जाते हैं) और <b>Save</b> दबाएं। लिस्ट में “Closed: Mon, Tue” दिखता है।':'');}},
+    {id:'share',kw:['sab ko dikhe','sabko dikhe','sab jagah','everyone','every computer','all computers','other computer','dusre computer','doosre computer','other device','share prices','share rates','rates share','not showing on','phone par nahi','सबको'],
+     en:function(){return '<b>Admin changes for everyone:</b> Saved Rates (transfers, SIC, tickets, meals), tours, closed days and the company details are shared with every computer and phone. '+(admin()?'When you save, it is shared by itself if the GitHub token is saved in <b>Settings → Admin Login Credentials</b> (tick “Remember”). The box at the top of Saved Rates and Settings says if it is shared. Other devices get it in about 1–2 minutes.':'You always see the newest prices from the admin (refresh the page if you just heard about a change).')+' Costings and vouchers stay in each browser.';},
+     hi:function(){return '<b>Admin के बदलाव सबके लिए:</b> Saved Rates (transfers, SIC, tickets, meals), tours, closed days और company details हर कंप्यूटर और फोन पर दिखते हैं। '+(admin()?'Save करते ही अपने आप share होता है, अगर GitHub token <b>Settings → Admin Login Credentials</b> में सेव है (“Remember” टिक करें)। Saved Rates और Settings में ऊपर का बॉक्स बताता है कि share हुआ या नहीं। दूसरे devices पर 1–2 मिनट में आता है।':'आपको हमेशा admin की नई कीमतें दिखती हैं (अभी बदलाव हुआ हो तो पेज refresh करें)।')+' Costings और vouchers हर browser में अपने रहते हैं।';}},
     {id:'ticket',kw:['entry ticket','ticket','टिकट'],
      en:'<b>Entry Ticket:</b> tap <b>Entry Ticket</b> and choose the ticket. Adults and children come from the client details; adult and child prices are separate.',
      hi:'<b>Entry Ticket:</b> <b>Entry Ticket</b> दबाएं और टिकट चुनें। Adult और child की गिनती client details से आती है; दोनों की कीमत अलग होती है।'},
@@ -11850,6 +11853,7 @@ try{(function(){
     itinSaved:['Saved vouchers','सेव वाउचर','itinerary',['itinPdf','itin']],
     undo:['Undo a mistake','गलती वापस लें',null,['draft','itinSaved']],
     closed:['Closed days (Mon, Tue …)','बंद दिन (Mon, Tue …)','rates',['ticket','sic'],true],
+    share:['Admin changes for everyone','सबके लिए admin बदलाव','rates',['rates','closed'],true],
     stats:['How many costings do I have?','मेरी कितनी कॉस्टिंग हैं?','saved',['saved','draft']],
     total:['Total of this costing','इस कॉस्टिंग का टोटल','dashboard',['margin','pdf']]
   };
@@ -13461,6 +13465,227 @@ try{(function(){
   new MutationObserver(function(){if(!box.hidden)upd();}).observe(box,{attributes:true,attributeFilter:['hidden']});
   upd();
 })();}catch(err){console.error('Hotel boxes failed to start:',err);}
+</script>
+<style id="sharedDataCss">
+/* Share admin changes with everyone */
+.sd-pill{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 14px;padding:10px 14px;border-radius:12px;font-weight:700;font-size:14px;line-height:1.4;border:1px solid #cfe3d6;background:#eefaf2;color:#14532d}
+.sd-pill[hidden]{display:none}
+.sd-pill.is-warn{background:#fff7e6;border-color:#f3d28b;color:#7a4b00}
+.sd-pill.is-busy{background:#eef4ff;border-color:#c8d7f5;color:#1e3a8a}
+.sd-pill.is-err{background:#fdecea;border-color:#f5c2bd;color:#912018}
+.sd-pill .sd-txt{flex:1 1 260px}
+.sd-pill button{min-height:36px;padding:6px 14px;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer;border:1px solid #0B1F3A;background:#0B1F3A;color:#fff}
+.sd-pill button.sd-ghost{background:transparent;color:inherit;border-color:currentColor}
+body.dark .sd-pill{background:#10291c;border-color:#24513a;color:#bff0d0}
+body.dark .sd-pill.is-warn{background:#33260b;border-color:#6b5320;color:#ffe2a8}
+body.dark .sd-pill.is-busy{background:#13233f;border-color:#2b4370;color:#c9dbff}
+body.dark .sd-pill.is-err{background:#3b1512;border-color:#7a2a24;color:#ffd4cf}
+body.dark .sd-pill button{background:#C6A76B;border-color:#C6A76B;color:#0B1F3A}
+body.dark .sd-pill button.sd-ghost{background:transparent;color:inherit;border-color:currentColor}
+@media print{.sd-pill{display:none!important}}
+</style>
+<script>
+/* =====================================================================
+   SHARED DATA — what the admin changes, every computer and phone sees
+     • Shared: Saved Rates (transfers, SIC / private transfers, entry
+       tickets, meals), Create Itinerary tours, closed days, the company
+       name, and the Create Itinerary company / notes settings.
+       (Costings and vouchers stay in each browser — they hold customer data.)
+     • The file assets/shared-data.json is read on every page load, every
+       2 minutes and when the page is opened again.
+     • When the admin saves one of these, it is written to that file through
+       the GitHub API with the admin's GitHub token (the same token as for the
+       admin password). Other devices get it in about 1–2 minutes.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  var PATH='assets/shared-data.json',REPO='infodmchippotravel-dot/Travel-Costing-Pro',BRANCH='main';
+  var K_HASH='travelSharedHash',K_AT='travelSharedAt',K_DIRTY='travelSharedDirty',K_CO='travelCompanyName';
+  var KEYS=['travelTransfers','travelTickets','travelOtherTransfers','travelTourList','travelClosedDays',K_CO,'tv.settings.v1'];
+  var ITIN_SHARED=['company','partner','prefix','currency','notes','closing'];
+  function $(id){return document.getElementById(id);}
+  function admin(){return typeof isAdminSession==='function'&&isAdminSession();}
+  function get(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+  function set(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}}
+  function parse(s,d){try{var v=JSON.parse(s);return v==null?d:v;}catch(e){return d;}}
+  function hash(str){var h=5381;for(var i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return (h>>>0).toString(36)+':'+str.length;}
+
+  /* ---- company name: kept in the browser (it was lost on refresh before) ---- */
+  var co=$('companyName');
+  if(co){
+    var savedCo=get(K_CO);if(savedCo){co.value=savedCo;try{updateSettings();}catch(e){}}
+    co.addEventListener('input',function(){if(admin()){var v=co.value.trim();set(K_CO,v||null);changed();}});
+  }
+
+  /* ---- what is shared, read from this browser ---- */
+  function snapshot(){
+    var tr;try{tr=(typeof transfers!=='undefined'&&Array.isArray(transfers))?transfers:parse(get('travelTransfers'),[]);}catch(e){tr=parse(get('travelTransfers'),[]);}
+    var it=parse(get('tv.settings.v1'),null),its=null;
+    if(it&&typeof it==='object'){its={};ITIN_SHARED.forEach(function(k){if(it[k]!==undefined)its[k]=it[k];});}
+    return {transfers:tr,tickets:parse(get('travelTickets'),{}),otherTransfers:parse(get('travelOtherTransfers'),{}),
+      tourList:parse(get('travelTourList'),null),closedDays:parse(get('travelClosedDays'),null),
+      companyName:get(K_CO)||(co&&co.value.trim())||'',itinSettings:its};
+  }
+  function hashOf(d){return hash(JSON.stringify(d));}
+
+  /* ---- put a shared copy into this browser ---- */
+  var applying=false;
+  function apply(d){
+    applying=true;
+    try{
+      if(Array.isArray(d.transfers)){set('travelTransfers',JSON.stringify(d.transfers));try{transfers=d.transfers.slice();}catch(e){}}
+      if(d.tickets&&typeof d.tickets==='object')set('travelTickets',JSON.stringify(d.tickets));
+      if(d.otherTransfers&&typeof d.otherTransfers==='object')set('travelOtherTransfers',JSON.stringify(d.otherTransfers));
+      if(Array.isArray(d.tourList)&&JSON.stringify(d.tourList)!==get('travelTourList'))set('travelTourList',JSON.stringify(d.tourList));
+      if(d.closedDays&&typeof d.closedDays==='object')set('travelClosedDays',JSON.stringify(d.closedDays));
+      if(typeof d.companyName==='string'&&d.companyName){set(K_CO,d.companyName);if(co&&document.activeElement!==co){co.value=d.companyName;try{updateSettings();}catch(e){}}}
+      if(d.itinSettings&&typeof d.itinSettings==='object'){
+        var cur=parse(get('tv.settings.v1'),{})||{},next=Object.assign({},cur);
+        ITIN_SHARED.forEach(function(k){if(d.itinSettings[k]!==undefined)next[k]=d.itinSettings[k];});
+        if(JSON.stringify(next)!==JSON.stringify(cur))set('tv.settings.v1',JSON.stringify(next));
+      }
+    }finally{applying=false;}
+    ['fillLists','renderTransferManager','renderServiceManager','renderTicketManager','renderRateList','calculate'].forEach(function(f){try{if(typeof window[f]==='function')window[f]();}catch(e){}});
+    try{window.dispatchEvent(new CustomEvent('travel:shared-applied'));}catch(e){}
+  }
+
+  /* ---- read the shared file ---- */
+  var remote=null,remoteMissing=false,loading=null;
+  function fetchRemote(){
+    if(!window.fetch||location.protocol==='file:')return Promise.resolve(null);
+    if(loading)return loading;
+    loading=fetch(PATH+'?v='+Date.now(),{cache:'no-store'}).then(function(r){
+      if(r.status===404){remoteMissing=true;return null;}
+      return r.ok?r.json():null;
+    }).then(function(j){
+      if(j&&j.data&&typeof j.data==='object'){remote=j;remoteMissing=false;}
+      return remote;
+    }).catch(function(){return null;}).then(function(x){loading=null;return x;});
+    return loading;
+  }
+  var conflict=false;
+  function sync(){
+    return fetchRemote().then(function(r){
+      if(!r){show();return;}
+      var rh=hashOf(r.data),dirty=get(K_DIRTY)==='1'&&admin();
+      if(dirty){
+        conflict=(r.updatedAt||'')>(get(K_AT)||'')&&rh!==get(K_HASH);
+        show();if(!conflict)autoShare();return;
+      }
+      conflict=false;
+      if(rh!==hashOf(snapshot()))apply(r.data);
+      set(K_HASH,rh);set(K_AT,r.updatedAt||'');set(K_DIRTY,null);
+      show();
+    });
+  }
+
+  /* ---- admin saved something: share it ---- */
+  var timer=0;
+  function changed(){
+    if(applying||!admin())return;
+    clearTimeout(timer);
+    timer=setTimeout(function(){
+      if(hashOf(snapshot())===get(K_HASH)){set(K_DIRTY,null);show();return;}
+      set(K_DIRTY,'1');show();autoShare();
+    },1500);
+  }
+  var proto=window.Storage&&Storage.prototype,origSet=proto&&proto.setItem,origRemove=proto&&proto.removeItem;
+  if(origSet){
+    proto.setItem=function(k,v){var r=origSet.apply(this,arguments);try{if(this===window.localStorage&&KEYS.indexOf(k)!==-1)changed();}catch(e){}return r;};
+    proto.removeItem=function(k){var r=origRemove.apply(this,arguments);try{if(this===window.localStorage&&KEYS.indexOf(k)!==-1)changed();}catch(e){}return r;};
+  }
+  /* Create Itinerary (inside its frame) writes its own settings: the page hears it here */
+  window.addEventListener('storage',function(e){
+    if(e.key==='tv.settings.v1'||e.key==='travelTourList'||e.key==='travelClosedDays')changed();
+    if(e.key===K_HASH||e.key===K_DIRTY)show();
+  });
+
+  function token(){
+    var t='';try{t=(window.__adminToken&&window.__adminToken())||'';}catch(e){}
+    return t||get('travelGhToken')||'';
+  }
+  function b64(s){return btoa(unescape(encodeURIComponent(s)));}
+  function why(r){
+    var m=r.status===401?'The GitHub token is not right (or has expired). Make a new one in GitHub and paste it in Settings → Admin Login Credentials.'
+      :(r.status===403||r.status===404)?'The GitHub token cannot write to this website. It needs “Contents: Read and write” for Travel-Costing-Pro.'
+      :'GitHub did not save it (error '+r.status+'). Please try again.';
+    var e=new Error(m);e.status=r.status;throw e;
+  }
+  var busy=false,lastErr='';
+  function share(force){
+    if(!admin())return Promise.reject(new Error('Only the admin can share changes.'));
+    var t=token();
+    if(!t){lastErr='';show();return Promise.reject(new Error('no token'));}
+    if(busy)return Promise.resolve();
+    busy=true;lastErr='';show();
+    var d=snapshot(),now=new Date().toISOString(),who='';try{who=(window.currentSession&&currentSession().name)||'';}catch(e){}
+    var file={_note:'Shared by the admin for every computer and phone: Saved Rates, tours, closed days and company details. Changed from the website.',updatedAt:now,by:who,data:d};
+    var url='https://api.github.com/repos/'+REPO+'/contents/'+PATH,h={'Authorization':'Bearer '+t,'Accept':'application/vnd.github+json'};
+    function put(sha){
+      var body={message:'Shared data updated from the website',content:b64(JSON.stringify(file,null,1)+'\n'),branch:BRANCH};if(sha)body.sha=sha;
+      return fetch(url,{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},h),body:JSON.stringify(body)});
+    }
+    function getSha(){return fetch(url+'?ref='+BRANCH+'&t='+Date.now(),{headers:h,cache:'no-store'}).then(function(r){if(r.status===404)return null;if(!r.ok)return why(r);return r.json().then(function(j){return j.sha;});});}
+    return getSha().then(put).then(function(r){
+      if(r.status===409||r.status===422)return getSha().then(put);   // the file changed in between: try once more
+      return r;
+    }).then(function(r){
+      if(!r.ok)return why(r);
+      remote=file;remoteMissing=false;conflict=false;
+      set(K_HASH,hashOf(d));set(K_AT,now);set(K_DIRTY,null);
+      busy=false;lastShared=Date.now();show();
+    },function(e){busy=false;lastErr=e.message||String(e);show();throw e;});
+  }
+  var autoT=0;
+  function autoShare(){
+    if(!admin()||!token()||conflict)return;
+    clearTimeout(autoT);autoT=setTimeout(function(){share().catch(function(){});},2500);
+  }
+  window.shareAdminData=share;
+  window.loadSharedData=function(){set(K_DIRTY,null);conflict=false;return fetchRemote().then(function(r){if(r){apply(r.data);set(K_HASH,hashOf(r.data));set(K_AT,r.updatedAt||'');}show();});};
+
+  /* ---- status box (admin): Saved Rates and Settings ---- */
+  var lastShared=0;
+  function fmt(iso){var d=new Date(iso);return isNaN(d)?'':d.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}
+  function pills(){
+    var out=[];
+    [['rates','.page-header'],['settings','.page-header']].forEach(function(p){
+      var pg=$(p[0]);if(!pg)return;
+      var id='sdPill-'+p[0],el=$(id);
+      if(!el){
+        el=document.createElement('div');el.id=id;el.className='sd-pill';el.setAttribute('role','status');el.setAttribute('aria-live','polite');el.hidden=true;
+        var h=pg.querySelector(p[1]);
+        var anchor=(p[0]==='rates'&&pg.querySelector('.rates-bar'))||h;
+        if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(el,anchor.nextSibling);else pg.insertBefore(el,pg.firstChild);
+      }
+      out.push(el);
+    });
+    return out;
+  }
+  function show(){
+    var list=pills();if(!list.length)return;
+    if(!admin()){list.forEach(function(el){el.hidden=true;});return;}
+    var dirty=get(K_DIRTY)==='1',cls='',html='';
+    if(busy){cls='is-busy';html='<span class="sd-txt">⏳ Sharing your changes with every computer and phone…</span>';}
+    else if(lastErr){cls='is-err';html='<span class="sd-txt">⚠️ Not shared: '+escapeHtml(lastErr)+'</span><button type="button" data-sd="share">Try again</button>';}
+    else if(conflict){cls='is-warn';html='<span class="sd-txt">⚠️ Someone shared newer prices'+(remote&&remote.by?' ('+escapeHtml(remote.by)+')':'')+(remote&&remote.updatedAt?' on '+escapeHtml(fmt(remote.updatedAt)):'')+'. Your changes here are not shared yet.</span><button type="button" data-sd="load" class="sd-ghost">Use the shared prices</button><button type="button" data-sd="share">Share mine instead</button>';}
+    else if(dirty||remoteMissing&&!get(K_HASH)){cls='is-warn';html='<span class="sd-txt">⚠️ '+(remoteMissing&&!get(K_HASH)?'Your prices, tours and company details are on this computer only.':'Your last changes are on this computer only.')+(token()?'':' Paste the GitHub token in <b>Settings → Admin Login Credentials</b> (tick “Remember”) to share automatically.')+'</span><button type="button" data-sd="share">Share with everyone</button>';}
+    else{html='<span class="sd-txt">✅ Every computer and phone uses these prices, tours and company details'+(get(K_AT)?' (shared '+escapeHtml(fmt(get(K_AT)))+')':'')+'.'+(lastShared&&Date.now()-lastShared<180000?' Other devices get it in about 1–2 minutes.':'')+'</span>';}
+    list.forEach(function(el){el.className='sd-pill '+cls;if(el.innerHTML!==html)el.innerHTML=html;el.hidden=false;});
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('[data-sd]');if(!b)return;
+    if(b.dataset.sd==='share'){if(!token()){lastErr='No GitHub token yet. Paste it in Settings → Admin Login Credentials and tick “Remember”.';show();try{showPage('settings');var g=$('ghTokenInput');if(g)g.focus();}catch(x){}return;}share(true).catch(function(){});}
+    if(b.dataset.sd==='load'){if(confirm('Use the shared prices? Your changes on this computer that are not shared will be replaced.'))loadSharedData();}
+  });
+  ['finishLogin','logoutUser','showPage'].forEach(function(fn){var p=window[fn];if(typeof p==='function')window[fn]=function(){var r=p.apply(this,arguments);setTimeout(show,0);return r;};});
+
+  /* ---- start, then keep checking ---- */
+  sync();
+  setInterval(function(){if(!document.hidden)sync();},120000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)sync();});
+  window.__sharedSync=sync;
+})();}catch(err){console.error('Shared data failed to start:',err);}
 </script>
 </body>
 </html>

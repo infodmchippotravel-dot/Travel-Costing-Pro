@@ -1961,6 +1961,8 @@ window.addEventListener('storage',function(e){
   if(e.key==='travelTheme')document.documentElement.classList.toggle('theme-dark',e.newValue==='dark');
   if(e.key==='travelCurrentUserKey'&&(e.newValue||'')!==((window.ITIN_SESSION||{}).key||''))location.reload();
   if(e.key==='travelTourList')location.reload();
+  /* company / notes settings shared by the admin (from the website): use them, keep this browser's voucher number */
+  if(e.key==='tv.settings.v1'&&e.newValue){try{var n=JSON.parse(e.newValue)||{};['company','partner','prefix','currency','notes','closing'].forEach(function(k){if(n[k]!==undefined)settings[k]=n[k];});if(typeof renderSettings==='function')renderSettings();if(typeof refreshPreview==='function')refreshPreview();}catch(x){}}
 });
 </script>
 </body>
