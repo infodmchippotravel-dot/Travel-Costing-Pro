@@ -11342,7 +11342,7 @@ body.dark .pdf-plain-switch .pps-text b{color:#fff}
 @media print{.pdf-plain-switch,.pdf-plain-note{display:none!important}}
 /* plain PDF: header without a logo still looks tidy */
 #pdf .pdf-page.is-plain .pdf-company{font-size:19pt!important;letter-spacing:.08em!important}
-#pdf .pdf-page.is-plain .pdf-logo,#pdf .pdf-page.is-plain .pdf-watermark,#pdf .pdf-page.is-plain .pdf-contact{display:none!important}
+#pdf .pdf-page.is-plain .pdf-logo,#pdf .pdf-page.is-plain .pdf-watermark,#pdf .pdf-page.is-plain .pdf-contact,#pdf .pdf-page.is-plain .pdf-sign{display:none!important}
 </style>
 <script>
 /* =====================================================================
@@ -11448,10 +11448,12 @@ try{(function(){
       var sg=$('pdfSign');
       if(!sg){sg=document.createElement('div');sg.id='pdfSign';sg.className='pdf-sign';foot.parentNode.insertBefore(sg,foot);}
       var who=(window.currentSession&&currentSession().name)||'';
-      var h=plain?'<div class="sg sg-left"></div><div class="sg"><div class="sg-line"></div>Authorised Signatory</div>'
+      /* plain PDF (company details hidden): no signature block at all */
+      var h=plain?''
         :'<div class="sg sg-left">'+(who?'Prepared by<b>'+esc(who)+'</b>':'')+'</div>'
         +'<div class="sg"><div class="sg-line"></div>For <b>'+esc(company())+'</b>Authorised Signatory</div>';
       if(sg.innerHTML!==h)sg.innerHTML=h;
+      sg.hidden=plain;
       var right=foot.children[1];
       var web=(function(){var a=document.querySelector('.foot-info a[href^="http"]');return a?txt(a):'';})();
       var rh=plain?'':'<b>'+esc(company())+'</b>'+(web?'<br>'+esc(web):'');
@@ -11499,7 +11501,7 @@ try{(function(){
     var acts=$('savePdfBtn')&&$('savePdfBtn').parentNode||bar;
     var w=document.createElement('label');w.className='pdf-plain-switch no-print';w.id='pdfPlainSwitch';w.htmlFor='pdfPlainToggle';
     w.innerHTML='<input type="checkbox" id="pdfPlainToggle" role="switch"><span class="pps-track" aria-hidden="true"><span class="pps-dot"></span></span>'
-      +'<span class="pps-text"><b>Hide my company details</b><small>Plain PDF: no company name, logo, address or phone</small></span>';
+      +'<span class="pps-text"><b>Hide my company details</b><small>Plain PDF: no company name, logo, address, phone or signature</small></span>';
     acts.insertBefore(w,acts.firstChild);
     var note=document.createElement('div');note.id='pdfPlainNote';note.className='pdf-plain-note no-print';note.setAttribute('role','status');
     note.innerHTML='🔒 <b>Plain PDF is ON.</b> Your company name, logo, address, phone and website are not in this quotation.';
@@ -11573,8 +11575,8 @@ try{(function(){
      en:'<b>To get the PDF:</b> open <b>Print / PDF</b> (top menu, or the button on the Costing Sheet). Check the quotation, press <b>Print / Download PDF</b> and choose <b>“Save as PDF”</b>. Keep <b>Background graphics</b> on so the colours print.<br>Every page is A4 — a long quotation simply continues on the next page.',
      hi:'<b>PDF के लिए:</b> ऊपर मेन्यू में <b>Print / PDF</b> खोलें। कोटेशन देखें, <b>Print / Download PDF</b> दबाएं और <b>“Save as PDF”</b> चुनें। रंग आने के लिए <b>Background graphics</b> ऑन रखें।<br>हर पेज A4 का है — लंबी कोटेशन अपने आप अगले पेज पर चली जाती है।'},
     {id:'plain',kw:['hide my company','hide company','company details','company ka naam','company name hide','without company','bina company','plain pdf','logo hide','company hata','company chupa','company na dikhe','कंपनी'],
-     en:'<b>Plain PDF (no company details):</b> on the <b>Print / PDF</b> page, turn on <b>“Hide my company details”</b>. The company name, logo, address, phone, website and watermark are removed from the PDF and the Word file. A yellow note shows while it is on. Turn it off to get your branded PDF back.',
-     hi:'<b>बिना कंपनी डिटेल वाली PDF:</b> <b>Print / PDF</b> पेज पर <b>“Hide my company details”</b> ऑन करें। कंपनी का नाम, लोगो, पता, फोन, वेबसाइट और watermark PDF और Word फ़ाइल से हट जाते हैं। ऑन रहने पर पीली पट्टी दिखती है। वापस लाने के लिए इसे ऑफ करें।'},
+     en:'<b>Plain PDF (no company details):</b> on the <b>Print / PDF</b> page, turn on <b>“Hide my company details”</b>. The company name, logo, address, phone, website, watermark and the “Authorised Signatory” are removed from the PDF and the Word file. A yellow note shows while it is on. Turn it off to get your branded PDF back.',
+     hi:'<b>बिना कंपनी डिटेल वाली PDF:</b> <b>Print / PDF</b> पेज पर <b>“Hide my company details”</b> ऑन करें। कंपनी का नाम, लोगो, पता, फोन, वेबसाइट, watermark और “Authorised Signatory” PDF और Word फ़ाइल से हट जाते हैं। ऑन रहने पर पीली पट्टी दिखती है। वापस लाने के लिए इसे ऑफ करें।'},
     {id:'word',kw:['word file','word','doc file','.doc'],
      en:'On the <b>Print / PDF</b> page press <b>Download Word file</b>. It opens in Microsoft Word or Google Docs so you can edit the text.',
      hi:'<b>Print / PDF</b> पेज पर <b>Download Word file</b> दबाएं। यह Word या Google Docs में खुलती है, जहाँ आप text बदल सकते हैं।'},
@@ -13074,6 +13076,7 @@ try{(function(){
       }
       if(c.contains('pdf-thanks')){out.push(wrap('<span style="font-family:'+SERIF+';font-style:italic;font-size:9pt;color:'+C.text+'">'+esc(txt(el))+'</span>',10));return;}
       if(c.contains('pdf-sign')){
+        if(plain||el.hidden||!txt(el))return;      // plain Word file: no signature, like the PDF
         var L=q(el,'.sg-left'),R=[].slice.call(el.querySelectorAll('.sg')).filter(function(x){return x!==L;})[0];
         var lb=L&&L.querySelector('b'),rb=R&&R.querySelector('b'),rText=R?txt(R):'',rName=rb?txt(rb):'';
         var rParts=rName?rText.split(rName):[rText,''];   // no company name (plain PDF): keep the text whole
