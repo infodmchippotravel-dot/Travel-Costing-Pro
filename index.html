@@ -13895,6 +13895,16 @@ try{(function(){
   function saveMap(m){set(K_MAP,JSON.stringify(m));}
   function sig(rec){return hash(slim(rec));}
   function safe(id){return String(id).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,120);}
+  /* this browser's own name in the cloud: two admin computers share one login, and both can have a costing "S5" —
+     with the device in the online name they never write over each other */
+  function device(){
+    var d=get('travelCloudDevice');
+    if(!d||!/^[A-Za-z0-9]{6,20}$/.test(d)){
+      var a=new Uint8Array(6);try{crypto.getRandomValues(a);}catch(e){for(var i=0;i<6;i++)a[i]=Math.floor(Math.random()*256);}
+      d=[].map.call(a,function(x){return ('0'+x.toString(16)).slice(-2);}).join('');set('travelCloudDevice',d);
+    }
+    return d;
+  }
 
   /* ---------- send what changed ---------- */
   var busy=false,again=false,lastErr='',lastOk=0,pending=0,explicitDel={costings:{},drafts:{},vouchers:{}};
@@ -13907,7 +13917,7 @@ try{(function(){
       list.forEach(function(rec){
         if(!rec||rec.id==null)return;
         var doc=byId[rec.id],e=doc&&m[col][doc];
-        if(!doc){doc=me.uid+'_'+safe(rec.id);e=m[col][doc]={id:rec.id,sig:'',owner:me.uid};}
+        if(!doc){doc=me.uid+'_'+device()+'_'+safe(rec.id);e=m[col][doc]={id:rec.id,sig:'',owner:me.uid};}
         present[doc]=1;
         var s=sig(rec);
         if(slim(rec).length>880000)return;   // too big for the cloud (stays only here)
