@@ -6986,6 +6986,7 @@ try{(function(){
   var kicking=false;
   function checkStamp(){
     if(kicking)return;
+    return;   // switched off: the admin login is checked by Firebase now (see ADMIN LOGIN WITH THE FIREBASE E-MAIL), which also logs out other devices
     if(!isAdminSession()){if(getStamp())setStamp('');return;}
     var now=stampOf(),had=getStamp();
     if(!had){setStamp(now);return;}
@@ -11652,8 +11653,8 @@ try{(function(){
      en:'The PDF shows <b>Total Package Cost</b> and a separate box for each per-person rate that is used: Adult (Single / Double / Triple sharing), Child (With Bed) and Child (No Bed).',
      hi:'PDF में <b>Total Package Cost</b> और हर per person रेट का अलग बॉक्स आता है: Adult (Single / Double / Triple sharing), Child (With Bed) और Child (No Bed) — जो इस्तेमाल हुए हों।'},
     {id:'login',kw:['password bhool','password bhul','password yaad nahi','password nahi yaad','password forgot','password change','password badalna','forgot password','password','login','log in','sign in','logout','log out','locked','पासवर्ड','लॉगिन'],
-     en:function(){return '<b>Users</b> log in with their name only — no password.<br><b>Admin</b> logs in with name, Admin ID and password ('+(admin()?'change it in <b>Settings → Admin Login Credentials</b>':'only the admin has these')+'). After 5 wrong passwords the admin login locks for a while.<br>Forgot the admin password? On the admin login press <b>Forgot password?</b> — a 6-digit code goes to the admin e-mail saved in <b>Settings → Admin Login Credentials</b>; type the code and choose a new password.';},
-     hi:function(){return '<b>User</b> सिर्फ अपने नाम से लॉगिन करते हैं — पासवर्ड नहीं।<br><b>Admin</b> नाम, Admin ID और पासवर्ड से लॉगिन करता है ('+(admin()?'<b>Settings → Admin Login Credentials</b> में बदलें':'ये सिर्फ admin के पास होते हैं')+')। 5 बार गलत पासवर्ड पर admin login कुछ देर के लिए बंद हो जाता है।<br>Admin पासवर्ड भूल गए? Admin login पर <b>Forgot password?</b> दबाएं — <b>Settings → Admin Login Credentials</b> में सेव admin e-mail पर 6 अंकों का कोड जाएगा; कोड डालकर नया पासवर्ड रखें।';}},
+     en:function(){return '<b>Users</b> log in with their name only — no password.<br><b>Admin</b> logs in with name, the <b>admin e-mail</b> and its password — on any computer or phone, and then everything is there (everyone’s costings, drafts, vouchers and the prices). '+(admin()?'Change the password in <b>Settings → 🔐 Admin login</b>; other devices are then logged out.':'')+' After 5 wrong passwords the admin login locks for a while.<br>Forgot the admin password? On the admin login press <b>Forgot password?</b>, type the admin e-mail and press <b>Send the reset link</b> — choose a new password from the e-mail.';},
+     hi:function(){return '<b>User</b> सिर्फ अपने नाम से लॉगिन करते हैं — पासवर्ड नहीं।<br><b>Admin</b> नाम, <b>admin e-mail</b> और उसके पासवर्ड से लॉगिन करता है — किसी भी कंप्यूटर या फोन पर, और फिर सब कुछ दिखता है (सबकी costings, drafts, vouchers और कीमतें)। '+(admin()?'पासवर्ड <b>Settings → 🔐 Admin login</b> में बदलें; बाकी devices पर logout हो जाता है।':'')+' 5 बार गलत पासवर्ड पर admin login कुछ देर के लिए बंद हो जाता है।<br>Admin पासवर्ड भूल गए? Admin login पर <b>Forgot password?</b> दबाएं, admin e-mail लिखें और <b>Send the reset link</b> दबाएं — e-mail से नया पासवर्ड रखें।';}},
     {id:'rates',kw:['saved rates','rate list','rates','rate','price list','change price','add price','kimat','daam','admin','रेट','कीमत'],
      en:function(){return admin()
        ?'<b>Saved Rates</b> (top menu) has tabs for <b>Transfers</b> (Car / SUV / Van price), <b>SIC Transfers</b>, <b>Entry Tickets</b>, <b>Meals</b> and <b>🏝️ Tours</b> (the tours for Create Itinerary). Add, edit or delete there; press <b>＋ Use</b> to put it straight into the costing.'
@@ -14032,7 +14033,7 @@ try{(function(){
       +'<div><label for="clPass">Firebase password</label><input id="clPass" type="password" autocomplete="current-password" placeholder="Firebase password"></div>'
       +'<button type="button" class="blue" id="clConnect">Connect</button></div>'
       +'<p class="cl-hint">Use the e-mail and password you made in Firebase → Authentication → Users (not the website admin password). You do this once on each computer.</p></div>'
-      +'<div id="clConnected" hidden><div class="cl-actions"><button type="button" class="blue" id="clNow">🔄 Get everyone’s now</button><button type="button" class="btn-ghost" id="clOut">Disconnect</button></div></div>'
+      +'<div id="clConnected" hidden><div class="cl-actions"><button type="button" class="blue" id="clNow">🔄 Get everyone’s now</button><button type="button" class="btn-ghost" id="clOut" hidden>Disconnect</button></div></div>'
       +'<p class="cl-hint" id="clMsg" role="alert"></p></div>';
     anchor.parentNode.insertBefore(card,anchor);
     $('clConnect').addEventListener('click',function(){
@@ -14064,6 +14065,185 @@ try{(function(){
   build();show();
   setTimeout(run,2500);
 })();}catch(err){console.error('Cloud failed to start:',err);}
+</script>
+<style id="fbLoginCss">
+/* Admin login = the admin e-mail and password in Firebase */
+#adminCredsCard{display:none!important}
+#loginPanel-forgot .fp-old{display:none!important}
+#fbAdminCard .fa-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:10px;align-items:end}
+#fbAdminCard .fa-row button{min-height:44px}
+#fbAdminCard .fa-msg{margin:8px 0 0;font-weight:700}
+#fbAdminCard .fa-msg.ok{color:#166534}#fbAdminCard .fa-msg.err{color:#b42318}
+#fbAdminCard .fa-who{font-weight:700;margin:0 0 10px}
+@media (max-width:900px){#fbAdminCard .fa-row{grid-template-columns:1fr}}
+body.dark #fbAdminCard .fa-msg.ok{color:#86efac}body.dark #fbAdminCard .fa-msg.err{color:#fca5a5}
+</style>
+<script>
+/* =====================================================================
+   ADMIN LOGIN WITH THE FIREBASE E-MAIL AND PASSWORD
+     • Admin login: Admin name + admin e-mail + password. The password is
+       checked by Google (Firebase), and the same login opens the private
+       cloud: everyone's costings, drafts, vouchers and the prices — on every
+       computer and phone, with no separate "Connect".
+     • Forgot password: Firebase sends a reset e-mail (free, no set-up).
+     • Settings → Admin login: change the password (current + new). Then the
+       admin is logged out here and, within a minute or two, everywhere else.
+     • An admin page whose cloud login has ended (password changed somewhere
+       else, or an old login from before) is logged out by itself.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  if(typeof window.cloudConnectAdmin!=='function')return;
+  var KEY='AIzaSyAZlu---1cqIQ_FXzdK_xYzKDQU32aqgCE',K_ADMIN='travelCloudAdmin';
+  function $(id){return document.getElementById(id);}
+  function admin(){return typeof isAdminSession==='function'&&isAdminSession();}
+  function get(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+  function set(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}}
+  function isEmail(s){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s||'').trim());}
+  function connected(){try{return !!JSON.parse(get(K_ADMIN)||'null');}catch(e){return false;}}
+
+  /* ---- login screen: e-mail instead of the old Admin ID ---- */
+  var idEl=$('adminLoginId');
+  if(idEl){
+    idEl.type='email';idEl.placeholder='Admin e-mail';idEl.setAttribute('autocomplete','username');idEl.setAttribute('inputmode','email');
+    var lab=document.querySelector('label[for="adminLoginId"]');if(lab)lab.textContent='Admin e-mail';
+    var ic=idEl.parentNode&&idEl.parentNode.querySelector('span');if(ic)ic.textContent='✉️';
+  }
+  var pw=$('adminLoginPassword');if(pw)pw.placeholder='Password';
+
+  /* ---- the check: Firebase ---- */
+  var why='';
+  function msgFor(code){
+    if(/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL|USER_DISABLED/.test(code))return 'The e-mail or password is not right. Type them again and press Show to see the password.';
+    if(/TOO_MANY_ATTEMPTS/.test(code))return 'Too many tries. Please wait a few minutes and try again.';
+    if(/Failed to fetch|NetworkError|network|Load failed/i.test(code))return 'No internet. The admin login needs the internet — please check it and try again.';
+    return 'Could not log in ('+code+'). Please try again.';
+  }
+  window.verifyAdminCreds=function(id,pass){
+    id=String(id||'').trim();why='';
+    if(!isEmail(id)){why='Admin login now uses the admin e-mail (not the old Admin ID) and its password.';return Promise.resolve(false);}
+    return window.cloudConnectAdmin(id,String(pass||'')).then(function(){return true;},function(e){why=msgFor(e.code||e.message||'');return false;});
+  };
+  window.adminIdIsRight=function(){return true;};
+  window.adminTypedOldDefault=function(){return Promise.resolve(false);};
+  window.adminCredsAreDefault=function(){return false;};
+  var prevErr=window.showLoginError;
+  if(typeof prevErr==='function')window.showLoginError=function(m){
+    if(why&&/password is not right|Admin ID is not right|old default password/i.test(String(m||'')))m=why;
+    return prevErr.call(this,m);
+  };
+
+  /* ---- log out: the cloud login ends too ---- */
+  var prevOut=window.logoutUser;
+  if(typeof prevOut==='function')window.logoutUser=function(){
+    var was=admin(),r=prevOut.apply(this,arguments);
+    if(was&&!admin())set(K_ADMIN,null);
+    return r;
+  };
+
+  /* ---- an admin page without a cloud login (password changed elsewhere, or an old login): log out ---- */
+  var kicking=false;
+  function check(){
+    if(kicking||!admin()||connected())return;
+    kicking=true;
+    var nc=window.confirm;window.confirm=function(){return true;};
+    try{if(typeof logoutUser==='function')logoutUser();}catch(e){}finally{window.confirm=nc;}
+    setTimeout(function(){
+      kicking=false;
+      try{if(typeof showAdminLoginPanel==='function')showAdminLoginPanel();}catch(e){}
+      var h=$('adminPwHint');if(h){h.textContent='🔐 Please log in with the admin e-mail and password (if it was just changed, use the new password).';h.hidden=false;}
+    },350);
+  }
+  /* every minute: is the admin's cloud login still good? (a password change elsewhere ends it) — this costs no database reads */
+  function verify(){
+    if(!admin()||!connected())return check();
+    var a=null;try{a=JSON.parse(get(K_ADMIN)||'null');}catch(e){}
+    if(!a||!a.rt)return;
+    fetch('https://securetoken.googleapis.com/v1/token?key='+KEY,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(a.rt)})
+      .then(function(r){return r.json().then(function(j){
+        if(r.ok){if(j.refresh_token&&j.refresh_token!==a.rt){a.rt=j.refresh_token;set(K_ADMIN,JSON.stringify(a));}return;}
+        var m=(j.error||{}).message||'';
+        if(/TOKEN_EXPIRED|INVALID_REFRESH_TOKEN|USER_NOT_FOUND|USER_DISABLED/.test(m)){set(K_ADMIN,null);check();}
+      });}).catch(function(){});   // no internet: try again later
+  }
+  setTimeout(check,1500);
+  setInterval(function(){if(!document.hidden)verify();},60000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)setTimeout(verify,2500);});
+  window.addEventListener('storage',function(e){if(e.key===K_ADMIN)check();});
+  window.__adminVerify=verify;
+
+  /* ---- Forgot password: Firebase sends a reset e-mail ---- */
+  var fp=$('loginPanel-forgot');
+  if(fp){
+    ['fpStep1','fpStep2','fpIntro'].forEach(function(id){var x=$(id);if(x)x.classList.add('fp-old');});
+    var box=document.createElement('div');box.id='fbReset';
+    box.innerHTML='<p class="login-field-hint">Type the admin e-mail. Google (Firebase) sends a link to choose a new password.</p>'
+      +'<label for="fbResetEmail">Admin e-mail</label><div class="field-icon"><span aria-hidden="true">✉️</span><input id="fbResetEmail" type="email" autocomplete="username" placeholder="Admin e-mail"></div>'
+      +'<button class="blue login-main-btn" id="fbResetSend" type="button" style="margin-top:12px">📧 Send the reset link</button>';
+    var msg=$('fpMsg');fp.insertBefore(box,msg||fp.firstChild.nextSibling);
+    function say(t,ok){if(!msg)return;msg.textContent=t||'';msg.hidden=!t;msg.className='login-field-hint '+(t?(ok?'is-ok':'is-err'):'');}
+    var open=$('fpOpen');if(open)open.addEventListener('click',function(){setTimeout(function(){say('');var e=$('fbResetEmail');if(e){if(!e.value&&idEl&&isEmail(idEl.value))e.value=idEl.value.trim();e.focus();}},0);});
+    $('fbResetSend').addEventListener('click',function(){
+      var e=($('fbResetEmail').value||'').trim();
+      if(!isEmail(e)){say('Please type the admin e-mail.');return;}
+      var b=this;b.disabled=true;say('Sending…',true);
+      fetch('https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key='+KEY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requestType:'PASSWORD_RESET',email:e})})
+        .then(function(r){return r.json().then(function(j){if(!r.ok&&!/EMAIL_NOT_FOUND/.test((j.error||{}).message||''))throw new Error((j.error||{}).message||r.status);});})
+        .then(function(){say('📧 If this is the admin e-mail, a link to choose a new password has been sent. Check the Spam folder too. Then log in with the new password.',true);},
+          function(err){say(/TOO_MANY/.test(err.message)?'Too many tries. Please wait a few minutes.':/fetch|network/i.test(err.message)?'No internet. Please check it and try again.':'Could not send it ('+err.message+'). Please try again.');})
+        .then(function(){b.disabled=false;});
+    });
+  }
+
+  /* ---- Settings → Admin login: change the password ---- */
+  function card(){
+    var old=$('adminCredsCard');if(!old||$('fbAdminCard'))return;
+    var c=document.createElement('div');c.className='card';c.id='fbAdminCard';
+    c.innerHTML='<h3>🔐 Admin login</h3><p class="fa-who" id="faWho"></p>'
+      +'<p class="field-hint" style="margin-top:-4px">The admin logs in with this e-mail and its password on any computer or phone — then everything (everyone’s costings, drafts, vouchers and the prices) is there.</p>'
+      +'<div class="fa-row"><div><label for="faCur">Current password</label><input id="faCur" type="password" autocomplete="current-password"></div>'
+      +'<div><label for="faNew">New password</label><input id="faNew" type="password" autocomplete="new-password" placeholder="8+ letters and numbers"></div>'
+      +'<div><label for="faNew2">New password again</label><input id="faNew2" type="password" autocomplete="new-password"></div>'
+      +'<button type="button" class="blue" id="faSave">Change password</button></div>'
+      +'<p class="fa-msg" id="faMsg" role="status" aria-live="polite"></p>';
+    old.parentNode.insertBefore(c,old);
+    $('faSave').addEventListener('click',change);
+  }
+  function fa(t,ok){var m=$('faMsg');if(!m)return;m.textContent=t||'';m.className='fa-msg '+(t?(ok?'ok':'err'):'');}
+  function show(){
+    card();var c=$('fbAdminCard');if(!c)return;
+    c.hidden=!admin();
+    var a=null;try{a=JSON.parse(get(K_ADMIN)||'null');}catch(e){}
+    $('faWho').textContent=a&&a.email?'Logged in as '+a.email:'';
+  }
+  function change(){
+    var a=null;try{a=JSON.parse(get(K_ADMIN)||'null');}catch(e){}
+    var cur=$('faCur').value,nw=$('faNew').value,nw2=$('faNew2').value;
+    if(!a||!a.email)return fa('Please log in again first.');
+    if(!cur)return fa('Please type the current password.');
+    if(nw.length<8||!/[A-Za-z]/.test(nw)||!/[0-9]/.test(nw))return fa('The new password needs at least 8 characters, with letters and numbers.');
+    if(nw!==nw2)return fa('The two new passwords are not the same.');
+    if(nw===cur)return fa('The new password is the same as the current one.');
+    var b=$('faSave');b.disabled=true;fa('Changing…',true);
+    fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+KEY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:a.email,password:cur,returnSecureToken:true})})
+      .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(/INVALID|PASSWORD/.test((j.error||{}).message||'')?'The current password is not right.':(j.error||{}).message||r.status);return j;});})
+      .then(function(j){return fetch('https://identitytoolkit.googleapis.com/v1/accounts:update?key='+KEY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:j.idToken,password:nw,returnSecureToken:true})});})
+      .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(/WEAK_PASSWORD/.test((j.error||{}).message||'')?'The new password is too weak.':(j.error||{}).message||r.status);return j;});})
+      .then(function(){
+        ['faCur','faNew','faNew2'].forEach(function(id){$(id).value='';});
+        fa('✅ Password changed. Other computers and phones are logged out within a minute or two. You will be logged out in 3 seconds — log in again with the new password.',true);
+        setTimeout(function(){
+          set(K_ADMIN,null);
+          var nc=window.confirm;window.confirm=function(){return true;};
+          try{logoutUser();}catch(e){}finally{window.confirm=nc;}
+          setTimeout(function(){try{showAdminLoginPanel();}catch(e){}if(idEl)idEl.value=a.email;var h=$('adminPwHint');if(h){h.textContent='✅ Password changed. Log in with the new password.';h.hidden=false;}},350);
+        },3000);
+      },function(e){fa(/fetch|network/i.test(e.message)?'No internet. Please check it and try again.':e.message);})
+      .then(function(){b.disabled=false;});
+  }
+  ['showPage','finishLogin','logoutUser'].forEach(function(fn){var p=window[fn];if(typeof p==='function')window[fn]=function(){var r=p.apply(this,arguments);setTimeout(show,0);return r;};});
+  show();
+})();}catch(err){console.error('Firebase admin login failed to start:',err);}
 </script>
 </body>
 </html>
