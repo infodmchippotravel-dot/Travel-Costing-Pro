@@ -13585,12 +13585,15 @@ try{(function(){
   /* the shared copy in the private cloud (Firebase): read by every signed-in browser, written only by the admin */
   function fetchCloud(){
     if(typeof window.cloudToken!=='function')return Promise.resolve(undefined);
-    return window.cloudToken().then(function(me){return fetch(FS,{headers:{'Authorization':'Bearer '+me.token},cache:'no-store'});}).then(function(r){
-      if(r.status===404){fsMissing=true;return null;}
+    /* batchGet answers "missing" without a 404, so the browser console stays clean before the first share */
+    var DB='projects/hippo-travel-b1006/databases/(default)';
+    return window.cloudToken().then(function(me){return fetch('https://firestore.googleapis.com/v1/'+DB+'/documents:batchGet',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+me.token},body:JSON.stringify({documents:[DB+'/documents/shared/main']}),cache:'no-store'});}).then(function(r){
       if(!r.ok)return undefined;
-      return r.json().then(function(j){
+      return r.json().then(function(arr){
+        var x=(Array.isArray(arr)?arr:[]).filter(function(i){return i&&(i.found||i.missing);})[0];
+        if(!x||x.missing){fsMissing=true;return null;}
         fsMissing=false;
-        var f=j.fields||{},file=parse(f.data&&f.data.stringValue,null);
+        var f=x.found.fields||{},file=parse(f.data&&f.data.stringValue,null);
         if(file&&file.data&&typeof file.data==='object'){file.fs=true;return file;}
         return null;
       });
