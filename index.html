@@ -14125,7 +14125,7 @@ try{(function(){
   /* ---- the check: Firebase ---- */
   var why='';
   function msgFor(code){
-    if(/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL|USER_DISABLED/.test(code))return 'The e-mail or password is not right. Type them again and press Show to see the password.';
+    if(/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL|USER_DISABLED/.test(code))return 'The e-mail or password is not right. Use the admin e-mail and the password set for it in Firebase (not the old website password). Press Show to see what you typed.';
     if(/TOO_MANY_ATTEMPTS/.test(code))return 'Too many tries. Please wait a few minutes and try again.';
     if(/Failed to fetch|NetworkError|network|Load failed/i.test(code))return 'No internet. The admin login needs the internet — please check it and try again.';
     return 'Could not log in ('+code+'). Please try again.';
