@@ -13702,6 +13702,7 @@ try{(function(){
     },function(){return doShare(t);});
   }
   function doShare(t){
+    lastErr='';
     var d=snapshot(),now=new Date().toISOString(),who='';try{who=(window.currentSession&&currentSession().name)||'';}catch(e){}
     var file={_note:'Shared by the admin for every computer and phone: Saved Rates, tours, closed days and company details. Changed from the website.',updatedAt:now,by:who,data:d};
     if(t==='cloud')return window.cloudToken().then(function(me){
@@ -13712,7 +13713,7 @@ try{(function(){
       file.fs=true;remote=file;remoteMissing=false;fsMissing=false;conflict=false;
       set(K_HASH,hashOf(d));set(K_AT,now);set(K_DIRTY,null);
       busy=false;lastShared=Date.now();show();
-    },function(e){busy=false;lastErr=e.message||String(e);show();throw e;});
+    }).catch(function(e){busy=false;lastErr=e.message||String(e);show();throw e;});
     var url='https://api.github.com/repos/'+REPO+'/contents/'+PATH,h={'Authorization':'Bearer '+t,'Accept':'application/vnd.github+json'};
     function put(sha){
       var body={message:'Shared data updated from the website',content:b64(JSON.stringify(file,null,1)+'\n'),branch:BRANCH};if(sha)body.sha=sha;
@@ -13727,13 +13728,14 @@ try{(function(){
       remote=file;remoteMissing=false;conflict=false;
       set(K_HASH,hashOf(d));set(K_AT,now);set(K_DIRTY,null);
       busy=false;lastShared=Date.now();show();
-    },function(e){busy=false;lastErr=e.message||String(e);show();throw e;});
+    }).catch(function(e){busy=false;lastErr=e.message||String(e);show();throw e;});
   }
   var autoT=0;
   function autoShare(){
     if(!admin()||!(token()||canCloud())||conflict)return;
     if(!canCloud()&&remote&&remote.fs){show();return;}
-    clearTimeout(autoT);autoT=setTimeout(function(){share().catch(function(){});},2500);
+    if(autoT)return;   // already on its way (it takes what is saved at that moment)
+    autoT=setTimeout(function(){autoT=0;share().then(function(){if(get(K_DIRTY)==='1')autoShare();},function(){});},2500);
   }
   window.shareAdminData=share;
   window.loadSharedData=function(){set(K_DIRTY,null);conflict=false;return fetchRemote().then(function(r){if(r){apply(r.data);set(K_HASH,hashOf(r.data));set(K_AT,r.updatedAt||'');}show();});};
@@ -13760,6 +13762,12 @@ try{(function(){
     var list=pills();if(!list.length)return;
     if(!admin()){list.forEach(function(el){el.hidden=true;});return;}
     var dirty=get(K_DIRTY)==='1',cls='',html='';
+    /* quiet when all is well: everything is shared by itself — the box only comes when something needs the admin */
+    var waiting=dirty||(remoteMissing&&!get(K_HASH));
+    if(!lastErr&&!conflict&&(busy||!waiting||canCloud())){
+      if(waiting&&canCloud()&&!busy)autoShare();
+      list.forEach(function(el){el.hidden=true;});return;
+    }
     if(busy){cls='is-busy';html='<span class="sd-txt">⏳ Sharing your changes with every computer and phone…</span>';}
     else if(lastErr){cls='is-err';html='<span class="sd-txt">⚠️ Not shared: '+escapeHtml(lastErr)+'</span><button type="button" data-sd="share">Try again</button>';}
     else if(conflict){cls='is-warn';html='<span class="sd-txt">⚠️ Someone shared newer prices'+(remote&&remote.by?' ('+escapeHtml(remote.by)+')':'')+(remote&&remote.updatedAt?' on '+escapeHtml(fmt(remote.updatedAt)):'')+'. Your changes here are not shared yet.</span><button type="button" data-sd="load" class="sd-ghost">Use the shared prices</button><button type="button" data-sd="share">Share mine instead</button>';}
