@@ -14125,6 +14125,16 @@ try{(function(){
     var ic=idEl.parentNode&&idEl.parentNode.querySelector('span');if(ic)ic.textContent='✉️';
   }
   var pw=$('adminLoginPassword');if(pw)pw.placeholder='Password';
+  /* no name box for the admin: the name is always "Admin" — only the e-mail and the password are typed */
+  var nm=$('adminFullName');
+  if(nm){
+    nm.value='Admin';nm.tabIndex=-1;nm.setAttribute('aria-hidden','true');
+    var nlab=document.querySelector('label[for="adminFullName"]');if(nlab)nlab.hidden=true;
+    if(nm.parentNode){nm.parentNode.hidden=true;nm.parentNode.style.setProperty('display','none','important');}if(nlab)nlab.style.setProperty('display','none','important');
+    var idLab=document.querySelector('label[for="adminLoginId"]');if(idLab)idLab.style.marginTop='0';
+  }
+  var prevLogin=window.loginAsAdmin;
+  if(typeof prevLogin==='function')window.loginAsAdmin=function(){if(nm)nm.value='Admin';return prevLogin.apply(this,arguments);};
 
   /* ---- the check: Firebase ---- */
   var why='';
