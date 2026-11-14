@@ -13802,6 +13802,8 @@ try{(function(){
 #cloudCard .cl-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 #cloudCard .cl-hint{font-size:13px;color:var(--muted,#667085);margin:6px 0 0}
 #cloudCard [hidden]{display:none!important}
+#cloudCard[hidden]{display:none!important}
+#cloudCard #clConnected,#cloudCard #clLogin{display:none!important}
 body.dark #cloudCard .cl-status{background:#13243b;border-color:#2b3f5f;color:#e8eef7}
 body.dark #cloudCard .cl-status.ok{background:#10291c;border-color:#24513a;color:#bff0d0}
 body.dark #cloudCard .cl-status.warn{background:#33260b;border-color:#6b5320;color:#ffe2a8}
@@ -14072,6 +14074,8 @@ try{(function(){
     else{txt='☁️ Your records will be copied online by themselves.';}
     if(isA&&!a&&!lastErr)txt+=' <b>To see everyone’s records, connect below.</b>';
     st.className='cl-status '+cls;st.innerHTML=txt;
+    /* quiet: everything happens by itself — the card shows only when something went wrong */
+    var cardEl=$('cloudCard');if(cardEl)cardEl.hidden=cls!=='err';
   }
   build();show();
   setTimeout(run,2500);
