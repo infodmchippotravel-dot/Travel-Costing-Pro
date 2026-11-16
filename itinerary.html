@@ -2004,10 +2004,14 @@ window.tvFromCosting = function (rec) {
   // nights of each hotel: its own nights, else check-out − check-in; a hotel with none (0) shares the trip's nights that are left
   hs.forEach(x => { if (!x.nts && x.cin && x.cout && x.cout > x.cin) x.nts = Math.round((x.cout - x.cin) / 864e5); if (x.cout && x.cin && x.cout <= x.cin) x.cout = null; });
   // every hotel starts on the same day (dates left at the travel date) and their nights do not fill the trip: share the trip's nights
-  if (hs.length > 1 && tripNights && hs.every(x => x.cin && hs[0].cin && +x.cin === +hs[0].cin) && hs.reduce((t, x) => t + x.nts, 0) < tripNights) hs.forEach(x => { x.nts = 0; x.cout = null; });
+  //   (the Costing Sheet fills every new hotel with: check-in = travel date, check-out = the end of the trip)
+  const sameStart = hs.length > 1 && hs.every(x => x.cin && hs[0].cin && +x.cin === +hs[0].cin);
+  const sameEnd = sameStart && hs.every(x => x.cout && hs[0].cout && +x.cout === +hs[0].cout);
+  const tripN = tripNights || (sameEnd ? Math.round((hs[0].cout - hs[0].cin) / 864e5) : 0);
+  if (sameStart && tripN && hs.reduce((t, x) => t + x.nts, 0) !== tripN) hs.forEach(x => { x.nts = 0; x.cout = null; });
   const unknown = hs.filter(x => !x.nts), knownN = hs.reduce((t, x) => t + x.nts, 0);
   if (unknown.length) {
-    const left = Math.max(0, tripNights - knownN), each = left ? Math.max(1, Math.floor(left / unknown.length)) : 1;
+    const left = Math.max(0, (tripN || tripNights) - knownN), each = left ? Math.max(1, Math.floor(left / unknown.length)) : 1;
     unknown.forEach((x, k) => { x.nts = left ? (k === unknown.length - 1 ? Math.max(1, left - each * (unknown.length - 1)) : each) : 1; x.cout = null; });
   }
   let cur = start;
@@ -2096,7 +2100,7 @@ window.tvFromCosting = function (rec) {
   const cities = [];
   // the city of each night, from the hotel names (e.g. "Hilton Pattaya")
   const nightCity = Array.from({ length: n }, (_, i) => { const d = start ? addD(start, i) : null; const x = d && hs.find(x => x.cin && x.cout && d >= x.cin && d < x.cout); return x ? cityOf(x.h.name) : ''; });
-  if (!city) city = nightCity.find(Boolean) || cityOf(rec.destination) || '';
+  if (!city) city = nightCity[0] || (/&|,|\+|\band\b/i.test(rec.destination || '') ? '' : cityOf(rec.destination)) || '';
   const GEN = {
     arr: { t: 'Arrival', it: ['• Arrive at Airport. After immigration clearance, meet & greet by our airport representative, transfer to hotel.', '• Overnight at hotel.'], m: '', tr: 'Private Transfer' },
     dep: { t: 'Departure', it: ['• Breakfast at hotel. Check out Hotel.', '• Pick up from hotel lobby for departure transfer to the Airport.'], m: 'B', tr: 'Private Transfer' },
