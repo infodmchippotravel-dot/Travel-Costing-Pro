@@ -1972,7 +1972,7 @@ window.tvFromCosting = function (rec) {
       if (test && !test(p)) return;
       const pw = new Set(words(p.t)); if (!pw.size) return;
       let hit = 0; w.forEach(x => { if (pw.has(x)) hit++; });
-      let sc = hit / Math.max(w.length, 1) - (pw.size - hit) * 0.02 + (city && p.c === city ? 0.05 : 0) - (/\b(by|with|and|to)\s*$|[&+]\s*$/i.test(p.t.trim()) ? 0.2 : 0);
+      let sc = hit / Math.max(w.length, 1) - (pw.size - hit) * 0.04 + (city && p.c === city ? 0.05 : 0) - (/\b(by|with|and|to)\s*$|[&+]\s*$/i.test(p.t.trim()) ? 0.2 : 0);
       if (sc > score) { score = sc; best = p; }
     });
     return score >= 0.6 ? best : null;
@@ -2036,8 +2036,16 @@ window.tvFromCosting = function (rec) {
       if (k > 0 && k < n) l.day = k;
     }
   });
+  // a tour that is done on the way to the next city (e.g. "Transfer to Bangkok · Tiger Park" in the tour list)
+  const enroute = (l, c) => c ? bestPreset(l.name, c, x => new RegExp('^Transfer to ' + c + '\\b', 'i').test(x.t) && /[·+]|enroute/i.test(x.t)) : null;
+  lines.forEach(l => {
+    if (l.day != null || l.kind.k !== 'tour') return;
+    // only a tour that is not done inside the new city itself (Tiger Park on the way to Bangkok — not Safari World, which is in Bangkok)
+    const m = lines.find(y => y.kind.k === 'move' && y.day != null && y.kind.city && !y.withTour && enroute(l, y.kind.city) && !bestPreset(l.name, y.kind.city, x => x.c === y.kind.city && !/^(Transfer to|Arrival|Departure)\b/i.test(x.t)));
+    if (m) { l.day = m.day; m.withTour = l; }
+  });
   // items without a day, in the costing's order: the next free day after the item before them
-  const used = j => lines.filter(y => y.day === j && y.kind.k === 'tour').length;
+  const used = j => lines.filter(y => y.day === j && y.kind.k === 'tour' && !lines.some(m => m.withTour === y)).length;
   let pos = 0;
   lines.forEach(l => {
     if (l.day != null) { if (l.kind.k !== 'dep') pos = Math.max(pos, l.day); return; }
@@ -2067,14 +2075,19 @@ window.tvFromCosting = function (rec) {
     if (!city && nightCity[i]) city = nightCity[i];
     const order = { arr: 0, move: 1, tour: 2, dep: 3 };
     items.sort((a, b) => order[a.kind.k] - order[b.kind.k]);
+    // a tour on the day of a hotel-to-hotel transfer that the tour list has as one "on the way" day → one row
+    const mv = items.find(l => l.kind.k === 'move' && l.kind.city);
+    let ep = null, epTour = null;
+    if (mv) items.some(l => { if (l.kind.k !== 'tour') return false; const q = (mv.withTour === l || !mv.withTour) ? enroute(l, mv.kind.city) : null; if (q) { ep = q; epTour = l; } return !!q; });
     items.forEach(l => {
+      if (l === epTour) return;
       const k = l.kind;
       if (k.k === 'move' && k.from && !cities.includes(k.from)) cities.push(k.from);
       if (k.city && k.k !== 'dep') city = k.city;
       let p = null;
       if (k.k === 'arr') p = presetBy(x => /^Arrival in /i.test(x.t) && !/\+/.test(x.t) && x.c === (k.city || city), k.city || city) || GEN.arr;
       else if (k.k === 'dep') p = presetBy(x => /^Departure$/i.test(x.t), k.city || city) || GEN.dep;
-      else if (k.k === 'move') p = presetBy(x => /^Transfer to /i.test(x.t) && !/·|\+/.test(x.t) && x.c === k.city, k.city) || GEN.move(k.city);
+      else if (k.k === 'move') p = (l === mv && ep) || presetBy(x => /^Transfer to /i.test(x.t) && !/·|\+/.test(x.t) && x.c === k.city, k.city) || GEN.move(k.city);
       else { const own = x => !/^(Transfer to|Arrival|Departure)\b/i.test(x.t) || new RegExp('^\\s*(transfer|arrival|departure)', 'i').test(l.name); p = bestPreset(l.name, city, own) || (l.tk ? bestPreset(l.tk, city, own) : null); }
       parts.push({ l, p });
     });
