@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-16-5';   /* change with every new version */
+window.SITE_BUILD='2026-11-16-6';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -9356,8 +9356,11 @@ try{(function(){
       name.value='';el('efDesc').value='';
       el('efA').value=c.a;el('efC').value=c.c;
       el('efRoomCat').value='';el('efMeal').value='With breakfast';
-      var ci=(el('travelDate')&&el('travelDate').value)||'';
-      el('efCheckIn').value=ci;el('efCheckOut').value=ci?addDays(ci,Math.max(1,int(el('sheetNights').value)||1)):'';
+      var ci=(el('travelDate')&&el('travelDate').value)||'',tripEnd=ci?addDays(ci,Math.max(1,int(el('sheetNights').value)||1)):'';
+      /* the next hotel starts where the hotel before ends (not again on the travel date) */
+      var lastOut='';(typeof services!=='undefined'&&Array.isArray(services)?services:[]).forEach(function(x){if(x&&x.type==='Hotel'&&x.checkOut&&x.checkOut>lastOut)lastOut=x.checkOut;});
+      if(ci&&lastOut&&lastOut>ci&&lastOut<tripEnd){el('efCheckIn').value=lastOut;el('efCheckOut').value=tripEnd;}
+      else{el('efCheckIn').value=ci;el('efCheckOut').value=tripEnd;}
       el('efHA1').value=0;el('efHA').value=c.a;el('efHA3').value=0;el('efHCB').value=0;el('efHCN').value=c.c;
       ['efHA1R','efHAR','efHA3R','efHCBR','efHCNR'].forEach(function(id){el(id).value='';});
       el('efQty').value=1;el('efRA').value='';el('efRC').value='';
@@ -10072,7 +10075,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 16 Nov 2026 (5)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 16 Nov 2026 (6)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
