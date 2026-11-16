@@ -1845,7 +1845,7 @@ function renderSlip(v, mode) {
       <td data-l="Transfer" class="tc">${d.cab ? `<b>${esc(d.cab)}</b>` : '<span class="sm">—</span>'}</td></tr></tbody>`).join('');
   const hotels = v.hotels.length ? v.hotels : hotelsFrom(v);
   const tix = (v.tickets || []).map(t => TICKETS.get(t.id)).filter(Boolean); // uploaded flight ticket pictures // filled from the days if not done yet
-  const night = h => { const p = s => { const m = /^\s*(\d{1,2})[\s\-\/.]*([A-Za-z]{3})/.exec(s || ''); return m && MON.indexOf(m[2].toUpperCase()) >= 0 ? new Date(2000, MON.indexOf(m[2].toUpperCase()), +m[1]) : null; }; const a = p(h.checkIn), b = p(h.checkOut); if (!a || !b) return ''; let n = Math.round((b - a) / 864e5); if (n < 0) n += 365; return n ? pad2(n) : ''; };
+  const night = h => { const p = s => { const m = /^\s*(\d{1,2})[\s\-\/.]*([A-Za-z]{3})/.exec(s || ''); return m && MON.indexOf(m[2].toUpperCase()) >= 0 ? new Date(2001, MON.indexOf(m[2].toUpperCase()), +m[1]) : null; }; const a = p(h.checkIn), b = p(h.checkOut); if (!a || !b) return ''; let n = Math.round((b - a) / 864e5); if (n < 0) n += 365;   /* 2001: not a leap year, so 31 DEC → 02 JAN = 2 nights */ return n ? pad2(n) : ''; };
   const notes = lines(settings.notes);
 
   return `<div class="slip">
@@ -1993,12 +1993,27 @@ window.tvFromCosting = function (rec) {
     const name = String(s.name || '').split(' • ')[0].trim(); if (!name) return;
     lines.push({ name, type: s.type || '', sic: s.category === 'sic' || /\bsic\b|shared|join/i.test(s.name + ' ' + (s.detail || '')), date: s.date || '', meal: s.type === 'Meal', tk: s._ticket && s._ticket.name ? s._ticket.name : '' });
   });
+  // ---- what each item is ----
+  const kindOf = l => {
+    const t = l.name, m = /^(.*?)\s*[-–→]\s*(.*)$/.exec(t);
+    if (m && /airport/i.test(m[1]) && /hotel/i.test(m[2])) return { k: 'arr', city: cityOf(m[2]) };
+    if (m && /hotel/i.test(m[1]) && /airport/i.test(m[2])) return { k: 'dep', city: cityOf(m[1]) };
+    if (m && /hotel/i.test(m[1]) && /hotel/i.test(m[2])) return { k: 'move', from: cityOf(m[1]), city: cityOf(m[2]) };
+    return { k: 'tour', city: cityOf(t) };
+  };
+  lines.forEach(l => { l.kind = kindOf(l); });
+  const firstArr = lines.find(l => l.kind.k === 'arr');
+  // a change of city (hotel-to-hotel transfer, or a 2nd arrival after a flight), in the costing's order
+  const changes = lines.filter(l => (l.kind.k === 'arr' && l !== firstArr) || l.kind.k === 'move');
+  // the Costing Sheet fills every new item with the travel date: on anything but the first arrival that date is not a real choice
+  lines.forEach(l => { const d = day0(l.date); l.d = d && !(rec.date && l.date === rec.date && l !== firstArr) ? d : null; });
   // ---- trip dates ----
   const addD = (d, k) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + k);
-  const dates = [rec.date].concat(hotels.map(h => h.checkIn || h.date), lines.map(l => l.date)).map(day0).filter(Boolean);
+  const dates = [rec.date].concat(hotels.map(h => h.checkIn || h.date)).map(day0).concat(lines.map(l => l.d)).filter(Boolean);
   const start = rec.date && day0(rec.date) ? day0(rec.date) : (dates.length ? new Date(Math.min.apply(null, dates)) : null);
   // hotels: keep their dates; a hotel without dates (older costings) follows the hotel before it
   const tripNights = Math.max(0, Math.round(+rec.nights || 0));
+  const dayOfD0 = d => Math.round((d - start) / 864e5);
   const hs = hotels.map((h, j) => ({ h, j, cin: day0(h.checkIn || h.date), cout: day0(h.checkOut), nts: Math.max(0, Math.round(+h.nights || 0)) }));
   hs.sort((a, b) => (a.cin && b.cin) ? a.cin - b.cin : a.j - b.j);
   // nights of each hotel: its own nights, else check-out − check-in; a hotel with none (0) shares the trip's nights that are left
@@ -2026,30 +2041,31 @@ window.tvFromCosting = function (rec) {
     const pv = hs[k - 1];
     if (k && pv.cout && x.cin && (x.cin < pv.cout || (pv.cin && x.cin <= pv.cin))) { x.cin = pv.cout; x.cout = addD(x.cin, Math.max(1, x.nts)); }
   });
-  const ends = hs.map(x => x.cout).concat(lines.map(l => day0(l.date))).filter(Boolean);
+    // hotels that all start on the same day: the city changes with a date the user chose give the check-in days
+  if (sameStart && start && changes.length === hs.length - 1 && changes.some(c => c.d)) {
+    const total = tripN || hs.reduce((t, x) => t + x.nts, 0), b = [0];
+    changes.forEach(c => b.push(c.d ? dayOfD0(c.d) : null)); b.push(Math.max(total, hs.length));
+    for (let k = 1; k < b.length - 1; k++) if (b[k] != null && (b[k] <= 0 || b[k] >= b[b.length - 1])) b[k] = null;
+    for (let k = 1; k < b.length - 1; k++) if (b[k] == null) { let r = k + 1; while (b[r] == null) r++; const l0 = b[k - 1]; b[k] = Math.round(l0 + (b[r] - l0) / (r - k + 1)); }
+    for (let k = 1; k < b.length; k++) if (b[k] <= b[k - 1]) b[k] = b[k - 1] + 1;
+    hs.forEach((x, k) => { x.cin = addD(start, b[k]); x.cout = addD(start, b[k + 1]); x.nts = b[k + 1] - b[k]; });
+  }
+  const ends = hs.map(x => x.cout).concat(lines.map(l => l.d)).filter(Boolean);
   let n = 1;
   if (start) { const last = ends.length ? new Date(Math.max.apply(null, ends)) : start; n = Math.round((last - start) / 864e5) + 1; }
   n = Math.max(n, tripNights + 1, hs.reduce((t, x) => t + x.nts, 0) + 1);
   if (!start && lines.length + 1 > n) n = Math.max(n, lines.length + 2);
   n = Math.max(1, Math.min(45, n));
   const days = Array.from({ length: n }, () => []);
-  const kindOf = l => {
-    const t = l.name, m = /^(.*?)\s*[-–→]\s*(.*)$/.exec(t);
-    if (m && /airport/i.test(m[1]) && /hotel/i.test(m[2])) return { k: 'arr', city: cityOf(m[2]) };
-    if (m && /hotel/i.test(m[1]) && /airport/i.test(m[2])) return { k: 'dep', city: cityOf(m[1]) };
-    if (m && /hotel/i.test(m[1]) && /hotel/i.test(m[2])) return { k: 'move', from: cityOf(m[1]), city: cityOf(m[2]) };
-    return { k: 'tour', city: cityOf(t) };
-  };
-  // a fixed day for: dated items, arrival (day 1), departure (last day), hotel-to-hotel transfer (check-in day of the next hotel)
-  lines.forEach(l => { l.kind = kindOf(l); });
-  // a change of city (hotel-to-hotel transfer, or a 2nd arrival after a flight) = the check-in day of the next hotel, in the costing's order
+  // a fixed day for: dated items, arrival (day 1), departure (last day), a change of city (check-in day of the next hotel)
   const dayOfD = d => start && d ? Math.round((d - start) / 864e5) : -1;
-  const firstArr = lines.find(l => l.kind.k === 'arr');
-  const changes = lines.filter(l => (l.kind.k === 'arr' && l !== firstArr) || l.kind.k === 'move');
   const taken = new Set();
+  const inOrder = changes.length === hs.length - 1;   // one change of city for each next hotel: the k-th change = the (k+1)-th hotel
+  changes.forEach((l, k) => { if (start && l.d) { const j = hs.findIndex((x, j) => j > 0 && x.cin && +x.cin === +l.d); if (j > 0) taken.add(j); else if (inOrder) taken.add(k + 1); } });
   changes.forEach((l, k) => {
-    if (start && day0(l.date)) return;
-    let x = l.kind.city ? hs.find((x, j) => j > 0 && x.cin && !taken.has(j) && cityOf(x.h.name) === l.kind.city) : null;
+    if (start && l.d) return;
+    let x = inOrder && hs[k + 1] && hs[k + 1].cin && !taken.has(k + 1) ? hs[k + 1] : null;
+    if (!x && l.kind.city) x = hs.find((x, j) => j > 0 && x.cin && !taken.has(j) && cityOf(x.h.name) === l.kind.city);
     if (!x) x = hs.find((x, j) => j > 0 && x.cin && !taken.has(j));
     const i = x ? dayOfD(x.cin) : -1;
     if (x && i > 0 && i < n) { taken.add(hs.indexOf(x)); l.day = i; }
@@ -2057,12 +2073,12 @@ window.tvFromCosting = function (rec) {
   // a departure that is not the last one (a flight to the next city): the day of the next change after it
   const deps = lines.filter(l => l.kind.k === 'dep');
   deps.forEach(l => {
-    if ((start && day0(l.date)) || l === deps[deps.length - 1]) return;
+    if ((start && l.d) || l === deps[deps.length - 1]) return;
     const nx = changes.find(c => lines.indexOf(c) > lines.indexOf(l) && c.day != null);
     if (nx) l.day = nx.day;
   });
   lines.forEach(l => {
-    const d = start && day0(l.date), i = d ? Math.round((d - start) / 864e5) : -1;
+    const d = start && l.d, i = d ? Math.round((d - start) / 864e5) : -1;
     if (i >= 0 && i < n) l.day = i;
     else if (l.day != null) return;
     else if (l.kind.k === 'arr') l.day = 0;
