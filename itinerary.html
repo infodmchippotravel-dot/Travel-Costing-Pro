@@ -2001,9 +2001,17 @@ window.tvFromCosting = function (rec) {
   const tripNights = Math.max(0, Math.round(+rec.nights || 0));
   const hs = hotels.map((h, j) => ({ h, j, cin: day0(h.checkIn || h.date), cout: day0(h.checkOut), nts: Math.max(0, Math.round(+h.nights || 0)) }));
   hs.sort((a, b) => (a.cin && b.cin) ? a.cin - b.cin : a.j - b.j);
+  // nights of each hotel: its own nights, else check-out − check-in; a hotel with none (0) shares the trip's nights that are left
+  hs.forEach(x => { if (!x.nts && x.cin && x.cout && x.cout > x.cin) x.nts = Math.round((x.cout - x.cin) / 864e5); if (x.cout && x.cin && x.cout <= x.cin) x.cout = null; });
+  // every hotel starts on the same day (dates left at the travel date) and their nights do not fill the trip: share the trip's nights
+  if (hs.length > 1 && tripNights && hs.every(x => x.cin && hs[0].cin && +x.cin === +hs[0].cin) && hs.reduce((t, x) => t + x.nts, 0) < tripNights) hs.forEach(x => { x.nts = 0; x.cout = null; });
+  const unknown = hs.filter(x => !x.nts), knownN = hs.reduce((t, x) => t + x.nts, 0);
+  if (unknown.length) {
+    const left = Math.max(0, tripNights - knownN), each = left ? Math.max(1, Math.floor(left / unknown.length)) : 1;
+    unknown.forEach((x, k) => { x.nts = left ? (k === unknown.length - 1 ? Math.max(1, left - each * (unknown.length - 1)) : each) : 1; x.cout = null; });
+  }
   let cur = start;
   hs.forEach(x => {
-    if (!x.nts) x.nts = x.cin && x.cout ? Math.round((x.cout - x.cin) / 864e5) : (hs.length === 1 && tripNights ? tripNights : 1);
     if (!x.cin && cur) x.cin = cur;
     if (x.cin && !x.cout) x.cout = addD(x.cin, Math.max(1, x.nts));
     if (x.cout) cur = x.cout;
@@ -2012,7 +2020,7 @@ window.tvFromCosting = function (rec) {
   // hotels whose dates sit on top of the hotel before (e.g. every check-in left at the travel date): one after the other
   hs.forEach((x, k) => {
     const pv = hs[k - 1];
-    if (k && pv.cout && x.cin && x.cin < pv.cout) { x.cin = pv.cout; x.cout = addD(x.cin, Math.max(1, x.nts)); }
+    if (k && pv.cout && x.cin && (x.cin < pv.cout || (pv.cin && x.cin <= pv.cin))) { x.cin = pv.cout; x.cout = addD(x.cin, Math.max(1, x.nts)); }
   });
   const ends = hs.map(x => x.cout).concat(lines.map(l => day0(l.date))).filter(Boolean);
   let n = 1;
