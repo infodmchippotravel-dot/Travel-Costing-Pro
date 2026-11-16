@@ -2041,7 +2041,12 @@ window.tvFromCosting = function (rec) {
     const pv = hs[k - 1];
     if (k && pv.cout && x.cin && (x.cin < pv.cout || (pv.cin && x.cin <= pv.cin))) { x.cin = pv.cout; x.cout = addD(x.cin, Math.max(1, x.nts)); }
   });
-    // hotels that all start on the same day: the city changes with a date the user chose give the check-in days
+    // hotel dates outside the trip (e.g. the travel date was changed after the hotels were added): move the whole block to the travel date
+  if (start && hs.length && hs[0].cin) {
+    const span = Math.max(tripN || tripNights || 0, hs.reduce((t, x) => t + x.nts, 0), 1), off = dayOfD0(hs[0].cin);
+    if (off < 0 || off >= span) hs.forEach(x => { if (x.cin) x.cin = addD(x.cin, -off); if (x.cout) x.cout = addD(x.cout, -off); });
+  }
+  // hotels that all start on the same day: the city changes with a date the user chose give the check-in days
   if (sameStart && start && changes.length === hs.length - 1 && changes.some(c => c.d)) {
     const total = tripN || hs.reduce((t, x) => t + x.nts, 0), b = [0];
     changes.forEach(c => b.push(c.d ? dayOfD0(c.d) : null)); b.push(Math.max(total, hs.length));
@@ -2220,7 +2225,18 @@ html.theme-dark .fc-bar{background:#2a2314;border-color:#6b5a33;color:#f5ecd6}
     try {
       const hs = (o.hotels || []).filter(h => h && String(h.name || '').trim());
       const st = o.start ? new Date(o.start + 'T00:00:00') : null, total = (o.days || []).length - 1;
-      if (hs.length < 2 || !st || isNaN(st) || total < hs.length) return o;
+      if (!hs.length || !st || isNaN(st)) return o;
+      // the hotel dates are not inside the trip at all (travel date changed later): move every hotel by the same number of days
+      const near = x => { const c = [st.getFullYear() - 1, st.getFullYear(), st.getFullYear() + 1].map(y => new Date(y, x.m, x.d)); return c.sort((a, b) => Math.abs(a - st) - Math.abs(b - st))[0]; };
+      const f0 = dm(hs[0].checkIn);
+      if (f0 && total >= 1) {
+        const off = Math.round((near(f0) - st) / 864e5);
+        if (off < 0 || off >= total) {
+          const mv = s => { const x = dm(s); if (!x) return s; const d = near(x); d.setDate(d.getDate() - off); return p2(d.getDate()) + ' ' + MON[d.getMonth()]; };
+          hs.forEach(h => { h.checkIn = mv(h.checkIn); h.checkOut = mv(h.checkOut); });
+        }
+      }
+      if (hs.length < 2 || total < hs.length) return o;
       const k0 = String(hs[0].checkIn || '').trim().toUpperCase();
       if (!k0 || !hs.every(h => String(h.checkIn || '').trim().toUpperCase() === k0)) return o;
       let n = hs.map(h => nts(h.checkIn, h.checkOut));
