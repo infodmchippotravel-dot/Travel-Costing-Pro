@@ -2009,6 +2009,11 @@ window.tvFromCosting = function (rec) {
     if (x.cout) cur = x.cout;
   });
   hs.sort((a, b) => (a.cin && b.cin) ? a.cin - b.cin : a.j - b.j);
+  // hotels whose dates sit on top of the hotel before (e.g. every check-in left at the travel date): one after the other
+  hs.forEach((x, k) => {
+    const pv = hs[k - 1];
+    if (k && pv.cout && x.cin && x.cin < pv.cout) { x.cin = pv.cout; x.cout = addD(x.cin, Math.max(1, x.nts)); }
+  });
   const ends = hs.map(x => x.cout).concat(lines.map(l => day0(l.date))).filter(Boolean);
   let n = 1;
   if (start) { const last = ends.length ? new Date(Math.max.apply(null, ends)) : start; n = Math.round((last - start) / 864e5) + 1; }
@@ -2024,10 +2029,30 @@ window.tvFromCosting = function (rec) {
     return { k: 'tour', city: cityOf(t) };
   };
   // a fixed day for: dated items, arrival (day 1), departure (last day), hotel-to-hotel transfer (check-in day of the next hotel)
+  lines.forEach(l => { l.kind = kindOf(l); });
+  // a change of city (hotel-to-hotel transfer, or a 2nd arrival after a flight) = the check-in day of the next hotel, in the costing's order
+  const dayOfD = d => start && d ? Math.round((d - start) / 864e5) : -1;
+  const firstArr = lines.find(l => l.kind.k === 'arr');
+  const changes = lines.filter(l => (l.kind.k === 'arr' && l !== firstArr) || l.kind.k === 'move');
+  const taken = new Set();
+  changes.forEach((l, k) => {
+    if (start && day0(l.date)) return;
+    let x = l.kind.city ? hs.find((x, j) => j > 0 && x.cin && !taken.has(j) && cityOf(x.h.name) === l.kind.city) : null;
+    if (!x) x = hs.find((x, j) => j > 0 && x.cin && !taken.has(j));
+    const i = x ? dayOfD(x.cin) : -1;
+    if (x && i > 0 && i < n) { taken.add(hs.indexOf(x)); l.day = i; }
+  });
+  // a departure that is not the last one (a flight to the next city): the day of the next change after it
+  const deps = lines.filter(l => l.kind.k === 'dep');
+  deps.forEach(l => {
+    if ((start && day0(l.date)) || l === deps[deps.length - 1]) return;
+    const nx = changes.find(c => lines.indexOf(c) > lines.indexOf(l) && c.day != null);
+    if (nx) l.day = nx.day;
+  });
   lines.forEach(l => {
-    l.kind = kindOf(l);
     const d = start && day0(l.date), i = d ? Math.round((d - start) / 864e5) : -1;
     if (i >= 0 && i < n) l.day = i;
+    else if (l.day != null) return;
     else if (l.kind.k === 'arr') l.day = 0;
     else if (l.kind.k === 'dep') l.day = n - 1;
     else if (l.kind.k === 'move' && start) {
@@ -2074,7 +2099,9 @@ window.tvFromCosting = function (rec) {
     const parts = [];
     if (!city && nightCity[i]) city = nightCity[i];
     const order = { arr: 0, move: 1, tour: 2, dep: 3 };
-    items.sort((a, b) => order[a.kind.k] - order[b.kind.k]);
+    // a flight day in the middle of the trip: first the departure from the old city, then the arrival in the new one
+    const ord = l => l.kind.k === 'dep' && i < n - 1 ? -1 : order[l.kind.k];
+    items.sort((a, b) => ord(a) - ord(b));
     // a tour on the day of a hotel-to-hotel transfer that the tour list has as one "on the way" day → one row
     const mv = items.find(l => l.kind.k === 'move' && l.kind.city);
     let ep = null, epTour = null;
