@@ -2198,6 +2198,59 @@ window.tvFromCosting = function (rec) {
   return true;
 };
 </script>
+<style>
+.fc-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 14px;border-radius:12px;background:#fff8e6;border:1px solid #e8d3a2;color:#0b1f3a;font-size:14.5px}
+.fc-bar[hidden]{display:none}
+.fc-bar button{min-height:40px;padding:0 14px;border-radius:10px;border:0;background:linear-gradient(135deg,#C6A76B,#a8874a);color:#0B1F3A;font-weight:800;font-size:14.5px;cursor:pointer}
+.fc-bar button:focus-visible{outline:3px solid #0b1f3a;outline-offset:2px}
+html.theme-dark .fc-bar{background:#2a2314;border-color:#6b5a33;color:#f5ecd6}
+</style>
+<script>
+/* =====================================================================
+   ITINERARY FROM A COSTING — keep it right
+     • Hotels that all start on the same day (an itinerary made before the
+       fix, or dates left at the travel date) go one after the other.
+     • "Made from COST-…" bar with a button to make it again from the costing.
+   ===================================================================== */
+(function () {
+  const p2 = n => String(n).padStart(2, '0');
+  const dm = s => { const m = /^\s*(\d{1,2})[\s\-\/.]*([A-Za-z]{3})/.exec(s || ''); return m && MON.indexOf(m[2].toUpperCase()) >= 0 ? { d: +m[1], m: MON.indexOf(m[2].toUpperCase()) } : null; };
+  const nts = (a, b) => { const x = dm(a), y = dm(b); if (!x || !y) return 0; let n = Math.round((new Date(2001, y.m, y.d) - new Date(2001, x.m, x.d)) / 864e5); if (n < 0) n += 365; return n; };
+  function repairHotels(o) {
+    try {
+      const hs = (o.hotels || []).filter(h => h && String(h.name || '').trim());
+      const st = o.start ? new Date(o.start + 'T00:00:00') : null, total = (o.days || []).length - 1;
+      if (hs.length < 2 || !st || isNaN(st) || total < hs.length) return o;
+      const k0 = String(hs[0].checkIn || '').trim().toUpperCase();
+      if (!k0 || !hs.every(h => String(h.checkIn || '').trim().toUpperCase() === k0)) return o;
+      let n = hs.map(h => nts(h.checkIn, h.checkOut));
+      if (n.reduce((t, x) => t + x, 0) !== total || n.some(x => x < 1)) { const e = Math.floor(total / hs.length); n = hs.map((_, i) => i === hs.length - 1 ? total - e * (hs.length - 1) : e); }
+      const f = d => p2(d.getDate()) + ' ' + MON[d.getMonth()];
+      const first = dm(k0); let off = first ? Math.max(0, Math.round((new Date(st.getFullYear(), first.m, first.d) - st) / 864e5)) : 0;
+      if (off > total) off = 0;
+      hs.forEach((h, i) => { const a = new Date(st.getFullYear(), st.getMonth(), st.getDate() + off); off += n[i]; const b = new Date(st.getFullYear(), st.getMonth(), st.getDate() + off); h.checkIn = f(a); h.checkOut = f(b); });
+    } catch (e) { console.error('Hotel dates could not be put in order:', e); }
+    return o;
+  }
+  const orig = fixVoucher;
+  fixVoucher = v => repairHotels(orig(v));
+  { const before = JSON.stringify(draft.hotels); draft = repairHotels(draft); if (JSON.stringify(draft.hotels) !== before) LS.set(K.draft, draft); }
+  // the "Made from COST-…" bar
+  const bar = document.createElement('div');
+  bar.className = 'fc-bar'; bar.id = 'fromCostBar'; bar.hidden = true; bar.setAttribute('role', 'note');
+  const sec = document.getElementById('c-client'); if (sec && sec.parentNode) sec.parentNode.insertBefore(bar, sec);
+  function showBar() {
+    const fc = draft && draft.fromCosting;
+    const canRemake = !!(fc && fc.id && window.parent !== window && typeof window.parent.itinFromCosting === 'function');
+    bar.hidden = !canRemake;
+    if (canRemake) bar.innerHTML = `<span>📄 Made from costing <b>${esc(fc.no || '')}</b>. Changed the costing, or something looks wrong?</span><button type="button" id="fcAgain">🔄 Make again from the costing</button>`;
+  }
+  bar.addEventListener('click', e => { if (e.target.closest('#fcAgain')) { try { window.parent.itinFromCosting(draft.fromCosting.id); } catch (er) { toast('The costing could not be opened'); } } });
+  const rm = renderMake;
+  renderMake = function () { const r = rm.apply(this, arguments); showBar(); return r; };
+  renderMake();
+})();
+</script>
 <script>
 /* Old PDF vouchers: loaded only for the admin. */
 (function(){
