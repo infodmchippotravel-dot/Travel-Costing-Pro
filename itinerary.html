@@ -1949,6 +1949,164 @@ function removeAutoCopies() {
 })();
 </script>
 <script>
+/* =====================================================================
+   COSTING → ITINERARY
+     The website calls tvFromCosting(costing) when "Create Itinerary" is
+     pressed on a saved costing. The days, tours, hotels, client and
+     people are filled in from the costing; then check it and press Save.
+   ===================================================================== */
+window.tvFromCosting = function (rec) {
+  if (!rec || typeof rec !== 'object') return false;
+  const STOP = new Set(['the', 'and', 'with', 'by', 'tour', 'to', 'of', 'in', 'at', 'a', 'an', 'ticket', 'tickets', 'sic', 'private', 'transfer', 'transfers', 'shared', 'only', 'admission', 'entry', 'fee', 'join']);
+  const words = t => String(t || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(w => w && !STOP.has(w));
+  const CITIES = ['Bangkok', 'Pattaya', 'Phuket', 'Krabi', 'Koh Samui', 'Koh Chang', 'Chiang Mai', 'Hua Hin', 'Bali'];
+  const cityOf = t => { t = String(t || '').toLowerCase().replace(/\bbkk\b|\bdmk\b|suvarnabhumi|don mueang/g, 'bangkok'); return CITIES.find(c => t.includes(c.toLowerCase())) || ''; };
+  const iso = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const day0 = s => { const d = new Date(String(s || '') + 'T00:00:00'); return isNaN(d) ? null : d; };
+  const plainLine = l => bare(String(l || '')).replace(/^[•●▪]\s*/, '').trim();
+  // best tour of the list for a name (most words in common); 0 when nothing fits well
+  function bestPreset(name, city, test) {
+    const w = words(name); if (!w.length) return null;
+    let best = null, score = 0;
+    PRESETS.forEach(p => {
+      if (test && !test(p)) return;
+      const pw = new Set(words(p.t)); if (!pw.size) return;
+      let hit = 0; w.forEach(x => { if (pw.has(x)) hit++; });
+      let sc = hit / Math.max(w.length, 1) - (pw.size - hit) * 0.02 + (city && p.c === city ? 0.05 : 0) - (/\b(by|with|and|to)\s*$|[&+]\s*$/i.test(p.t.trim()) ? 0.2 : 0);
+      if (sc > score) { score = sc; best = p; }
+    });
+    return score >= 0.6 ? best : null;
+  }
+  function presetBy(test, city) {
+    if (!city) return null;   // no city known → a plain day is made (never a tour of a wrong city)
+    const all = PRESETS.filter(test); if (!all.length) return null;
+    return all.filter(p => city && p.c === city).sort((a, b) => a.t.length - b.t.length)[0] || all.filter(p => !p.c).sort((a, b) => a.t.length - b.t.length)[0] || all.sort((a, b) => a.t.length - b.t.length)[0];
+  }
+  // ---- the costing's items ----
+  const services = Array.isArray(rec.services) ? rec.services : [];
+  const hotels = [], lines = [];
+  services.forEach(s => {
+    if (!s || typeof s !== 'object') return;
+    if (s.type === 'Ticket' && s.linked) return;
+    if (s.type === 'Hotel') { if (s.name) hotels.push(s); return; }
+    if (/^(Other Expense|Custom Service)$/.test(s.type) && !/tour|show|park|island|cruise|temple|market|world|museum|safari|ticket|dinner|lunch/i.test(s.name || '')) return;
+    const name = String(s.name || '').split(' • ')[0].trim(); if (!name) return;
+    lines.push({ name, type: s.type || '', sic: s.category === 'sic' || /\bsic\b|shared|join/i.test(s.name + ' ' + (s.detail || '')), date: s.date || '', meal: s.type === 'Meal', tk: s._ticket && s._ticket.name ? s._ticket.name : '' });
+  });
+  hotels.sort((a, b) => String(a.checkIn || '').localeCompare(String(b.checkIn || '')));
+  // ---- trip dates ----
+  const dates = [rec.date].concat(hotels.map(h => h.checkIn), lines.map(l => l.date)).map(day0).filter(Boolean);
+  const ends = hotels.map(h => h.checkOut).concat(lines.map(l => l.date)).map(day0).filter(Boolean);
+  const start = rec.date && day0(rec.date) ? day0(rec.date) : (dates.length ? new Date(Math.min.apply(null, dates)) : null);
+  let n = 1;
+  if (start) { const last = ends.length ? new Date(Math.max.apply(null, ends)) : start; n = Math.round((last - start) / 864e5) + 1; }
+  if (n < 1 || n > 45) n = Math.max(1, Math.min(45, hotels.reduce((t, h) => t + (+h.nights || 0), 0) + 1));
+  if (!start && lines.length + 1 > n) n = Math.min(45, Math.max(n, lines.length + 2));
+  const days = Array.from({ length: n }, () => []);
+  const kindOf = l => {
+    const t = l.name, m = /^(.*?)\s*[-–→]\s*(.*)$/.exec(t);
+    if (m && /airport/i.test(m[1]) && /hotel/i.test(m[2])) return { k: 'arr', city: cityOf(m[2]) };
+    if (m && /hotel/i.test(m[1]) && /airport/i.test(m[2])) return { k: 'dep', city: cityOf(m[1]) };
+    if (m && /hotel/i.test(m[1]) && /hotel/i.test(m[2])) return { k: 'move', from: cityOf(m[1]), city: cityOf(m[2]) };
+    return { k: 'tour', city: cityOf(t) };
+  };
+  const undated = [];
+  lines.forEach(l => {
+    l.kind = kindOf(l);
+    const d = start && day0(l.date); let i = d ? Math.round((d - start) / 864e5) : -1;
+    if (i >= 0 && i < n) days[i].push(l);
+    else if (l.kind.k === 'arr') days[0].unshift(l);
+    else if (l.kind.k === 'dep') days[n - 1].push(l);
+    else undated.push(l);
+  });
+  // items without a date: the next free day in the middle of the trip, else the first day with room
+  undated.forEach(l => {
+    let i = days.findIndex((d, j) => !d.length && j > 0 && j < n - 1);
+    if (i < 0) i = days.findIndex((d, j) => j > 0 && j < n - 1 && d.length < 2);
+    if (i < 0) i = n > 1 ? n - 2 : 0;
+    days[Math.max(0, i)].push(l);
+  });
+  // ---- the days ----
+  let city = (lines.map(l => l.kind).find(k => k.k === 'arr' && k.city) || {}).city || (lines.map(l => l.kind).find(k => k.city) || {}).city || '';
+  const cities = [];
+  // the city of each night, from the hotel names (e.g. "Hilton Pattaya")
+  const nightCity = Array.from({ length: n }, (_, i) => { const d = start ? new Date(start.getTime() + i * 864e5) : null; const h = d && hotels.find(x => { const a = day0(x.checkIn), b = day0(x.checkOut); return a && b && d >= a && d < b; }); return h ? cityOf(h.name) : ''; });
+  if (!city) city = nightCity.find(Boolean) || '';
+  const GEN = {
+    arr: { t: 'Arrival', it: ['• Arrive at Airport. After immigration clearance, meet & greet by our airport representative, transfer to hotel.', '• Overnight at hotel.'], m: '', tr: 'Private Transfer' },
+    dep: { t: 'Departure', it: ['• Breakfast at hotel. Check out Hotel.', '• Pick up from hotel lobby for departure transfer to the Airport.'], m: 'B', tr: 'Private Transfer' },
+    lei: { t: 'Day at Leisure', it: ['• Breakfast at hotel.', '• Day Free at Leisure', '• Overnight at Hotel.'], m: 'B', tr: 'No Transfer' },
+    move: c => ({ t: 'Transfer to ' + (c || 'next hotel'), it: ['• Breakfast at hotel. Check out Hotel.', '• Pick up from hotel lobby, transfer to ' + (c ? c + ' ' : 'the next ') + 'hotel.', '• Drop off at hotel. Overnight at hotel.'], m: 'B', tr: 'Private Transfer' })
+  };
+  const out = days.map((items, i) => {
+    const parts = [];
+    if (!city && nightCity[i]) city = nightCity[i];
+    const order = { arr: 0, move: 1, tour: 2, dep: 3 };
+    items.sort((a, b) => order[a.kind.k] - order[b.kind.k]);
+    items.forEach(l => {
+      const k = l.kind;
+      if (k.k === 'move' && k.from && !cities.includes(k.from)) cities.push(k.from);
+      if (k.city && k.k !== 'dep') city = k.city;
+      let p = null;
+      if (k.k === 'arr') p = presetBy(x => /^Arrival in /i.test(x.t) && !/\+/.test(x.t) && x.c === (k.city || city), k.city || city) || GEN.arr;
+      else if (k.k === 'dep') p = presetBy(x => /^Departure$/i.test(x.t), k.city || city) || GEN.dep;
+      else if (k.k === 'move') p = presetBy(x => /^Transfer to /i.test(x.t) && !/·|\+/.test(x.t) && x.c === k.city, k.city) || GEN.move(k.city);
+      else p = bestPreset(l.name, city) || (l.tk ? bestPreset(l.tk, city) : null);
+      parts.push({ l, p });
+    });
+    if (city && !cities.includes(city)) cities.push(city);
+    if (!parts.length) {
+      const p = i === 0 ? (presetBy(x => /^Arrival in /i.test(x.t) && !/\+/.test(x.t) && x.c === city, city) || GEN.arr)
+        : i === n - 1 && n > 1 ? (presetBy(x => /^Departure$/i.test(x.t), city) || GEN.dep)
+        : (presetBy(x => /^Day at Leisure$/i.test(x.t), city) || GEN.lei);
+      parts.push({ l: null, p });
+    }
+    const d = blankDay();
+    const titles = [], body = [], meals = new Set();
+    let sic = false, trf = false;
+    parts.forEach(({ l, p }) => {
+      const title = p ? presetTitle(p) : l.name;
+      if (!titles.includes(title)) titles.push(title);
+      const its = p ? tidyLines(p.it, p.b) : ['• ' + l.name + (l.tk ? ' (with ' + l.tk + ')' : '')];
+      its.forEach(x => body.push(x));
+      if (p) { String(p.m || '').split('').forEach(c => meals.add(c)); if (/sic|shared/i.test(p.tr || '')) sic = true; else if (!/no transfer|own/i.test(p.tr || '')) trf = true; }
+      if (l) { if (l.sic) sic = true; else if (l.type !== 'Ticket' && l.type !== 'Meal') trf = true; if (l.meal) { if (/lunch/i.test(l.name)) meals.add('L'); if (/dinner/i.test(l.name)) meals.add('D'); } }
+    });
+    // one "Breakfast" line at the top, the "Drop off / Overnight" line only once at the end
+    const seen = new Set(), top = [], mid = [], end = [];
+    body.forEach(x => { const k = plainLine(x).toLowerCase(); if (!k || seen.has(k)) return; seen.add(k);
+      if (/^breakfast at hotel/i.test(plainLine(x)) && !/check out/i.test(plainLine(x))) { if (!top.length) top.push(x); }
+      else if (/^(drop off|overnight)/i.test(plainLine(x))) { if (!end.length) end.push(x); }
+      else mid.push(x); });
+    if (i > 0 && !top.length && !/^breakfast/i.test(plainLine(mid[0] || ''))) { top.push('• Breakfast at hotel.'); meals.add('B'); }
+    if (i < n - 1 && !end.length) end.push('• Overnight at hotel.');
+    d.title = titles.join(' + ');
+    d.details = noBullets(top.concat(mid, i < n - 1 ? end : end.filter(x => !/overnight/i.test(plainLine(x)))).join('\n'));
+    if (/^breakfast/i.test(plainLine(top[0] || mid[0] || ''))) meals.add('B');
+    const m = ['B', 'L', 'D'].filter(c => meals.has(c)).join('');
+    d.meal = mealText(m, d.details);
+    d.cab = sic ? 'SIC' : trf ? 'Private' : '';
+    return d;
+  });
+  const sd = start ? start : null;
+  const o = fixVoucher(Object.assign(newVoucher(), {
+    client: String(rec.name || '').trim(),
+    phone: rec.taglineNumber ? ((rec.phoneCode || '+91') + ' ' + rec.taglineNumber).trim() : '',
+    adults: rec.adults != null ? +rec.adults || 0 : (+rec.pax || 0),
+    kids: +rec.children || 0,
+    destination: cities.length ? cities.join(' & ') + (cities.every(c => c !== 'Bali') ? ', Thailand' : '') : '',
+    start: sd ? iso(sd) : '',
+    days: out,
+    hotels: hotels.map(h => ({ name: String(h.name || '').trim(), checkIn: h.checkIn ? fmtShort(day0(h.checkIn)) : '', checkOut: h.checkOut ? fmtShort(day0(h.checkOut)) : '', room: [h.roomCategory, h.mealPlan].filter(Boolean).join(' · '), conf: '' })),
+    fromCosting: { id: String(rec.id || ''), no: String(rec.costingNumber || '') }
+  }));
+  snap(); draft = o; touch(); goPage('make'); renderMake();
+  try { window.scrollTo(0, 0); } catch (e) {}
+  toast(`Itinerary made from ${rec.costingNumber || 'the costing'} — check it, then press Save`, true);
+  return true;
+};
+</script>
+<script>
 /* Old PDF vouchers: loaded only for the admin. */
 (function(){
   if(!(window.ITIN_SESSION&&ITIN_SESSION.admin))return;

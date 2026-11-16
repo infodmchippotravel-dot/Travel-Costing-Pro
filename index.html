@@ -7738,6 +7738,7 @@ try{(function(){
         +'<button class="btn-ghost" type="button" onclick="printCosting(\''+id+'\')" aria-label="Print or save PDF for '+name+'">🖨️ Print / PDF</button>'
         +'<button class="btn-ghost" type="button" onclick="downloadCostingWord(\''+id+'\')" aria-label="Download Word file for '+name+'">⬇️ Word file</button>'
         +'<button class="red" type="button" onclick="deleteCosting(\''+id+'\')" aria-label="Delete '+name+'">🗑️ Delete</button>'
+        +'<button class="itin-make" type="button" onclick="itinFromCosting(\''+id+'\')" aria-label="Create itinerary for '+name+'">🗺️ Create Itinerary</button>'
         +'</div></td></tr>';
     }).join('');
     box.innerHTML='<div class="card table-card"><table class="data-table records-table"><caption class="visually-hidden">Saved costings. Use the column buttons to sort.</caption>'
@@ -14293,6 +14294,47 @@ try{(function(){
   ['showPage','finishLogin','logoutUser'].forEach(function(fn){var p=window[fn];if(typeof p==='function')window[fn]=function(){var r=p.apply(this,arguments);setTimeout(show,0);return r;};});
   show();
 })();}catch(err){console.error('Firebase admin login failed to start:',err);}
+</script>
+<style id="itinFromCostingCss">
+#savedCostings .rec-actions .itin-make{grid-column:1/-1}
+.rec-actions .itin-make{background:linear-gradient(135deg,#C6A76B,#a8874a);color:#0B1F3A;border:0;font-weight:800}
+.rec-actions .itin-make:hover{filter:brightness(1.06)}
+.rec-actions .itin-make:focus-visible{outline:3px solid #0B1F3A;outline-offset:2px}
+body.dark .rec-actions .itin-make{color:#0B1F3A}
+</style>
+<script>
+/* =====================================================================
+   MY COSTINGS → 🗺️ CREATE ITINERARY
+     Makes the itinerary (tour voucher) straight from a saved costing:
+     client, people, dates, hotels, transfers and tours are filled in.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  function el(id){return document.getElementById(id);}
+  function tell(m,k){if(window.showToast)showToast(m,k||'success');else alert(m);}
+  var busy=false;
+  window.itinFromCosting=function(id){
+    if(busy)return;
+    var r=(typeof savedCostings!=="undefined"&&Array.isArray(savedCostings)?savedCostings:[]).find(function(x){return x&&x.id===id;});
+    if(!r)return tell('This costing could not be found. Please refresh the page.','error');
+    var rec=JSON.parse(JSON.stringify(r));
+    var frame=el('itinFrame'),wrap=document.querySelector('#itinerary .itin-wrap');
+    if(!frame||!wrap)return tell('Create Itinerary could not be opened.','error');
+    showPage('itinerary',el('navItinerary'));
+    busy=true;var t0=Date.now(),key='';try{key=localStorage.getItem('travelCurrentUserKey')||'';}catch(e){}
+    (function wait(){
+      var w=null;try{w=frame.contentWindow;}catch(e){}
+      var ok=wrap.classList.contains('is-ready')&&w&&typeof w.tvFromCosting==='function'&&w.ITIN_SESSION&&w.ITIN_SESSION.key===key&&w.document.readyState==='complete';
+      if(ok){
+        busy=false;
+        try{w.tvFromCosting(rec);}catch(e){console.error('Itinerary from costing failed:',e);tell('The itinerary could not be made from this costing.','error');}
+        return;
+      }
+      if(Date.now()-t0>20000){busy=false;return tell('Create Itinerary is taking too long to open. Please check the internet and try again.','error');}
+      setTimeout(wait,60);
+    })();
+  };
+})();}catch(err){console.error('Create Itinerary from costing failed to start:',err);}
 </script>
 </body>
 </html>
