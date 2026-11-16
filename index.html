@@ -31,13 +31,18 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
+window.SITE_BUILD='2026-11-16-4';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
     if(location.protocol!=='http:'&&location.protocol!=='https:')return;
-    if(location.search.indexOf('_v=')===-1){
+    /* also on a refresh (the old number stays in the address): a new number, so the newest version is fetched */
+    var m=/([?&])_v=(\d+)/.exec(location.search);
+    if(!m){
       var sep=location.search?'&':'?';
       location.replace(location.pathname+location.search+sep+'_v='+Date.now()+location.hash);
+    }else if(Date.now()-(+m[2])>30000){
+      location.replace(location.pathname+location.search.replace(/([?&])_v=\d+/,'$1_v='+Date.now())+location.hash);
     }
   }catch(e){}
 })();
@@ -10067,7 +10072,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 16 Nov 2026</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 16 Nov 2026 (4)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -12532,7 +12537,7 @@ try{(function(){
     loadedFor=k;
     page.querySelector('.itin-wrap').classList.remove('is-ready');
     var v=/[?&]_v=(\d+)/.exec(location.search);
-    frame.src='itinerary.html?b=20261116'+(v?'&_v='+v[1]:'');   /* b = this version: a new version is never taken from the browser's old copy */
+    frame.src='itinerary.html?b='+encodeURIComponent(window.SITE_BUILD||'1')+(v?'&_v='+v[1]:'');   /* b = this version: a new version is never taken from the browser's old copy */
   }
   frame.addEventListener('load',function(){page.querySelector('.itin-wrap').classList.add('is-ready');});
   /* Get the itinerary maker ready in the background a moment after login,
@@ -14335,6 +14340,43 @@ try{(function(){
     })();
   };
 })();}catch(err){console.error('Create Itinerary from costing failed to start:',err);}
+</script>
+<style id="siteUpdateCss">
+#siteUpdateBar{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:99990;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;
+  max-width:calc(100vw - 32px);padding:10px 14px;border-radius:14px;background:#0B1F3A;color:#fff;font-weight:700;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+#siteUpdateBar[hidden]{display:none}
+#siteUpdateBar button{min-height:40px;padding:0 16px;border-radius:10px;border:0;background:linear-gradient(135deg,#C6A76B,#a8874a);color:#0B1F3A;font-weight:800;font-size:15px;cursor:pointer}
+#siteUpdateBar button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+</style>
+<div id="siteUpdateBar" role="status" hidden><span>🔄 The website was updated. Press Refresh to get the newest version.</span><button type="button" id="siteUpdateBtn">Refresh</button></div>
+<script>
+/* =====================================================================
+   NEW VERSION CHECK
+     A page that stays open does not see a new version by itself.
+     Every few minutes (and when the tab is opened again) the website
+     checks for a newer version and then shows a "Refresh" bar.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  if(window.self!==window.top||!/^https?:$/.test(location.protocol))return;
+  var bar=document.getElementById('siteUpdateBar'),btn=document.getElementById('siteUpdateBtn'),last=0,busy=false;
+  function fresh(){location.replace(location.pathname+(/[?&]_v=\d+/.test(location.search)?location.search.replace(/([?&])_v=\d+/,'$1_v='+Date.now()):(location.search?location.search+'&':'?')+'_v='+Date.now())+location.hash);}
+  btn.addEventListener('click',function(){
+    if(typeof window.calculate==='function')try{calculate();}catch(e){}   /* the open costing is kept as a draft */
+    fresh();
+  });
+  function check(){
+    if(busy||Date.now()-last<60000||document.hidden)return;
+    busy=true;last=Date.now();
+    fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():'';}).then(function(t){
+      busy=false;var m=/window\.SITE_BUILD='([^']+)'/.exec(t||'');
+      if(m&&m[1]!==window.SITE_BUILD)bar.hidden=false;
+    }).catch(function(){busy=false;});
+  }
+  setInterval(check,3*60000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)check();});
+  window.addEventListener('focus',check);
+})();}catch(err){console.error('Version check failed to start:',err);}
 </script>
 </body>
 </html>
