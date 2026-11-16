@@ -1952,10 +1952,14 @@ function removeAutoCopies() {
 /* Old PDF vouchers: loaded only for the admin. */
 (function(){
   if(!(window.ITIN_SESSION&&ITIN_SESSION.admin))return;
-  var sc=document.createElement('script');sc.src='assets/itinerary-old-vouchers.js';
-  sc.onload=function(){try{mergeData();renderList();}catch(e){console.error('Old vouchers could not be shown:',e);}};
-  sc.onerror=function(){console.error('Old vouchers file could not be loaded.');};
-  document.body.appendChild(sc);
+  /* loaded after the page is ready, so the itinerary maker opens without waiting for this big file */
+  function add(){
+    var sc=document.createElement('script');sc.src='assets/itinerary-old-vouchers.js';
+    sc.onload=function(){try{mergeData();renderList();}catch(e){console.error('Old vouchers could not be shown:',e);}};
+    sc.onerror=function(){console.error('Old vouchers file could not be loaded.');};
+    document.body.appendChild(sc);
+  }
+  if(document.readyState==='complete')setTimeout(add,0);else window.addEventListener('load',function(){setTimeout(add,0);});
 })();
 /* Dark / light theme and log-out follow the website (same browser). */
 window.addEventListener('storage',function(e){

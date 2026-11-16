@@ -12534,10 +12534,24 @@ try{(function(){
     frame.src='itinerary.html'+(v?'?_v='+v[1]:'');
   }
   frame.addEventListener('load',function(){page.querySelector('.itin-wrap').classList.add('is-ready');});
+  /* Get the itinerary maker ready in the background a moment after login,
+     so "Create Itinerary" opens at once when it is clicked. */
+  var warmT=0;
+  function warm(){
+    if(warmT||!sessKey()||(frame.getAttribute('src')&&loadedFor===sessKey()))return;
+    try{var c=navigator.connection;if(c&&c.saveData)return;}catch(e){}
+    warmT=setTimeout(function(){
+      var go=function(){warmT=0;if(sessKey()&&!(frame.getAttribute('src')&&loadedFor===sessKey()))load();};
+      if(window.requestIdleCallback)requestIdleCallback(go,{timeout:3000});else go();
+    },1500);
+  }
+  if(document.readyState==='complete')warm();else window.addEventListener('load',warm);
   var prevShow=window.showPage;
   window.showPage=function(id,btn){
     var r=prevShow.apply(this,arguments);
+    if(id!=='itinerary')warm();
     if(id==='itinerary'){
+      if(warmT){clearTimeout(warmT);warmT=0;}
       load();
       [].forEach.call(nav.children,function(x){var on=x===b;x.classList.toggle('active',on);if(on)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current');});
     }
