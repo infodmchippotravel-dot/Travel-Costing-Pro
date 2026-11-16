@@ -10067,7 +10067,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 14 Nov 2026</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 16 Nov 2026</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -12532,7 +12532,7 @@ try{(function(){
     loadedFor=k;
     page.querySelector('.itin-wrap').classList.remove('is-ready');
     var v=/[?&]_v=(\d+)/.exec(location.search);
-    frame.src='itinerary.html'+(v?'?_v='+v[1]:'');
+    frame.src='itinerary.html?b=20261116'+(v?'&_v='+v[1]:'');   /* b = this version: a new version is never taken from the browser's old copy */
   }
   frame.addEventListener('load',function(){page.querySelector('.itin-wrap').classList.add('is-ready');});
   /* Get the itinerary maker ready in the background a moment after login,
