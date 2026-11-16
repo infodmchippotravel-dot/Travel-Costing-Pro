@@ -1993,15 +1993,28 @@ window.tvFromCosting = function (rec) {
     const name = String(s.name || '').split(' • ')[0].trim(); if (!name) return;
     lines.push({ name, type: s.type || '', sic: s.category === 'sic' || /\bsic\b|shared|join/i.test(s.name + ' ' + (s.detail || '')), date: s.date || '', meal: s.type === 'Meal', tk: s._ticket && s._ticket.name ? s._ticket.name : '' });
   });
-  hotels.sort((a, b) => String(a.checkIn || '').localeCompare(String(b.checkIn || '')));
   // ---- trip dates ----
-  const dates = [rec.date].concat(hotels.map(h => h.checkIn), lines.map(l => l.date)).map(day0).filter(Boolean);
-  const ends = hotels.map(h => h.checkOut).concat(lines.map(l => l.date)).map(day0).filter(Boolean);
+  const addD = (d, k) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + k);
+  const dates = [rec.date].concat(hotels.map(h => h.checkIn || h.date), lines.map(l => l.date)).map(day0).filter(Boolean);
   const start = rec.date && day0(rec.date) ? day0(rec.date) : (dates.length ? new Date(Math.min.apply(null, dates)) : null);
+  // hotels: keep their dates; a hotel without dates (older costings) follows the hotel before it
+  const tripNights = Math.max(0, Math.round(+rec.nights || 0));
+  const hs = hotels.map((h, j) => ({ h, j, cin: day0(h.checkIn || h.date), cout: day0(h.checkOut), nts: Math.max(0, Math.round(+h.nights || 0)) }));
+  hs.sort((a, b) => (a.cin && b.cin) ? a.cin - b.cin : a.j - b.j);
+  let cur = start;
+  hs.forEach(x => {
+    if (!x.nts) x.nts = x.cin && x.cout ? Math.round((x.cout - x.cin) / 864e5) : (hs.length === 1 && tripNights ? tripNights : 1);
+    if (!x.cin && cur) x.cin = cur;
+    if (x.cin && !x.cout) x.cout = addD(x.cin, Math.max(1, x.nts));
+    if (x.cout) cur = x.cout;
+  });
+  hs.sort((a, b) => (a.cin && b.cin) ? a.cin - b.cin : a.j - b.j);
+  const ends = hs.map(x => x.cout).concat(lines.map(l => day0(l.date))).filter(Boolean);
   let n = 1;
   if (start) { const last = ends.length ? new Date(Math.max.apply(null, ends)) : start; n = Math.round((last - start) / 864e5) + 1; }
-  if (n < 1 || n > 45) n = Math.max(1, Math.min(45, hotels.reduce((t, h) => t + (+h.nights || 0), 0) + 1));
-  if (!start && lines.length + 1 > n) n = Math.min(45, Math.max(n, lines.length + 2));
+  n = Math.max(n, tripNights + 1, hs.reduce((t, x) => t + x.nts, 0) + 1);
+  if (!start && lines.length + 1 > n) n = Math.max(n, lines.length + 2);
+  n = Math.max(1, Math.min(45, n));
   const days = Array.from({ length: n }, () => []);
   const kindOf = l => {
     const t = l.name, m = /^(.*?)\s*[-–→]\s*(.*)$/.exec(t);
@@ -2010,28 +2023,39 @@ window.tvFromCosting = function (rec) {
     if (m && /hotel/i.test(m[1]) && /hotel/i.test(m[2])) return { k: 'move', from: cityOf(m[1]), city: cityOf(m[2]) };
     return { k: 'tour', city: cityOf(t) };
   };
-  const undated = [];
+  // a fixed day for: dated items, arrival (day 1), departure (last day), hotel-to-hotel transfer (check-in day of the next hotel)
   lines.forEach(l => {
     l.kind = kindOf(l);
-    const d = start && day0(l.date); let i = d ? Math.round((d - start) / 864e5) : -1;
-    if (i >= 0 && i < n) days[i].push(l);
-    else if (l.kind.k === 'arr') days[0].unshift(l);
-    else if (l.kind.k === 'dep') days[n - 1].push(l);
-    else undated.push(l);
+    const d = start && day0(l.date), i = d ? Math.round((d - start) / 864e5) : -1;
+    if (i >= 0 && i < n) l.day = i;
+    else if (l.kind.k === 'arr') l.day = 0;
+    else if (l.kind.k === 'dep') l.day = n - 1;
+    else if (l.kind.k === 'move' && start) {
+      const x = hs.find((x, j) => j > 0 && x.cin && l.kind.city && cityOf(x.h.name) === l.kind.city) || hs.find((x, j) => j > 0 && x.cin && !lines.some(y => y !== l && y.day === Math.round((x.cin - start) / 864e5) && y.kind && y.kind.k === 'move'));
+      const k = x ? Math.round((x.cin - start) / 864e5) : -1;
+      if (k > 0 && k < n) l.day = k;
+    }
   });
-  // items without a date: the next free day in the middle of the trip, else the first day with room
-  undated.forEach(l => {
-    let i = days.findIndex((d, j) => !d.length && j > 0 && j < n - 1);
-    if (i < 0) i = days.findIndex((d, j) => j > 0 && j < n - 1 && d.length < 2);
-    if (i < 0) i = n > 1 ? n - 2 : 0;
-    days[Math.max(0, i)].push(l);
+  // items without a day, in the costing's order: the next free day after the item before them
+  const used = j => lines.filter(y => y.day === j && y.kind.k === 'tour').length;
+  let pos = 0;
+  lines.forEach(l => {
+    if (l.day != null) { if (l.kind.k !== 'dep') pos = Math.max(pos, l.day); return; }
+    const mid = j => j > 0 && j < n - 1;
+    let i = -1;
+    for (let j = pos + (used(pos) || lines.some(y => y.day === pos && y.kind.k !== 'tour' && pos > 0) ? 1 : 0); j < n && i < 0; j++) if (mid(j) && !used(j) && !lines.some(y => y.day === j && y.kind.k === 'move')) i = j;
+    if (i < 0) for (let j = 1; j < n - 1 && i < 0; j++) if (!used(j) && !lines.some(y => y.day === j && y.kind.k === 'move')) i = j;
+    if (i < 0) for (let j = 1; j < n - 1 && i < 0; j++) if (!used(j)) i = j;
+    if (i < 0) { let best = n > 2 ? 1 : 0; for (let j = 1; j < n - 1; j++) if (used(j) < used(best)) best = j; i = best; }
+    l.day = i; pos = i;
   });
+  lines.forEach(l => days[Math.max(0, Math.min(n - 1, l.day))].push(l));
   // ---- the days ----
   let city = (lines.map(l => l.kind).find(k => k.k === 'arr' && k.city) || {}).city || (lines.map(l => l.kind).find(k => k.city) || {}).city || '';
   const cities = [];
   // the city of each night, from the hotel names (e.g. "Hilton Pattaya")
-  const nightCity = Array.from({ length: n }, (_, i) => { const d = start ? new Date(start.getTime() + i * 864e5) : null; const h = d && hotels.find(x => { const a = day0(x.checkIn), b = day0(x.checkOut); return a && b && d >= a && d < b; }); return h ? cityOf(h.name) : ''; });
-  if (!city) city = nightCity.find(Boolean) || '';
+  const nightCity = Array.from({ length: n }, (_, i) => { const d = start ? addD(start, i) : null; const x = d && hs.find(x => x.cin && x.cout && d >= x.cin && d < x.cout); return x ? cityOf(x.h.name) : ''; });
+  if (!city) city = nightCity.find(Boolean) || cityOf(rec.destination) || '';
   const GEN = {
     arr: { t: 'Arrival', it: ['• Arrive at Airport. After immigration clearance, meet & greet by our airport representative, transfer to hotel.', '• Overnight at hotel.'], m: '', tr: 'Private Transfer' },
     dep: { t: 'Departure', it: ['• Breakfast at hotel. Check out Hotel.', '• Pick up from hotel lobby for departure transfer to the Airport.'], m: 'B', tr: 'Private Transfer' },
@@ -2051,7 +2075,7 @@ window.tvFromCosting = function (rec) {
       if (k.k === 'arr') p = presetBy(x => /^Arrival in /i.test(x.t) && !/\+/.test(x.t) && x.c === (k.city || city), k.city || city) || GEN.arr;
       else if (k.k === 'dep') p = presetBy(x => /^Departure$/i.test(x.t), k.city || city) || GEN.dep;
       else if (k.k === 'move') p = presetBy(x => /^Transfer to /i.test(x.t) && !/·|\+/.test(x.t) && x.c === k.city, k.city) || GEN.move(k.city);
-      else p = bestPreset(l.name, city) || (l.tk ? bestPreset(l.tk, city) : null);
+      else { const own = x => !/^(Transfer to|Arrival|Departure)\b/i.test(x.t) || new RegExp('^\\s*(transfer|arrival|departure)', 'i').test(l.name); p = bestPreset(l.name, city, own) || (l.tk ? bestPreset(l.tk, city, own) : null); }
       parts.push({ l, p });
     });
     if (city && !cities.includes(city)) cities.push(city);
@@ -2094,10 +2118,10 @@ window.tvFromCosting = function (rec) {
     phone: rec.taglineNumber ? ((rec.phoneCode || '+91') + ' ' + rec.taglineNumber).trim() : '',
     adults: rec.adults != null ? +rec.adults || 0 : (+rec.pax || 0),
     kids: +rec.children || 0,
-    destination: cities.length ? cities.join(' & ') + (cities.every(c => c !== 'Bali') ? ', Thailand' : '') : '',
+    destination: String(rec.destination || '').trim() || (cities.length ? cities.join(' & ') + (cities.every(c => c !== 'Bali') ? ', Thailand' : '') : ''),
     start: sd ? iso(sd) : '',
     days: out,
-    hotels: hotels.map(h => ({ name: String(h.name || '').trim(), checkIn: h.checkIn ? fmtShort(day0(h.checkIn)) : '', checkOut: h.checkOut ? fmtShort(day0(h.checkOut)) : '', room: [h.roomCategory, h.mealPlan].filter(Boolean).join(' · '), conf: '' })),
+    hotels: hs.map(({ h, cin, cout }) => ({ name: String(h.name || '').trim(), checkIn: cin ? fmtShort(cin) : '', checkOut: cout ? fmtShort(cout) : '', room: [h.roomCategory, h.mealPlan].filter(Boolean).join(' · '), conf: '' })),
     fromCosting: { id: String(rec.id || ''), no: String(rec.costingNumber || '') }
   }));
   snap(); draft = o; touch(); goPage('make'); renderMake();
