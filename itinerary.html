@@ -1034,6 +1034,8 @@ function saveVoucher(auto) {
     settings.nextNo = (settings.nextNo || 1) + 1; saveSettings();
   }
   draft.updated = now;
+  /* the admin changed a user's voucher: the user sees "Edited by Admin" */
+  if ((window.ITIN_SESSION || {}).admin && draft.createdBy && draft.createdBy.key && draft.createdBy.key !== (window.ITIN_SESSION || {}).key) draft.adminEditedAt = now;
   if (!draft.createdBy) draft.createdBy = { key: (window.ITIN_SESSION || {}).key || '', name: (window.ITIN_SESSION || {}).name || '' };
   const copy = clone(draft); delete copy._dirty;
   const i = list.findIndex(x => x.id === draft.id);
@@ -1576,7 +1578,7 @@ function renderList() {
   const items = saved.map(v => {
     const vv = fixVoucher(v), a = dayDate(vv, 0), z = dayDate(vv, vv.days.length - 1);
     return { key: vv.start || ('9999-' + (v.updated || '')), html: `<tr${v.id === draft.id ? ' class="cur"' : ''}><td data-l="Month"><span class="tag">${esc(monthTag(vv.start) || '—')}</span></td>
-      <td data-l="Client">${esc(String(v.client).toUpperCase())} X ${vv.adults}${vv.kids ? ' + ' + vv.kids : ''}<div class="small muted">💾 ${esc(v.no)}${me.admin && v.createdBy && v.createdBy.name ? ' · by ' + esc(v.createdBy.name) : ''}</div></td>
+      <td data-l="Client">${esc(String(v.client).toUpperCase())} X ${vv.adults}${vv.kids ? ' + ' + vv.kids : ''}<div class="small muted">💾 ${esc(v.no)}${me.admin && v.createdBy && v.createdBy.name && v.createdBy.key !== 'admin:main' ? ' · by ' + esc(v.createdBy.name) : ''}${v.adminEditedAt ? ' · <b style="color:#B7791F">✏️ Edited by Admin</b>' : ''}</div></td>
       <td data-l="Travel dates">${a ? `${esc(fmtShort(a))} – ${esc(fmtShort(z))}` : '—'}</td><td data-l="Days">${duration(vv)}</td>
       <td class="acts"><div class="btn-row"><button class="btn green sm" type="button" data-act="open" data-a="${v.id}">Open →</button><button class="btn ghost sm" type="button" data-act="printSaved" data-a="${v.id}" title="Print / PDF">🖨️</button><button class="btn ghost sm" type="button" data-act="copy" data-a="${v.id}" title="Make a copy">📄</button><button class="btn ghost sm" type="button" data-act="del" data-a="${v.id}" title="Delete">🗑️</button></div></td></tr>` };
   }).concat(old.map(v => {

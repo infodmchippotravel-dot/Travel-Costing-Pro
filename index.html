@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-17-14';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-15';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2511,6 +2511,7 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
   .foot-logo img{width:52px!important;height:52px!important}
 }
 </style>
+<style>.edited-admin{color:#B7791F!important;font-weight:700}body.dark .edited-admin{color:#E6C27A!important}</style>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -6858,6 +6859,7 @@ try{(function(){
     rec.createdBy=prevCreator||me;
     rec.createdAt=prevCreated||rec.updatedAt;
     rec.updatedBy=me;
+    if(me&&me.role==='admin'&&rec.createdBy&&rec.createdBy.role!=='admin')rec.adminEditedAt=rec.updatedAt;
     saveJSON('travelSavedCostings',savedCostings);
     renderSavedCostings();
   };
@@ -6870,6 +6872,8 @@ try{(function(){
   };
   window.creatorLabel=function(r){
     var c=r&&r.createdBy;
+    if(!isAdmin())return r&&r.adminEditedAt?' &nbsp;•&nbsp; <b class="edited-admin">✏️ Edited by Admin</b>':'';
+    if(c&&c.role==='admin')return '';
     if(!c)return isAdmin()?' &nbsp;•&nbsp; Created by: <i>not recorded</i>':'';
     var who=escapeHtml(c.name||'Unknown')+(c.role==='admin'?' (Admin)':' (User)');
     var upd=r.updatedBy&&r.updatedBy.key!==c.key?' · last edited by '+escapeHtml(r.updatedBy.name||'')+(r.updatedBy.role==='admin'?' (Admin)':''):'';
@@ -7637,6 +7641,9 @@ try{(function(){
     return new Date(t).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
   }
   function creatorOf(r){var c=r.createdBy;return c?(c.name||'—')+(c.role==='admin'?' (Admin)':''):'Not recorded';}
+  /* "Created by" is shown only for a user's work (not for the admin's own); a user's work the admin changed says so */
+  function creatorCell(r){var c=r.createdBy;if(c&&c.role==='admin')return '';return escapeHtml(creatorOf(r))+(r.adminEditedAt?'<div class="cell-sub edited-admin">✏️ Edited by Admin</div>':'');}
+  function editedBadge(r){return r.adminEditedAt?'<div class="cell-sub edited-admin">✏️ Edited by Admin · '+escapeHtml(fmtWhen(Date.parse(r.adminEditedAt)||0))+'</div>':'';}
   function plural(n,one,many){return n+' '+(n===1?one:many);}
 
   /* ---------------- Record actions ---------------- */
@@ -7755,12 +7762,12 @@ try{(function(){
       var items=(r.services||[]).filter(function(s){return !(s.type==='Ticket'&&s.linked);}).length;
       return '<tr class="saved-card">'
         +'<td data-label="Costing No."><span class="cost-no">'+escapeHtml(r.costingNumber||'')+'</span></td>'
-        +'<td class="cell-name" data-label="Client"><b>'+name+'</b>'+(phone?'<div class="cell-sub">'+phone+'</div>':'')+'<div class="cell-sub">'+plural(items,'item','items')+'</div></td>'
+        +'<td class="cell-name" data-label="Client"><b>'+name+'</b>'+(phone?'<div class="cell-sub">'+phone+'</div>':'')+'<div class="cell-sub">'+plural(items,'item','items')+'</div>'+(admin?'':editedBadge(r))+'</td>'
         +'<td data-label="Travel date">'+fmtDate(r.date)+'</td>'
         +'<td class="num" data-label="People">'+escapeHtml(String(r.pax||0))+'</td>'
         +'<td class="num" data-label="Total"><span class="amt"><b>'+money(recordTotal(r))+'</b> <small>'+escapeHtml(r.currency||'')+'</small></span></td>'
         +'<td data-label="Last updated">'+fmtWhen(updatedTime(r))+'</td>'
-        +(admin?'<td data-label="Created by">'+escapeHtml(creatorOf(r))+'</td>':'')
+        +(admin?'<td data-label="Created by">'+creatorCell(r)+'</td>':'')
         +'<td data-label="Actions"><div class="row-actions rec-actions">'
         +'<button class="blue" type="button" onclick="openCosting(\''+id+'\')" aria-label="Open and edit '+name+'">✏️ Open / Edit</button>'
         +'<button class="btn-ghost" type="button" onclick="printCosting(\''+id+'\')" aria-label="Print or save PDF for '+name+'">🖨️ Print / PDF</button>'
@@ -10098,7 +10105,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (14)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (15)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -11152,7 +11159,7 @@ try{(function(){
           (Math.round(total(d)*100)/100).toLocaleString('en-IN',{maximumFractionDigits:2})+' '+esc(d.currency||''),
           d.date?'Travel '+esc(d.date):'',d.destination?esc(d.destination):'',
           'Last change '+when(d.updatedAt)];
-        if(admin&&d.createdBy&&d.createdBy.name)meta.push('By '+esc(d.createdBy.name));
+        if(admin&&d.createdBy&&d.createdBy.name&&d.createdBy.role!=='admin')meta.push('By '+esc(d.createdBy.name));
         return '<li class="draft-row'+(isCur?' is-current':'')+'">'
           +'<div class="draft-info"><b>'+esc(title)+'</b> '+tag+(isCur?' <span class="draft-tag is-now">Open now</span>':'')
           +'<small>'+meta.filter(Boolean).join(' · ')+'</small></div>'
