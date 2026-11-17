@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-17-8';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-9';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -6119,8 +6119,11 @@ try{(function(){
     }
     $('pdfPerPersonChild2').textContent=money2(b.childNoBed+margin/b.pax);
     $('pdfPerCurrencyChild2').textContent=($('pdfPerCurrencyChild')&&$('pdfPerCurrencyChild').textContent)||'';
-    s2.style.display=d2.style.display=hasChild&&b.splitChild?'':'none';
-    var nStats=2+shownExtra+(hasChild?1:0)+(hasChild&&b.splitChild?1:0);
+    /* one child with a bed in one hotel and no bed in another: both boxes would show the same price — then one box "Child Per Person" */
+    var twoChild=b.splitChild&&Math.abs(b.childBed-b.childNoBed)>0.005;
+    if(b.splitChild&&!twoChild&&cl)cl.textContent='Child Per Person';
+    s2.style.display=d2.style.display=hasChild&&twoChild?'':'none';
+    var nStats=2+shownExtra+(hasChild?1:0)+(hasChild&&twoChild?1:0);
     s2.parentNode.classList.toggle('pdf-final-4',nStats>3);
     $('pdfPax').textContent=c.adults+' Adult'+(c.adults===1?'':'s')+(c.children?', '+c.children+' Child'+(c.children===1?'':'ren'):'');
     renderPdfList();
@@ -10082,7 +10085,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (8)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (9)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -10244,7 +10247,7 @@ try{(function(){
     var av=[].slice.call(help.querySelectorAll('.card')).find(function(c){return /Admin vs User/.test(c.textContent);});
     var avp=av&&av.querySelector('p');
     if(avp)avp.innerHTML='<b>User</b>: logs in with a name and sees only their own costings. Prices of saved items are hidden.<br>'
-      +'<b>Admin</b>: logs in with name, ID and password. Can change prices and sees every costing.';
+      +'<b>Admin</b>: logs in with the admin e-mail and password (on any computer or phone). Can change prices and sees every costing.';
     var hs=q('#help .ph-sub');if(hs)hs.textContent='How to use the website';
   }
 })();}catch(err){console.error('Simple words failed:',err);}
@@ -11650,12 +11653,12 @@ try{(function(){
        +(admin()?'<br><b>Admin:</b> in <b>Saved Rates → SIC Transfers</b> or <b>Entry Tickets</b>, press <b>Edit</b> (or add a new one), tap the days in <b>Closed on</b> (they turn red) and press <b>Save</b>. The list shows “Closed: Mon, Tue”.':'');},
      hi:function(){return '<b>बंद दिन:</b> कोई SIC transfer या entry ticket कुछ दिन बंद रह सकता है (जैसे Mon, Tue)। ऐसी तारीख पर कॉस्टिंग में जोड़ेंगे तो लाल मैसेज आएगा और आइटम नहीं जुड़ेगा — दूसरी तारीख चुनें। कॉस्टिंग में पहले से जुड़े ऐसे आइटम फॉर्म के ऊपर दिखते हैं।'
        +(admin()?'<br><b>Admin:</b> <b>Saved Rates → SIC Transfers</b> या <b>Entry Tickets</b> में <b>Edit</b> दबाएं (या नया जोड़ें), <b>Closed on</b> में दिन चुनें (लाल हो जाते हैं) और <b>Save</b> दबाएं। लिस्ट में “Closed: Mon, Tue” दिखता है।':'');}},
-    {id:'share',kw:['sab ko dikhe','sabko dikhe','sab jagah','everyone','every computer','all computers','other computer','dusre computer','doosre computer','other device','share prices','share rates','rates share','not showing on','phone par nahi','सबको'],
-     en:function(){return '<b>Admin changes for everyone:</b> Saved Rates (transfers, SIC, tickets, meals), tours, closed days and the company details are shared with every computer and phone. '+(admin()?'When you save, it is shared by itself if the GitHub token is saved in <b>Settings → Admin Login Credentials</b> (tick “Remember”). The box at the top of Saved Rates and Settings says if it is shared. Other devices get it in about 1–2 minutes.':'You always see the newest prices from the admin (refresh the page if you just heard about a change).')+' Costings and vouchers stay in each browser.';},
-     hi:function(){return '<b>Admin के बदलाव सबके लिए:</b> Saved Rates (transfers, SIC, tickets, meals), tours, closed days और company details हर कंप्यूटर और फोन पर दिखते हैं। '+(admin()?'Save करते ही अपने आप share होता है, अगर GitHub token <b>Settings → Admin Login Credentials</b> में सेव है (“Remember” टिक करें)। Saved Rates और Settings में ऊपर का बॉक्स बताता है कि share हुआ या नहीं। दूसरे devices पर 1–2 मिनट में आता है।':'आपको हमेशा admin की नई कीमतें दिखती हैं (अभी बदलाव हुआ हो तो पेज refresh करें)।')+' Costings और vouchers हर browser में अपने रहते हैं।';}},
-    {id:'cloud',kw:['cloud','online copy','firebase','everyone costing','everyones costing','all users costing','sab ki costing','sabki costing','users ki costing','user ki costing','other users','dusre user','doosre user','sab ke voucher','all vouchers of users','online backup'],
-     en:function(){return '<b>Online copy (Cloud):</b> saved costings, drafts and vouchers are copied online by themselves, so they are safe even if the browser is cleared. '+(admin()?'To see <b>everyone’s</b> costings, drafts and vouchers, open <b>Settings → ☁️ Online copy</b> and connect once with the Firebase e-mail and password. They then show in My Costings, Drafts and Create Itinerary → All vouchers, with who made each one.':'Only you (and the admin) can see your records.');},
-     hi:function(){return '<b>Online copy (Cloud):</b> सेव कॉस्टिंग, ड्राफ्ट और वाउचर अपने आप online भी सेव होते हैं, browser साफ होने पर भी सुरक्षित रहते हैं। '+(admin()?'<b>सबकी</b> कॉस्टिंग, ड्राफ्ट और वाउचर देखने के लिए <b>Settings → ☁️ Online copy</b> में एक बार Firebase e-mail और password से connect करें। फिर ये My Costings, Drafts और Create Itinerary → All vouchers में दिखेंगे, किसने बनाया उसके साथ।':'आपके रिकॉर्ड सिर्फ आप (और admin) देख सकते हैं।');}},
+{id:'share',kw:['sab ko dikhe','sabko dikhe','sab jagah','everyone','every computer','all computers','other computer','dusre computer','doosre computer','other device','share prices','share rates','rates share','not showing on','phone par nahi','सबको'],
+     en:function(){return '<b>Admin changes for everyone:</b> Saved Rates (transfers, SIC, tickets, meals), tours, closed days and the company details are shared with every computer and phone by themselves. '+(admin()?'Just press Save — nothing to set up. Other computers and phones get it within 5 minutes, or as soon as they open the website again.':'You always get the newest prices from the admin, within 5 minutes.')+' Each person’s costings and vouchers are saved online too.';},
+     hi:function(){return '<b>Admin के बदलाव सबके लिए:</b> Saved Rates (transfers, SIC, tickets, meals), tours, closed days और company details अपने आप हर कंप्यूटर और फोन पर पहुँचते हैं। '+(admin()?'बस Save दबाएं — कुछ setup नहीं करना। दूसरे कंप्यूटर और फोन पर 5 मिनट के अंदर, या website दोबारा खोलते ही आ जाता है।':'आपको admin की नई कीमतें 5 मिनट के अंदर अपने आप मिल जाती हैं।')+' हर व्यक्ति की costings और vouchers भी online सेव होते हैं।';}},
+{id:'cloud',kw:['cloud','online copy','firebase','everyone costing','everyones costing','all users costing','sab ki costing','sabki costing','users ki costing','user ki costing','other users','dusre user','doosre user','sab ke voucher','all vouchers of users','online backup'],
+     en:function(){return '<b>Online copy (Cloud):</b> saved costings, drafts and vouchers are copied online by themselves, so they are safe even if the browser is cleared. '+(admin()?'As the admin (logged in with the admin e-mail), you see <b>everyone’s</b> costings, drafts and vouchers by themselves — in My Costings, Drafts and Create Itinerary → All vouchers, with who made each one. Nothing to connect.':'Only you (and the admin) can see your records.');},
+     hi:function(){return '<b>Online copy (Cloud):</b> सेव कॉस्टिंग, ड्राफ्ट और वाउचर अपने आप online भी सेव होते हैं, browser साफ होने पर भी सुरक्षित रहते हैं। '+(admin()?'Admin (admin e-mail से लॉगिन) को <b>सबकी</b> कॉस्टिंग, ड्राफ्ट और वाउचर अपने आप दिखते हैं — My Costings, Drafts और Create Itinerary → All vouchers में, किसने बनाया उसके साथ। कुछ connect नहीं करना।':'आपके रिकॉर्ड सिर्फ आप (और admin) देख सकते हैं।');}},
     {id:'ticket',kw:['entry ticket','ticket','टिकट'],
      en:'<b>Entry Ticket:</b> tap <b>Entry Ticket</b> and choose the ticket. Adults and children come from the client details; adult and child prices are separate.',
      hi:'<b>Entry Ticket:</b> <b>Entry Ticket</b> दबाएं और टिकट चुनें। Adult और child की गिनती client details से आती है; दोनों की कीमत अलग होती है।'},
@@ -14629,7 +14632,7 @@ try{(function(){
 .chat-res .cr .cr-btns button:focus-visible{outline:3px solid #C6A76B;outline-offset:1px}
 body.dark .chat-res .cr{background:#0f1b2d;border-color:#334155}
 body.dark .chat-res .cr .cr-btns button{background:#2a2314;border-color:#6b5a33;color:#f5ecd6}
-body.dark .chat-res .cr .cr-btns button.go{color:#0b1f3a}
+body.dark .chat-res .cr .cr-btns button.go{background:linear-gradient(135deg,#C6A76B,#a8874a);border:0;color:#0b1f3a}
 </style>
 <script>
 /* =====================================================================
