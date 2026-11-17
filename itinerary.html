@@ -2237,6 +2237,7 @@ window.tvFromCosting = function (rec) {
 <style>
 .fc-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 14px;border-radius:12px;background:#fff8e6;border:1px solid #e8d3a2;color:#0b1f3a;font-size:14.5px}
 .fc-bar[hidden]{display:none}
+html.in-site #s-settings{display:none!important}   /* inside the website: these settings are on the website's Settings page */
 td.dn .dmove-w{position:relative;display:block;margin-top:6px;max-width:100%}
 td.dn .dmove-b{min-height:32px;max-width:100%;padding:0 6px;border:1px dashed #C6A76B;border-radius:8px;background:#fffaf0;color:#0b1f3a;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 td.dn .dmove-b:focus-visible{outline:3px solid #C6A76B;outline-offset:1px}
@@ -2322,6 +2323,15 @@ html.theme-dark .fc-bar{background:#2a2314;border-color:#6b5a33;color:#f5ecd6}
     snap(); const [d] = draft.days.splice(i, 1); draft.days.splice(j, 0, d); touch(); renderMake();
     toast(`${d.title || 'Day'} moved to ${fmtShort(dayDate(draft, j))}`, true);
   });
+  // the website's Settings page edits these settings (all settings in one place)
+  window.tvSettingsApi = {
+    get: () => JSON.parse(JSON.stringify(settings)),
+    defaults: () => { const d = settingsDefault(); return { notes: d.notes, closing: d.closing }; },
+    site: () => siteContact(),
+    set: patch => { Object.keys(patch || {}).forEach(k => { if (/^(company|partner)$/.test(k)) settings[k] = Object.assign({}, settings[k], patch[k]); else settings[k] = patch[k]; }); saveSettings(); try { renderSettings(); refreshPreview(); renderList(); } catch (e) {} return true; },
+    backupDown: () => { const b = document.getElementById('bkDown'); if (b) b.click(); },
+    backupUp: () => { const b = document.getElementById('bkUp'); if (b) b.click(); }
+  };
   const rm = renderMake;
   renderMake = function () { const r = rm.apply(this, arguments); showBar(); return r; };
   renderMake();
@@ -2348,7 +2358,7 @@ window.addEventListener('storage',function(e){
   /* vouchers brought from the cloud (admin) or saved in another tab: show the new list */
   if(e.key==='tv.saved.v1'){try{renderList();}catch(x){}}
   /* company / notes settings shared by the admin (from the website): use them, keep this browser's voucher number */
-  if(e.key==='tv.settings.v1'&&e.newValue){try{var n=JSON.parse(e.newValue)||{};['company','partner','prefix','currency','notes','closing'].forEach(function(k){if(n[k]!==undefined)settings[k]=n[k];});if(typeof renderSettings==='function')renderSettings();if(typeof refreshPreview==='function')refreshPreview();}catch(x){}}
+  if(e.key==='tv.settings.v1'&&e.newValue){try{var n=JSON.parse(e.newValue)||{};['company','partner','prefix','currency','notes','closing','nextNo'].forEach(function(k){if(n[k]!==undefined)settings[k]=n[k];});if(typeof renderSettings==='function')renderSettings();if(typeof refreshPreview==='function')refreshPreview();}catch(x){}}
 });
 </script>
 </body>

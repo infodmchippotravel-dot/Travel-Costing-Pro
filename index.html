@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-17-10';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-11';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10085,7 +10085,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (10)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (11)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -12555,6 +12555,7 @@ try{(function(){
     var v=/[?&]_v=(\d+)/.exec(location.search);
     frame.src='itinerary.html?b='+encodeURIComponent(window.SITE_BUILD||'1')+(v?'&_v='+v[1]:'');   /* b = this version: a new version is never taken from the browser's old copy */
   }
+  window.itinLoadFrame=load;
   frame.addEventListener('load',function(){page.querySelector('.itin-wrap').classList.add('is-ready');});
   /* Get the itinerary maker ready in the background a moment after login,
      so "Create Itinerary" opens at once when it is clicked. */
@@ -15042,6 +15043,96 @@ try{(function(){
   if(typeof ps==='function')window.saveJSON=function(){var r=ps.apply(this,arguments);setTimeout(check,0);return r;};
   window.siteSpaceUsed=used;
 })();}catch(err){console.error('Space check failed to start:',err);}
+</script>
+<style id="itinSettingsCss">
+#itinSettingsCard .is-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px}
+#itinSettingsCard .is-grid .is-wide{grid-column:1/-1}
+#itinSettingsCard h3.is-sub{font-size:15px;margin:18px 0 8px;padding-top:14px;border-top:1px dashed var(--line,#e5e7eb)}
+#itinSettingsCard h3.is-sub:first-of-type{border-top:0;padding-top:0;margin-top:6px}
+#itinSettingsCard textarea{width:100%;min-height:150px}
+#itinSettingsCard .is-note{color:var(--muted,#667085);font-size:13px;margin:4px 0 10px}
+#itinSettingsCard .is-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+#itinSettingsCard .is-saved{color:#067647;font-weight:700;font-size:13px;min-height:18px}
+@media (max-width:640px){#itinSettingsCard .is-grid{grid-template-columns:1fr}}
+</style>
+<script>
+/* =====================================================================
+   SETTINGS → 🗺️ ITINERARY / VOUCHER SETTINGS
+     All settings in one place: the voucher settings of Create Itinerary
+     (company details on the voucher, voucher numbers, notes, backup)
+     are here on the website's Settings page (admin only).
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  function $(id){return document.getElementById(id);}
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function admin(){return typeof isAdminSession==='function'&&isAdminSession();}
+  var after=$('companySettingsCard');if(!after)return;
+  var card=document.createElement('div');card.className='card';card.id='itinSettingsCard';card.setAttribute('data-admin-only','');card.hidden=true;
+  after.parentNode.insertBefore(card,after.nextSibling);
+  function api(){var f=$('itinFrame');try{return f&&f.contentWindow&&f.contentWindow.tvSettingsApi||null;}catch(e){return null;}}
+  /* the voucher maker runs in the page in the background — wait for it */
+  function withApi(cb,tries){
+    var a=api();if(a)return cb(a);
+    if(!tries&&typeof window.itinLoadFrame==='function')try{window.itinLoadFrame();}catch(e){}
+    if((tries||0)>150){card.innerHTML='<h2 class="card-title">🗺️ Itinerary / voucher settings</h2><p class="is-note">Could not open the voucher settings. Please check the internet and open Settings again.</p>';return;}
+    setTimeout(function(){withApi(cb,(tries||0)+1);},100);
+  }
+  function field(id,label,val,ph,wide,opt){return '<div'+(wide?' class="is-wide"':'')+'><label for="'+id+'">'+label+(opt?' <span class="opt-tag">'+opt+'</span>':'')+'</label><input type="text" id="'+id+'" value="'+esc(val)+'" placeholder="'+esc(ph||'')+'" autocomplete="off"></div>';}
+  function render(a){
+    var s=a.get(),c=s.company||{},g=s.partner||{},w=a.site();
+    var auto='from the website if empty';
+    card.innerHTML='<h2 class="card-title">🗺️ Itinerary / voucher settings</h2>'
+      +'<p class="is-note">What is printed on the tour vouchers (Create Itinerary). In Create Itinerary, <b>Company on PDF</b> chooses Hippo Travel, Anup Group or no company. Changes are saved by themselves.</p>'
+      +'<h3 class="is-sub">🏢 Hippo Travel on the voucher</h3><div class="is-grid">'
+      +field('isCName','Company name',c.name,'Hippo Travel')
+      +field('isCPhone','Phone',c.phone,w.phone,0,auto)
+      +field('isCEmail','E-mail',c.email,w.email,0,auto)
+      +field('isCWeb','Website',c.web,w.web,0,auto)
+      +field('isCInsta','Instagram',c.insta,w.insta,0,auto)
+      +field('isCEm','Emergency line',c.emergency,'EMERGENCY CALL: number - name',0,'optional')
+      +field('isCAddr','Address / licence line',c.address,w.address,1,auto)
+      +'</div><h3 class="is-sub">🏢 Anup Group on the voucher</h3><div class="is-grid">'
+      +field('isGName','Company name',g.name,'Anup Group Co., Ltd.')
+      +field('isGPhone','Phone',g.phone,'')
+      +field('isGEmail','E-mail',g.email,'',0,'optional')
+      +field('isGWeb','Website',g.web,'')
+      +field('isGEm','Emergency line',g.emergency,'',1)
+      +field('isGAddr','Address / licence line',g.address,'',1)
+      +'</div><h3 class="is-sub">🔢 Voucher numbers</h3><div class="is-grid">'
+      +field('isPrefix','Prefix',s.prefix,'HT')
+      +'<div><label for="isNext">Next number</label><input type="number" min="1" id="isNext" value="'+(+s.nextNo||1)+'"></div>'
+      +'<div class="is-wide"><label for="isPrev">Next voucher will be</label><input id="isPrev" readonly value="'+esc((s.prefix||'HT')+'-'+String(+s.nextNo||1).padStart(4,'0'))+'"></div>'
+      +'</div><h3 class="is-sub">📝 Standard text</h3><div class="is-grid">'
+      +'<div class="is-wide"><label for="isNotes">Important notes <span class="opt-tag">one per line</span></label><textarea id="isNotes">'+esc(s.notes)+'</textarea></div>'
+      +field('isClose','Closing line',s.closing,'BON VOYAGE',1)
+      +'</div><div class="is-btns"><button type="button" class="btn-ghost" id="isReset">↺ Put back the original notes</button></div>'
+      +'<h3 class="is-sub">🗄️ Voucher backup</h3><p class="is-note">All vouchers with their flight ticket pictures, in one file.</p>'
+      +'<div class="is-btns"><button type="button" class="blue" id="isBkDown">⬇️ Download voucher backup</button><button type="button" class="btn-ghost" id="isBkUp">⬆️ Restore voucher backup</button></div>'
+      +'<div class="is-saved" id="isSaved" role="status" aria-live="polite"></div>';
+    var t=0;
+    function collect(){
+      var v=function(id){return ($(id)||{}).value||'';};
+      return {company:{name:v('isCName'),phone:v('isCPhone'),email:v('isCEmail'),web:v('isCWeb'),insta:v('isCInsta'),emergency:v('isCEm'),address:v('isCAddr')},
+        partner:{name:v('isGName'),phone:v('isGPhone'),email:v('isGEmail'),web:v('isGWeb'),emergency:v('isGEm'),address:v('isGAddr')},
+        prefix:v('isPrefix').trim()||'HT',nextNo:Math.max(1,parseInt(v('isNext'),10)||1),notes:v('isNotes'),closing:v('isClose')};
+    }
+    function save(){withApi(function(a){a.set(collect());var p=collect();$('isPrev').value=p.prefix+'-'+String(p.nextNo).padStart(4,'0');$('isSaved').textContent='✓ Saved — the next voucher uses this';});}
+    card.addEventListener('input',function(e){if(!e.target.closest('input,textarea')||e.target.id==='isPrev')return;$('isSaved').textContent='';clearTimeout(t);t=setTimeout(save,500);});
+    $('isReset').onclick=function(){var d=a.defaults();$('isNotes').value=d.notes;$('isClose').value=d.closing;save();if(window.showToast)showToast('Original notes put back','success');};
+    $('isBkDown').onclick=function(){withApi(function(a){a.backupDown();});};
+    $('isBkUp').onclick=function(){withApi(function(a){a.backupUp();});};
+  }
+  function show(){
+    var on=admin();card.hidden=!on;if(!on)return;
+    if(!card.firstChild)card.innerHTML='<h2 class="card-title">🗺️ Itinerary / voucher settings</h2><p class="is-note">Opening…</p>';
+    if(document.activeElement&&card.contains(document.activeElement))return;   // never redraw while typing
+    withApi(render);
+  }
+  var prev=window.showPage;
+  if(typeof prev==='function')window.showPage=function(id){var r=prev.apply(this,arguments);if(id==='settings')setTimeout(show,0);return r;};
+  ['finishLogin','logoutUser'].forEach(function(fn){var p=window[fn];if(typeof p==='function')window[fn]=function(){var r=p.apply(this,arguments);setTimeout(function(){card.hidden=!admin();},0);return r;};});
+})();}catch(err){console.error('Itinerary settings failed to start:',err);}
 </script>
 </body>
 </html>
