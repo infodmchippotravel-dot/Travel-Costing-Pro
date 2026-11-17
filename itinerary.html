@@ -347,6 +347,10 @@ details.qa p,details.qa ol{margin:8px 0 0;color:#334155;line-height:1.6}
   .slip .cap,.slip .brandband,.slip .head{break-after:avoid;page-break-after:avoid}
   .slip table.tbl thead{display:table-header-group}
   .slip table.tbl tr,.slip tbody.dayg,.slip .keep{break-inside:avoid;page-break-inside:avoid}
+  /* the right side line is printed whole (a line on the very edge of the paper is cut by the printer) */
+  .slip{margin:0 2px!important}
+  /* "Important notes" stays together — never its title on one page and the notes on the next */
+  .slip .bt.notes{break-inside:avoid;page-break-inside:avoid}
 }
 </style>
 <style id="premiumLux">
