@@ -1569,13 +1569,13 @@ function renderList() {
   const q = words($('listQ').value);
   const me = window.ITIN_SESSION || {}, canSee = v => me.admin || (v.createdBy && v.createdBy.key === me.key);
   const saved = savedList().filter(canSee).sort((a, b) => String(b.updated).localeCompare(String(a.updated)))
-    .filter(v => q.every(w => `${v.no} ${v.client} ${v.destination} ${(v.days || []).map(d => d.title).join(' ')}`.toLowerCase().includes(w)));
+    .filter(v => q.every(w => `${v.no} ${v.client} ${v.destination} ${(v.days || []).map(d => d.title).join(' ')} ${me.admin && v.createdBy ? v.createdBy.name || '' : ''}`.toLowerCase().includes(w)));
   const old = VOUCHERS.filter(v => q.every(w => [v.guest, v.month, ...(v.cities || []), ...(v.days || []).map(d => d.title)].join(' ').toLowerCase().includes(w)));
   // ONE list, every voucher in the same style (saved ones sit among the old ones by travel date, newest first)
   const monthTag = iso => { const m = /^(\d{4})-(\d{2})/.exec(iso || ''); return m && +m[2] ? `${MON[+m[2] - 1]} ${m[1]}` : ''; };
   const items = saved.map(v => {
     const vv = fixVoucher(v), a = dayDate(vv, 0), z = dayDate(vv, vv.days.length - 1);
-    return { key: vv.start || '', html: `<tr${v.id === draft.id ? ' class="cur"' : ''}><td data-l="Month"><span class="tag">${esc(monthTag(vv.start) || '—')}</span></td>
+    return { key: vv.start || ('9999-' + (v.updated || '')), html: `<tr${v.id === draft.id ? ' class="cur"' : ''}><td data-l="Month"><span class="tag">${esc(monthTag(vv.start) || '—')}</span></td>
       <td data-l="Client">${esc(String(v.client).toUpperCase())} X ${vv.adults}${vv.kids ? ' + ' + vv.kids : ''}<div class="small muted">💾 ${esc(v.no)}${me.admin && v.createdBy && v.createdBy.name ? ' · by ' + esc(v.createdBy.name) : ''}</div></td>
       <td data-l="Travel dates">${a ? `${esc(fmtShort(a))} – ${esc(fmtShort(z))}` : '—'}</td><td data-l="Days">${duration(vv)}</td>
       <td class="acts"><div class="btn-row"><button class="btn green sm" type="button" data-act="open" data-a="${v.id}">Open →</button><button class="btn ghost sm" type="button" data-act="printSaved" data-a="${v.id}" title="Print / PDF">🖨️</button><button class="btn ghost sm" type="button" data-act="copy" data-a="${v.id}" title="Make a copy">📄</button><button class="btn ghost sm" type="button" data-act="del" data-a="${v.id}" title="Delete">🗑️</button></div></td></tr>` };
