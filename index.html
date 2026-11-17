@@ -14487,9 +14487,36 @@ try{(function(){
       if(sv.groupId)list().forEach(function(x){if(x!==sv&&x.groupId===sv.groupId){if(v)x.date=v;else delete x.date;}});
       if(sv._ticket){if(v)sv._ticket.date=v;else delete sv._ticket.date;}
     }
-    if(typeof window.calculate==='function')calculate();
-    if(window.showToast)showToast('Date changed','success');
+    sortByDate(sv);
+    if(window.showToast)showToast('Date changed — the list is in date order','success');
   });
+
+  /* ---- keep the list in date order (a ticket or transfer that belongs to an entry stays right under it) ---- */
+  var RANK={arr:0,move:1,hotel:2,tour:3,dep:4};
+  function sortByDate(focus){
+    var all=list();if(all.length<2){if(typeof window.calculate==='function')calculate();return;}
+    var blocks=[];
+    all.forEach(function(x,i){
+      if(x&&x.linked&&x.groupId){var b=blocks.filter(function(b){return b.head.groupId===x.groupId;})[0];if(b){b.items.push(x);return;}}
+      blocks.push({head:x,items:[x],i:i});
+    });
+    var prev='';
+    blocks.forEach(function(b){
+      var h=b.head,k=h.type==='Hotel'?(h.checkIn||h.date||''):(h.date||'');
+      b.key=k||prev;prev=b.key;
+      b.rank=h.type==='Hotel'?RANK.hotel:RANK[kind(h.name)];
+    });
+    blocks.sort(function(a,b){return a.key!==b.key?(a.key<b.key?-1:1):(a.rank!==b.rank?a.rank-b.rank:a.i-b.i);});
+    var out=[];blocks.forEach(function(b){out.push.apply(out,b.items);});
+    var changed=out.some(function(x,i){return x!==all[i];});
+    if(changed)all.splice.apply(all,[0,all.length].concat(out));
+    if(typeof window.calculate==='function')calculate();
+    if(focus){var j=all.indexOf(focus),r=j>=0&&body.querySelector('tr[data-i="'+j+'"]');if(r){r.classList.remove('is-new');void r.offsetWidth;r.classList.add('is-new');}}
+  }
+  /* a date changed in Edit (Save change) → the list goes in date order too */
+  document.addEventListener('click',function(e){
+    if(e.target.closest&&e.target.closest('#efAdd')&&editing())setTimeout(function(){if(!editing())sortByDate();},120);
+  },true);
 })();}catch(err){console.error('Costing dates failed to start:',err);}
 </script>
 </body>
