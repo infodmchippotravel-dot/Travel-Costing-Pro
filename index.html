@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-17-12';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-13';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -7677,6 +7677,7 @@ try{(function(){
       if(cur&&String(r.currency||'').toUpperCase()!==cur)return false;
       if(who==='admin'&&!(r.createdBy&&r.createdBy.role==='admin'))return false;
       if(who==='user'&&!(r.createdBy&&r.createdBy.role==='user'))return false;
+      if(who.indexOf('p:')===0&&!(r.createdBy&&r.createdBy.key===who.slice(2)))return false;
       return true;
     });
   }
@@ -7700,6 +7701,17 @@ try{(function(){
     sel.innerHTML='<option value="">All currencies</option>'+Object.keys(set).sort().map(function(c){return '<option>'+escapeHtml(c)+'</option>';}).join('');
     if(set[prev])sel.value=prev;
   }
+  /* Admin: "Created by" lists every person by name, so one person's work can be seen on its own */
+  function fillCreatorFilter(){
+    var sel=$('savedCreator');if(!sel||!isAdminSession())return;
+    var prev=sel.value,people={};
+    visibleRecords().forEach(function(r){var c=r.createdBy;if(c&&c.key){var p=people[c.key]||(people[c.key]={name:c.name||'—',role:c.role,n:0});p.n++;}});
+    var keys=Object.keys(people).sort(function(a,b){return people[a].name.localeCompare(people[b].name);});
+    sel.innerHTML='<option value="">Everyone</option><option value="admin">Admin</option><option value="user">All users</option>'
+      +(keys.length?'<optgroup label="By name">'+keys.map(function(k){var p=people[k];return '<option value="p:'+escapeHtml(k)+'">👤 '+escapeHtml(p.name)+(p.role==='admin'?' (Admin)':'')+' — '+p.n+'</option>';}).join('')+'</optgroup>':'');
+    if([].some.call(sel.options,function(o){return o.value===prev;}))sel.value=prev;
+  }
+  window.showCostingsBy=function(key){goToPage('saved');setTimeout(function(){var sel=$('savedCreator');if(!sel)return;renderSavedCostings();sel.value='p:'+key;sel.dispatchEvent(new Event('change',{bubbles:true}));},60);};
   function header(){
     var admin=isAdminSession();
     var cols=[['number','Costing No.'],['client','Client'],['date','Travel date'],['pax','People'],['total','Total'],['updated','Last updated']];
@@ -7715,7 +7727,7 @@ try{(function(){
     var sortSel=$('savedSort');
     if(sortSel){var want=state.sort+':'+state.dir;if([].some.call(sortSel.options,function(o){return o.value===want;}))sortSel.value=want;}
     var creatorWrap=$('savedCreatorWrap');if(creatorWrap)creatorWrap.hidden=!isAdminSession();
-    fillCurrencyFilter();
+    fillCurrencyFilter();fillCreatorFilter();
     var all=visibleRecords(),list=sortRecords(filteredRecords());
     var pages=Math.max(1,Math.ceil(list.length/PAGE_SIZE));
     if(state.page>pages)state.page=pages;
@@ -7908,7 +7920,7 @@ try{(function(){
       var since=u.createdAt?new Date(u.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';
       return '<div class="saved-card"><div class="saved-head"><div>'
         +'<div class="saved-title">👤 '+escapeHtml(name)+'</div>'
-        +'<div class="saved-meta">🔑 Login: '+escapeHtml(method)+' &nbsp;•&nbsp; 🗂️ '+plural(n,'costing','costings')
+        +'<div class="saved-meta">🔑 Login: '+escapeHtml(method)+' &nbsp;•&nbsp; 🗂️ '+(n?'<a href="#" class="see-work" onclick="showCostingsBy(\''+jsAttr(k)+'\');return false;">'+plural(n,'costing','costings')+' — see</a>':'0 costings')
         +' &nbsp;•&nbsp; 🕘 Last login: '+(u.lastLoginAt?fmtWhen(u.lastLoginAt):'—')+' &nbsp;•&nbsp; 🗓️ First login: '+since+'</div>'
         +'</div><div class="saved-actions"><button class="red" onclick="deleteWebsiteUser(\''+jsAttr(k)+'\')" type="button" aria-label="Delete user '+escapeHtml(name)+'">🗑️ Delete</button></div></div></div>';
     }).join('');
@@ -10086,7 +10098,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (12)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (13)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
