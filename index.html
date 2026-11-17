@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-17-6';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-7';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10078,7 +10078,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (6)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (7)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -13811,9 +13811,12 @@ try{(function(){
   var prevFin=window.finishLogin;if(typeof prevFin==='function')window.finishLogin=function(){var r=prevFin.apply(this,arguments);setTimeout(function(){if(admin()&&get(K_DIRTY)==='1')sync();},800);return r;};
 
   /* ---- start, then keep checking ---- */
-  setTimeout(sync,600);
-  setInterval(function(){if(!document.hidden)sync();},60000);
-  document.addEventListener('visibilitychange',function(){if(!document.hidden)sync();});
+  /* checked every 5 minutes (and when the tab is opened again, at most once in 90 s): with very many people at once
+     the free cloud limit (50 000 reads a day) is never reached. A change by the admin is shared at once. */
+  var lastSyncAt=0;function syncSoft(minGap){if(Date.now()-lastSyncAt<minGap)return;lastSyncAt=Date.now();sync();}
+  setTimeout(function(){lastSyncAt=Date.now();sync();},600);
+  setInterval(function(){if(!document.hidden)syncSoft(240000);},300000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)syncSoft(90000);});
   window.__sharedSync=sync;
 })();}catch(err){console.error('Shared data failed to start:',err);}
 </script>
@@ -14374,8 +14377,9 @@ try{(function(){
   function check(){
     if(busy||Date.now()-last<60000||document.hidden)return;
     busy=true;last=Date.now();
-    fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():'';}).then(function(t){
-      busy=false;var m=/window\.SITE_BUILD='([^']+)'/.exec(t||'');
+    /* a tiny file (a few bytes), not the whole page — so very many people checking costs almost nothing */
+    fetch('assets/version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():'';}).then(function(t){
+      busy=false;var m=/"build"\s*:\s*"([^"]+)"/.exec(t||'');
       if(m&&m[1]!==window.SITE_BUILD&&!pending){pending=true;tryUpdate();}
     }).catch(function(){busy=false;});
   }
