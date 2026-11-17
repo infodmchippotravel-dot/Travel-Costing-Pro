@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-17-3';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-4';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -3905,7 +3905,7 @@ function showWelcomeScreen(isNew){
     try{
       window.speechSynthesis.cancel();
       let utter=new SpeechSynthesisUtterance(greeting+', '+name+'!');
-      utter.rate=0.85;utter.pitch=1;utter.volume=1;
+      utter.rate=0.95;utter.pitch=1;utter.volume=1;
       utter.lang='en-US';
       setTimeout(function(){
         if(typeof chatbotGetVoicesAsync==='function'){
@@ -10075,7 +10075,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (3)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (4)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -14822,6 +14822,141 @@ try{(function(){
   var pl=window.chatbotSetLanguage;
   if(typeof pl==='function')window.chatbotSetLanguage=function(){var r=pl.apply(this,arguments);var o=document.querySelector('#chatbotQuick .cb-can');if(o)o.remove();addChip();return r;};
 })();}catch(err){console.error('Help chat assistant failed to start:',err);}
+</script>
+<script>
+/* =====================================================================
+   HELP CHAT VOICE — clear, natural, and in every browser
+     • picks the most natural voice the browser has (Natural / Neural /
+       Google / Apple voices first), at a normal speaking speed
+     • reads clean sentences (no "·", "→", emoji), in short parts so long
+       answers are not cut off half-way (a Chrome problem)
+     • Hindi with no Hindi voice on the device: the Hindi words are read
+       in Roman letters by an Indian-English voice, so it still speaks
+     • 🔊 again while speaking = stop
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  if(!window.speechSynthesis||typeof window.SpeechSynthesisUtterance!=='function')return;
+  var synth=window.speechSynthesis,keep=[],speakingBtnText=null,noteShown=false;
+  function hi(){try{return chatbotLang==='hi';}catch(e){return false;}}
+  function voices(){try{return synth.getVoices()||[];}catch(e){return [];}}
+  function ready(){
+    return new Promise(function(res){
+      var v=voices();if(v.length)return res(v);
+      var n=0,iv=setInterval(function(){v=voices();if(v.length||++n>25){clearInterval(iv);res(v);}},100);
+      try{synth.addEventListener('voiceschanged',function f(){synth.removeEventListener('voiceschanged',f);clearInterval(iv);res(voices());});}catch(e){}
+    });
+  }
+  /* the best voice for a language: natural voices first, then Google / Apple / Microsoft, women's voices a little first */
+  var GOOD=['natural','neural','online','premium','enhanced','google','swara','madhur','lekha','kiyara','neerja','prabhat','heera','kalpana','hemant','aria','jenny','guy','samantha','daniel','karen','moira','rishi','veena'];
+  function best(prefix,region){
+    var all=voices().filter(function(v){return v.lang&&v.lang.toLowerCase().replace('_','-').indexOf(prefix)===0;});
+    if(!all.length)return null;
+    var sc=all.map(function(v){
+      var n=(v.name||'').toLowerCase(),l=v.lang.toLowerCase().replace('_','-'),s=0;
+      if(/natural|neural/.test(n))s+=8;
+      if(/online|premium|enhanced/.test(n))s+=3;
+      if(/google/.test(n))s+=5;
+      GOOD.forEach(function(g){if(n.indexOf(g)!==-1)s+=1;});
+      if(/female|woman|swara|lekha|neerja|kiyara|heera|kalpana|aria|jenny|samantha|karen|moira|veena|zira/.test(n))s+=1;
+      if(/espeak|compact|novelty|whisper|bad news|bells|bubbles|cellos|zarvox|trinoids|albert|organ|jester|wobble|superstar|boing/.test(n))s-=20;
+      if(region&&l===region)s+=4;
+      return {v:v,s:s};
+    });
+    sc.sort(function(a,b){return b.s-a.s;});
+    return sc[0].v;
+  }
+  /* text a voice reads well */
+  function clean(t){
+    return String(t||'')
+      .replace(/<br\s*\/?>|<\/(p|li|div)>/gi,'. ').replace(/<[^>]*>/g,' ')
+      .replace(/&nbsp;/g,' ').replace(/&amp;/g,' and ').replace(/&lt;|&gt;|&quot;|&#39;/g,' ')
+      .replace(/[\u{1F000}-\u{1FAFF}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{2460}-\u{27BF}\u{2900}-\u{2BFF}\u{FE0F}\u{200D}]/gu,' ')
+      .replace(/[＋+]\s/g,' ').replace(/\s[·•|]\s?/g,', ').replace(/[·•]/g,', ').replace(/\s[—–]\s/g,', ').replace(/[“”"«»]/g,'')
+      .replace(/\b(COST|CST)-0*(\d+)\b/gi,'costing $2').replace(/\bHT-0*(\d+)\b/g,'voucher $1')
+      .replace(/(\d),(?=\d{3}\b)/g,'$1').replace(/\s*\/\s*/g,' or ')
+      .replace(/([.!?।])\s*[.]+/g,'$1')
+      .replace(/\s+([,.!?])/g,'$1').replace(/([,.!?])(?=[^\s\d])/g,'$1 ').replace(/(,\s*){2,}/g,', ').replace(/\s+/g,' ').replace(/([.!?।])(\s*[.,])+/g,'$1').trim();
+  }
+  /* Hindi in Roman letters (for a device with no Hindi voice) */
+  var V={'अ':'a','आ':'aa','इ':'i','ई':'ee','उ':'u','ऊ':'oo','ऋ':'ri','ए':'e','ऐ':'ai','ओ':'o','औ':'au','ऑ':'o'};
+  var M={'ा':'aa','ि':'i','ी':'ee','ु':'u','ू':'oo','ृ':'ri','े':'e','ै':'ai','ो':'o','ौ':'au','ॉ':'o','ॅ':'e'};
+  var C={'क':'k','ख':'kh','ग':'g','घ':'gh','ङ':'n','च':'ch','छ':'chh','ज':'j','झ':'jh','ञ':'n','ट':'t','ठ':'th','ड':'d','ढ':'dh','ण':'n','त':'t','थ':'th','द':'d','ध':'dh','न':'n','प':'p','फ':'ph','ब':'b','भ':'bh','म':'m','य':'y','र':'r','ल':'l','व':'v','श':'sh','ष':'sh','स':'s','ह':'h','ळ':'l'};
+  var NUK={'क':'q','ख':'kh','ग':'g','ज':'z','ड':'r','ढ':'rh','फ':'f'};
+  function roman(t){
+    var out='',ch=[...String(t||'')];
+    for(var i=0;i<ch.length;i++){
+      var c=ch[i],nx=ch[i+1];
+      if(C[c]){
+        var base=C[c];if(nx==='़'){base=NUK[c]||base;i++;nx=ch[i+1];}
+        if(nx&&M[nx]){out+=base+M[nx];i++;}
+        else if(nx==='्'){out+=base;i++;}
+        else{var end=!nx||!/[ऀ-ॿ]/.test(nx)||nx==='ं'||nx==='ँ';out+=base+(end&&!(nx==='ं'||nx==='ँ')?'':'a');}
+      }
+      else if(V[c])out+=V[c];
+      else if(M[c])out+=M[c];
+      else if(c==='ं'||c==='ँ')out+='n';
+      else if(c==='ः')out+='h';
+      else if(c==='।'||c==='॥')out+='.';
+      else if(c==='़'||c==='्')continue;
+      else if(/[०-९]/.test(c))out+=String('०१२३४५६७८९'.indexOf(c));
+      else out+=c;
+    }
+    return out;
+  }
+  /* short parts (long text is cut off half-way in some browsers) */
+  function parts(t){
+    var bits=t.replace(/([.!?।])\s+/g,'$1\n').split('\n'),out=[],cur='';
+    bits.forEach(function(b){
+      if((cur+' '+b).length>180&&cur){out.push(cur);cur=b;}else cur=cur?cur+' '+b:b;
+      while(cur.length>220){var k=cur.lastIndexOf(',',200);if(k<60)k=cur.lastIndexOf(' ',200);if(k<60)k=200;out.push(cur.slice(0,k+1));cur=cur.slice(k+1).trim();}
+    });
+    if(cur)out.push(cur);
+    return out.filter(function(x){return /[\wऀ-ॿ]/.test(x);});
+  }
+  function note(){
+    if(noteShown)return;noteShown=true;
+    try{chatbotAddMsg('🔈 <i>'+(hi()?'इस browser में हिंदी आवाज़ नहीं है — इसलिए हिंदी को Roman अक्षरों में पढ़ रहा हूँ।':'This browser has no Hindi voice — reading the Hindi in Roman letters.')+'</i>','bot system');}catch(e){}
+  }
+  function stop(){try{synth.cancel();}catch(e){}keep=[];speakingBtnText=null;}
+  /* 🔊 reads the whole message as it is now (with the costing cards under it), not only its first line */
+  var lastMsg=null,lastAt=0;
+  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.chatbot-voice-btn');if(b){lastMsg=b.closest('.chatbot-msg');lastAt=Date.now();}},true);
+  function msgText(){
+    if(!lastMsg||Date.now()-lastAt>800)return null;
+    var c=lastMsg.cloneNode(true);
+    [].forEach.call(c.querySelectorAll('.chatbot-voice-btn,.cr-btns,.chat-actions,button'),function(x){x.remove();});
+    [].forEach.call(c.querySelectorAll('.cr'),function(x){x.insertAdjacentText('beforeend','. ');});
+    return c.innerHTML;
+  }
+  window.chatbotSpeak=function(text){
+    var whole=msgText();if(whole)text=whole;
+    if(speakingBtnText===text&&(synth.speaking||synth.pending)){stop();return;}
+    stop();
+    var t=clean(text);if(!t)return;
+    speakingBtnText=text;
+    ready().then(function(){
+      var wantHi=hi()||/[ऀ-ॿ]/.test(t),voice=null,lang='en-US';
+      if(wantHi){
+        voice=best('hi','hi-in');lang='hi-IN';
+        if(!voice){t=roman(t);voice=best('en','en-in');lang=voice?voice.lang:'en-IN';note();}
+      }else{voice=best('en','en-us')||best('en');lang=voice?voice.lang:'en-US';}
+      var list=parts(t);
+      list.forEach(function(p,i){
+        var u=new SpeechSynthesisUtterance(p);
+        u.lang=lang;if(voice)u.voice=voice;
+        u.rate=wantHi?0.98:1;u.pitch=1;u.volume=1;
+        if(i===list.length-1)u.onend=function(){if(speakingBtnText===text)speakingBtnText=null;keep=[];};
+        u.onerror=function(){};
+        keep.push(u);   /* kept, so the browser does not drop it half-way */
+        synth.speak(u);
+      });
+    });
+  };
+  window.chatbotVoiceTest={clean:clean,roman:roman,parts:parts,best:best};
+  /* the welcome voice after login uses the same, clearest voice */
+  window.chatbotPickFemaleVoice=function(code){var c=String(code||'en-US').toLowerCase(),pre=c.split('-')[0];return best(pre,c)||null;};
+})();}catch(err){console.error('Help chat voice failed to start:',err);}
 </script>
 </body>
 </html>
