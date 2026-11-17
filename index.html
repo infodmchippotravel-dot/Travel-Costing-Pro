@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-17-13';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-14';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10098,7 +10098,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (13)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (14)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -14002,7 +14002,12 @@ try{(function(){
   /* ---------- admin: bring everyone's records here ---------- */
   /* only what changed since the last look (5 minutes back, for clock differences) — the free plan counts every record read */
   var K_DL='travelCloudDl';
-  function listAll(col,tok){
+  function listAll(col,tok,me){
+    /* a user: only their own records (the rules allow nothing else) — so a change the admin made reaches them */
+    if(me&&me.which!=='admin'){
+      var uq={structuredQuery:{from:[{collectionId:col}],where:{fieldFilter:{field:{fieldPath:'owner'},op:'EQUAL',value:{stringValue:me.uid}}}}};
+      return api(':runQuery',{method:'POST',body:JSON.stringify(uq)},tok).then(function(r){return (r||[]).filter(function(x){return x.document;}).map(function(x){return x.document;});});
+    }
     var dl=parse(get(K_DL),{})||{},since=dl[col];
     if(!since){
       var out=[];
@@ -14019,7 +14024,7 @@ try{(function(){
     var chain=Promise.resolve(),people={};
     Object.keys(COLS).forEach(function(col){
       var started=new Date().toISOString();
-      chain=chain.then(function(){return listAll(col,me.token);}).then(function(docs){
+      chain=chain.then(function(){return listAll(col,me.token,me);}).then(function(docs){
         var m=map(),list=listOf(col),idx={},changed=false;
         list.forEach(function(r,i){if(r&&r.id!=null)idx[r.id]=i;});
         var live=0;
@@ -14041,12 +14046,14 @@ try{(function(){
             if(sig(local)===e.sig&&sig(rec)!==e.sig&&!e.del){rec.id=e.id;list[at]=rec;e.sig=sig(rec);changed=true;}
             return;
           }
+          /* already here (a record of this browser that the map lost): link it, never make a copy */
+          if(owner&&owner===me.uid&&rec.id!=null&&idx[rec.id]!=null){m[col][doc]={id:rec.id,sig:sig(list[idx[rec.id]]),owner:owner,del:false};changed=true;return;}
           /* new to this browser */
           if(rec.id==null||idx[rec.id]!=null)rec.id=(col==='vouchers'?'v':'R')+hash(doc).replace(':','');
           list.push(rec);idx[rec.id]=list.length-1;
           m[col][doc]={id:rec.id,sig:sig(rec),owner:owner,del:false};changed=true;
         });
-        markDl(col,started);
+        if(me.which==='admin')markDl(col,started);
         stats[col]=Object.keys(m[col]).filter(function(k){return !m[col][k].del;}).length;
         if(changed){
           if(col==='costings'||col==='drafts')list.sort(function(a,b){return String(b.updatedAt||'').localeCompare(String(a.updatedAt||''));});
@@ -14066,12 +14073,14 @@ try{(function(){
   }
 
   /* ---------- run ---------- */
+  /* a user brings back their own records (changed by the admin) on opening, then at most every 5 minutes */
+  var userDlAt=0,USER_DL_GAP=300000;
   function run(){
     if(busy){again=true;return Promise.resolve();}
     if(!navigator.onLine){lastErr='';show();return Promise.resolve();}
     busy=true;show();
     return identity().then(function(me){
-      return upload(me).then(function(){return me.which==='admin'?download(me):null;}).then(function(){lastErr='';lastOk=Date.now();set(K_AT,new Date().toISOString());});
+      return upload(me).then(function(){if(me.which==='admin')return download(me);if(Date.now()-userDlAt<USER_DL_GAP)return null;userDlAt=Date.now();return download(me);}).then(function(){lastErr='';lastOk=Date.now();set(K_AT,new Date().toISOString());});
     }).catch(function(e){if(!/not connected/.test(e.message))lastErr=lastErr||('Could not reach the cloud: '+e.message);})
       .then(function(){busy=false;show();if(again){again=false;setTimeout(run,500);}});
   }
