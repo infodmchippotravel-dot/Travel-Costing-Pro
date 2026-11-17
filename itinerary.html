@@ -1202,7 +1202,7 @@ function renderDays() {
       const dt = dayDate(v, i);
       const ta = (id, kind, path, val, ph, label, cls = '') => `<textarea ${id ? `id="${id}"` : ''} class="ag ${cls}" rows="1" ${kind ? `data-combo="${kind}" data-i="${i}"` : ''} data-f="${path}" placeholder="${ph}" autocomplete="off" spellcheck="false" aria-label="${label}">${esc(val)}</textarea>`;
       return `<tr id="day-${i}">
-      <td class="dn" data-l="Date">${dt ? `${fmtShort(dt).replace(' ', '&nbsp;')}<small>${DOW[dt.getDay()]}</small>` : `<span class="muted">—</span><small>set start date</small>`}</td>
+      <td class="dn" data-l="Date">${dt ? `${fmtShort(dt).replace(' ', '&nbsp;')}<small>${DOW[dt.getDay()]}</small><span class="dmove-w"><button type="button" class="dmove-b" data-dmove-b="${i}" aria-label="Change the date of ${esc(dLabel(i))}">📅 Change</button><input type="date" class="dmove" data-dmove="${i}" value="${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}" tabindex="-1" aria-hidden="true"></span>` : `<span class="muted">—</span><small>set start date</small>`}</td>
       <td data-l="Tour / Activity">${d.title.trim()
         ? `${ta(`t-${i}`, '', `days.${i}.title`, d.title, 'Tour name', 'Tour or activity', 'strong')}<button class="btn sm pick-btn" type="button" data-act="openTour" data-a="${i}">🔄 Change tour</button>`
         : `<button class="btn pick-btn big" type="button" data-act="openTour" data-a="${i}">🔍 Choose tour</button>${ta(`t-${i}`, '', `days.${i}.title`, d.title, '…or type your own', 'Tour or activity', 'strong')}`}</td>
@@ -2206,6 +2206,12 @@ window.tvFromCosting = function (rec) {
 <style>
 .fc-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 14px;border-radius:12px;background:#fff8e6;border:1px solid #e8d3a2;color:#0b1f3a;font-size:14.5px}
 .fc-bar[hidden]{display:none}
+td.dn .dmove-w{position:relative;display:block;margin-top:6px;max-width:100%}
+td.dn .dmove-b{min-height:32px;max-width:100%;padding:0 6px;border:1px dashed #C6A76B;border-radius:8px;background:#fffaf0;color:#0b1f3a;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td.dn .dmove-b:focus-visible{outline:3px solid #C6A76B;outline-offset:1px}
+td.dn .dmove{position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;pointer-events:none}
+html.theme-dark td.dn .dmove-b{background:#2a2314;border-color:#6b5a33;color:#f5ecd6}
+@media print{td.dn .dmove-w{display:none!important}}
 .fc-bar button{min-height:40px;padding:0 14px;border-radius:10px;border:0;background:linear-gradient(135deg,#C6A76B,#a8874a);color:#0B1F3A;font-weight:800;font-size:14.5px;cursor:pointer}
 .fc-bar button:focus-visible{outline:3px solid #0b1f3a;outline-offset:2px}
 html.theme-dark .fc-bar{background:#2a2314;border-color:#6b5a33;color:#f5ecd6}
@@ -2262,6 +2268,29 @@ html.theme-dark .fc-bar{background:#2a2314;border-color:#6b5a33;color:#f5ecd6}
     if (canRemake) bar.innerHTML = `<span>📄 Made from costing <b>${esc(fc.no || '')}</b>. Changed the costing, or something looks wrong?</span><button type="button" id="fcAgain">🔄 Make again from the costing</button>`;
   }
   bar.addEventListener('click', e => { if (e.target.closest('#fcAgain')) { try { window.parent.itinFromCosting(draft.fromCosting.id); } catch (er) { toast('The costing could not be opened'); } } });
+  // "📅 Change date" opens the calendar of the hidden date box
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('.dmove-b'); if (!b) return;
+    const inp = b.parentNode.querySelector('.dmove'); if (!inp) return;
+    try { if (inp.showPicker) { inp.showPicker(); return; } } catch (er) {}
+    inp.style.pointerEvents = 'auto'; inp.focus(); inp.click();
+  });
+  // change a day's date → the day moves to that date (the other days keep their order)
+  document.addEventListener('change', e => {
+    const inp = e.target.closest && e.target.closest('.dmove'); if (!inp) return;
+    const i = +inp.dataset.dmove, st = draft.start ? new Date(draft.start + 'T00:00:00') : null, v = inp.value ? new Date(inp.value + 'T00:00:00') : null;
+    if (!st || !v || isNaN(v) || !draft.days[i]) return;
+    const j = Math.round((v - st) / 864e5), n = draft.days.length;
+    if (j === i) return;
+    if (j < 0 || j >= n) {
+      const a = dayDate(draft, 0), z = dayDate(draft, n - 1);
+      inp.value = `${dayDate(draft, i).getFullYear()}-${p2(dayDate(draft, i).getMonth() + 1)}-${p2(dayDate(draft, i).getDate())}`;
+      toast(`That date is not in this trip (${fmtShort(a)} – ${fmtShort(z)}). To move the whole trip, change the Start date.`);
+      return;
+    }
+    snap(); const [d] = draft.days.splice(i, 1); draft.days.splice(j, 0, d); touch(); renderMake();
+    toast(`${d.title || 'Day'} moved to ${fmtShort(dayDate(draft, j))}`, true);
+  });
   const rm = renderMake;
   renderMake = function () { const r = rm.apply(this, arguments); showBar(); return r; };
   renderMake();
