@@ -14805,13 +14805,8 @@ try{(function(){
   }
   function run(text,shown){
     if(!shown)chatbotAddMsg(esc(text),'user',false);
-    var b=$('chatbotBody'),t=null;
-    if(b){t=document.createElement('div');t.className='chatbot-msg bot typing';t.innerHTML='<i></i><i></i><i></i>';b.appendChild(t);b.scrollTop=b.scrollHeight;}
-    setTimeout(function(){
-      if(t&&t.parentNode)t.parentNode.removeChild(t);
-      var done=false;try{done=handle(text);}catch(e){console.error('Help chat assistant failed:',e);}
-      if(!done){if(typeof window.chatbotReply==='function')window.chatbotReply(text);else prevAsk(text);}
-    },300);
+    var done=false;try{done=handle(text);}catch(e){console.error('Help chat assistant failed:',e);}
+    if(!done){if(typeof window.chatbotReply==='function')window.chatbotReply(text);else prevAsk(text);}
   }
   window.chatbotAsk=function(text){run(text,false);};
   window.chatbotQuickAsk=function(btn){var q=btn.getAttribute('data-kw')||btn.textContent;chatbotAddMsg(esc(btn.textContent),'user',false);run(q,true);};
