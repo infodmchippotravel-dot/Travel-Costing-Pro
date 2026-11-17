@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-17-15';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-16';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -4807,7 +4807,7 @@ function saveWORD(){
     let blobW=new Blob(['\ufeff',html],{type:'application/msword'});
     let aW=document.createElement('a');aW.href=URL.createObjectURL(blobW);
     let fnW=(costingNumberField&&costingNumberField.value.trim())||costingNumber();
-    aW.download='Quotation_'+fnW+'.doc';document.body.appendChild(aW);aW.click();aW.remove();
+    aW.download='Quotation_'+fnW+((function(){var n=(document.getElementById('personName')||{}).value||'';n=n.replace(/[\\/:*?"<>|]+/g,'').trim().replace(/\s+/g,'_');return n?'_'+n:'';})())+'.doc';document.body.appendChild(aW);aW.click();aW.remove();
     setTimeout(function(){URL.revokeObjectURL(aW.href);},2000);
     return;
   }
@@ -4855,7 +4855,7 @@ function saveWORD(){
   let a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   let fileName=(costingNumberField&&costingNumberField.value.trim())||costingNumber();
-  a.download='Quotation_'+fileName+'.doc';
+  a.download='Quotation_'+fileName+((function(){var n=(document.getElementById('personName')||{}).value||'';n=n.replace(/[\\/:*?"<>|]+/g,'').trim().replace(/\s+/g,'_');return n?'_'+n:'';})())+'.doc';
   document.body.appendChild(a);a.click();a.remove();
   setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
 }
@@ -7473,16 +7473,22 @@ try{(function(){
     missing.forEach(function(r){r.seq=++maxSeq;});
     return true;
   }
-  /* 001, 002, 003 … in creation order. Returns true when something changed. */
+  /* Each person has their own serial: Rahul 001, 002 … and Priya 001, 002 … in the order they made them.
+     A browser numbers only its own person's costings — the admin's browser never changes a user's numbers
+     (before, the admin and the user numbered the same costings differently and the numbers jumped about). */
+  function owner(r){var c=r&&r.createdBy;return c&&c.key?c.key:'admin:main';}
+  function me(){var k='';try{k=localStorage.getItem('travelCurrentUserKey')||'';}catch(e){}return k||'admin:main';}
+  function created(r){var t=Date.parse(r.createdAt||'');return isFinite(t)?t:0;}
   function renumber(){
-    var changed=ensureOrder();
-    savedCostings.slice().sort(function(a,b){return a.seq-b.seq;}).forEach(function(r,i){
+    var changed=ensureOrder(),adm=me()==='admin:main',groups={};
+    savedCostings.forEach(function(r){var g=owner(r);if(adm&&g!=='admin:main')return;(groups[g]=groups[g]||[]).push(r);});
+    Object.keys(groups).forEach(function(g){groups[g].sort(function(a,b){return (a.seq-b.seq)||(created(a)-created(b));}).forEach(function(r,i){
       var n=fmt(i+1);
       if(r.costingNumber!==n){
         if(r.costingNumber&&!/^COST-\d+$/.test(r.costingNumber)&&!r.oldCostingNumber)r.oldCostingNumber=r.costingNumber;
         r.costingNumber=n;changed=true;
       }
-    });
+    });});
     return changed;
   }
   function commit(){
@@ -7501,7 +7507,7 @@ try{(function(){
       var r=savedCostings.find(function(x){return x.id===currentCostingId;});
       if(r&&r.costingNumber)return r.costingNumber;
     }
-    return fmt(savedCostings.length+1);   // next free number
+    var k=me();return fmt(savedCostings.filter(function(r){return owner(r)===k;}).length+1);   // next free number (this person's own serial)
   };
   function refreshScreen(){
     var f=$('costingNumberField');
@@ -7689,7 +7695,7 @@ try{(function(){
     });
   }
   var SORTERS={
-    number:function(r){return seqNo(r);},
+    number:function(r){return isAdminSession()?creatorOf(r).toLowerCase()+'|'+String(seqNo(r)).padStart(6,'0'):seqNo(r);},
     client:function(r){return (r.name||'').toLowerCase();},
     date:function(r){return r.date||'';},
     pax:function(r){return +r.pax||0;},
@@ -10105,7 +10111,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (15)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (16)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');

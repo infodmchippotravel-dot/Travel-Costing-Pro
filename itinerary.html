@@ -1927,9 +1927,12 @@ $('modeSel').addEventListener('change', e => {
 const baseTitle = document.title;
 window.addEventListener('beforeprint', () => {
   $('printArea').innerHTML = renderSlip(draft, printMode); // also when Ctrl+P is pressed
-  document.title = `Voucher - ${(draft.client || 'Client').replace(/[\\/:*?"<>|]+/g, '').trim()}${draft.no ? ' - ' + draft.no : ''}`;
+  /* the PDF file name starts with the voucher number, so saved PDFs sort in serial order: "Voucher - HT-0001 - CLIENT" */
+  const t = ['Voucher', draft.no, (draft.client || 'Client').replace(/[\\/:*?"<>|]+/g, '').trim()].filter(Boolean).join(' - ');
+  document.title = t;
+  try { if (window.parent !== window && window.parent.document) { if (window.__parentTitle == null) window.__parentTitle = window.parent.document.title; window.parent.document.title = t; } } catch (e) { }
 });
-window.addEventListener('afterprint', () => { document.title = baseTitle; });
+window.addEventListener('afterprint', () => { document.title = baseTitle; try { if (window.__parentTitle != null) { window.parent.document.title = window.__parentTitle; window.__parentTitle = null; } } catch (e) { } });
 window.addEventListener('beforeunload', () => { if (draftTimer) { clearTimeout(draftTimer); LS.set(K.draft, draft); } });
 
 /* =========================================================
