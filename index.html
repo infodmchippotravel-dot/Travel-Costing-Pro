@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-17-2';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-3';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10075,7 +10075,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (2)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (3)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -14560,6 +14560,273 @@ try{(function(){
   var f=document.querySelector('.sitefooter .foot-info');
   if(f)new MutationObserver(function(){add();}).observe(f,{childList:true});
 })();}catch(err){console.error('Footer icons failed to start:',err);}
+</script>
+<style id="chatBotCss">
+.chat-res{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.chat-res .cr{border:1px solid var(--line,#e5e7eb);border-radius:10px;padding:8px 10px;background:var(--card,#fff)}
+.chat-res .cr b{font-weight:800}
+.chat-res .cr small{display:block;color:var(--muted,#667085);font-size:12.5px;margin-top:2px}
+.chat-res .cr .cr-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chat-res .cr .cr-btns button{min-height:34px;padding:0 10px;border-radius:8px;border:1px solid #D8D1C4;background:#fffaf0;color:#0b1f3a;font-weight:700;font-size:13px;cursor:pointer}
+.chat-res .cr .cr-btns button.go{background:linear-gradient(135deg,#C6A76B,#a8874a);border:0}
+.chat-res .cr .cr-btns button:focus-visible{outline:3px solid #C6A76B;outline-offset:1px}
+body.dark .chat-res .cr{background:#0f1b2d;border-color:#334155}
+body.dark .chat-res .cr .cr-btns button{background:#2a2314;border-color:#6b5a33;color:#f5ecd6}
+body.dark .chat-res .cr .cr-btns button.go{color:#0b1f3a}
+</style>
+<script>
+/* =====================================================================
+   HELP CHAT — A REAL ASSISTANT (it does the work, not only explains)
+     • find a costing by client name, phone or COST number → Open / PDF /
+       Word / Create Itinerary buttons
+     • "make the itinerary for COST-001", "pdf of Sachin", "new costing"
+     • prices and closed days from Saved Rates (prices: admin only)
+     • upcoming trips, this month, biggest costing, total value
+     • open any page, dark / light mode
+     Everything else goes to the normal help answers.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  if(typeof window.chatbotAsk!=='function'||typeof window.chatbotAddMsg!=='function')return;
+  var prevAsk=window.chatbotAsk,prevQuick=window.chatbotQuickAsk;
+  function $(id){return document.getElementById(id);}
+  function hi(){try{return chatbotLang==='hi';}catch(e){return false;}}
+  function admin(){return typeof isAdminSession==='function'&&isAdminSession();}
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function L(en,h){return hi()?h:en;}
+  function money(n){return (Math.round((+n||0)*100)/100).toLocaleString('en-IN',{maximumFractionDigits:2});}
+  function fmtD(d){var t=Date.parse(d||'');return isFinite(t)?new Date(t).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';}
+  function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
+  /* ---- data the person may see ---- */
+  function costings(){
+    var l=(typeof savedCostings!=='undefined'&&Array.isArray(savedCostings))?savedCostings:[];
+    return l.filter(function(r){return r&&(window.canSeeCosting?canSeeCosting(r):true);});
+  }
+  function total(r){return (r.services||[]).reduce(function(a,s){return a+(typeof lineTotal==='function'?lineTotal(s):(+s.price||0));},0);}
+  function rates(){
+    var out=[];
+    try{(typeof transfers!=='undefined'&&Array.isArray(transfers)?transfers:[]).forEach(function(t){if(t&&t.name)out.push({kind:'transfer',name:t.name,car:t.car,suv:t.suv,van:t.van});});}catch(e){}
+    try{var tk=typeof getTickets==='function'?getTickets():{};Object.keys(tk).forEach(function(n){var r=tk[n]||{};out.push({kind:'ticket',name:n,adult:r.adult!=null?r.adult:r.price,child:r.child});});}catch(e){}
+    try{var o=typeof getOther==='function'?getOther():{};Object.keys(o).forEach(function(n){var r=o[n]||{};out.push({kind:r.category||'sic',name:n,adult:r.adult,child:r.child,car:r.car,suv:r.suv,van:r.van});});}catch(e){}
+    return out;
+  }
+  function closedDays(){try{return JSON.parse(localStorage.getItem('travelClosedDays')||'{}')||{};}catch(e){return {};}}
+  var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  /* ---- understanding the question ---- */
+  var FILL=' the a an of for to me my mera meri mere ka ki ke ko se me mein main hai hain ho please plz pls kar karo kardo kar do de do dedo dikha dikhao dikhado batao bata btao open kholo khol show find search dhundo dhoondo khojo get give list costing costings quotation quote client customer wala wali wale ki ka liye abhi jaldi zara wo woh ye yeh is us bana banao banado bnao make create new nayi naya pdf print word file itinerary itenary itinary voucher rate price kimat keemat daam kitne kitna kya what how is are tour ticket transfer ';
+  function toks(q){return String(q||'').toLowerCase().replace(/[^a-z0-9ऀ-ॿ\s-]+/g,' ').split(/\s+/).filter(function(w){return w&&w.length>=2&&FILL.indexOf(' '+w+' ')===-1;});}
+  function costNo(q){var m=/\b(?:cost|cst)[\s\-#]*0*(\d{1,7})\b/i.exec(q)||/#\s*0*(\d{1,7})\b/.exec(q);return m?+m[1]:null;}
+  function findCostings(q){
+    var list=costings(),no=costNo(q);
+    if(no!=null)return list.filter(function(r){var m=/(\d+)\s*$/.exec(r.costingNumber||'');return m&&+m[1]===no;});
+    var digits=(String(q).match(/\d{6,}/)||[])[0];
+    if(digits)return list.filter(function(r){return String(r.taglineNumber||'').replace(/\D/g,'').indexOf(digits)!==-1;});
+    var ws=toks(q).filter(function(w){return w.length>=3&&!/^\d+$/.test(w);});if(!ws.length)return [];
+    var scored=list.map(function(r){
+      var n=String(r.name||'').toLowerCase(),sc=0;
+      ws.forEach(function(w){if(n.indexOf(w)!==-1)sc+=w.length;else if(w.length>=5&&n.indexOf(w.slice(0,w.length-1))!==-1)sc+=w.length-1;});
+      return {r:r,sc:sc};
+    }).filter(function(x){return x.sc>=3;});
+    scored.sort(function(a,b){return b.sc-a.sc||String(b.r.updatedAt||'').localeCompare(String(a.r.updatedAt||''));});
+    var top=scored.length?scored[0].sc:0;
+    return scored.filter(function(x){return x.sc>=top*0.7;}).map(function(x){return x.r;});
+  }
+  function findRates(q){
+    var ws=toks(q).filter(function(w){return w.length>=3;});if(!ws.length)return [];
+    var all=rates(),sc=all.map(function(r){
+      var n=String(r.name||'').toLowerCase().replace(/[^a-z0-9ऀ-ॿ\s]+/g,' '),s=0;
+      ws.forEach(function(w){if((' '+n+' ').indexOf(' '+w)!==-1)s+=w.length;});
+      return {r:r,s:s};
+    }).filter(function(x){return x.s>=4;});
+    sc.sort(function(a,b){return b.s-a.s;});
+    var top=sc.length?sc[0].s:0;
+    return sc.filter(function(x){return x.s>=top*0.75;}).slice(0,5).map(function(x){return x.r;});
+  }
+
+  /* ---- what the answer looks like ---- */
+  function closeChatOnPhone(){if((window.innerWidth||1000)<=640){try{var pn=$('chatbotPanel');if(pn&&pn.classList.contains('show'))toggleChatbot();}catch(e){}}}
+  function act(fn){return function(){try{fn();}catch(e){console.error(e);}closeChatOnPhone();};}
+  function say(html,cards){
+    var m=chatbotAddMsg(html,'bot');if(!m)return;
+    if(cards&&cards.length){
+      var box=document.createElement('div');box.className='chat-res';
+      cards.forEach(function(c){
+        var d=document.createElement('div');d.className='cr';d.innerHTML=c.html;
+        if(c.btns&&c.btns.length){var b=document.createElement('div');b.className='cr-btns';c.btns.forEach(function(x){var bt=document.createElement('button');bt.type='button';bt.textContent=x[0];if(x[2])bt.className='go';bt.onclick=x[1];b.appendChild(bt);});d.appendChild(b);}
+        box.appendChild(d);
+      });
+      m.appendChild(box);
+    }
+    var body=$('chatbotBody');if(body)body.scrollTop=body.scrollHeight;
+  }
+  function costingCard(r,main){
+    var id=r.id,b=[];
+    var open=[L('✏️ Open','✏️ खोलें'),act(function(){openCosting(id);})],pdf=[L('🖨️ PDF','🖨️ PDF'),act(function(){printCosting(id);})],
+        word=[L('⬇️ Word','⬇️ Word'),act(function(){downloadCostingWord(id);})],itin=[L('🗺️ Itinerary','🗺️ Itinerary'),act(function(){itinFromCosting(id);})];
+    b=main==='pdf'?[[pdf[0],pdf[1],1],open,word,itin]:main==='word'?[[word[0],word[1],1],open,pdf,itin]:main==='itin'?[[itin[0],itin[1],1],open,pdf]:[[open[0],open[1],1],pdf,word,itin];
+    return {html:'<b>'+esc(r.costingNumber||'')+' · '+esc(r.name||'—')+'</b><small>'+L('Travel','यात्रा')+' '+esc(fmtD(r.date))+' · '+esc(String(r.pax||0))+' '+L('people','लोग')+' · <b>'+money(total(r))+'</b> '+esc(r.currency||'')+'</small>',btns:b};
+  }
+  function costingList(list,main,head){
+    if(!list.length)return false;
+    var many=list.length>6;
+    say(head||(list.length===1?L('Found it:','मिल गई:'):L('I found <b>'+list.length+'</b> costings'+(many?' — the newest 6:':':'),'<b>'+list.length+'</b> कॉस्टिंग मिलीं'+(many?' — सबसे नई 6:':':'))),
+      list.slice().sort(function(a,b){return String(b.updatedAt||'').localeCompare(String(a.updatedAt||''));}).slice(0,6).map(function(r){return costingCard(r,main);}));
+    return true;
+  }
+  function rateHtml(r){
+    var cd=closedDays(),cl=(cd.sic&&cd.sic[r.name])||(cd.ticket&&cd.ticket[r.name])||[];
+    var closed=cl.length?'<small>⛔ '+L('Closed on','बंद')+': '+cl.map(function(i){return DAYS[i];}).join(', ')+'</small>':'';
+    var kind={transfer:L('Transfer','ट्रांसफर'),ticket:L('Entry ticket','एंट्री टिकट'),sic:'SIC',private:L('Private','प्राइवेट'),meal:L('Meal','खाना')}[r.kind]||r.kind;
+    var price='';
+    if(admin()){
+      if(r.car!=null||r.suv!=null||r.van!=null)price=[r.car!=null?'Car '+money(r.car):'',r.suv!=null?'SUV '+money(r.suv):'',r.van!=null?'Van '+money(r.van):''].filter(Boolean).join(' · ');
+      if(r.adult!=null)price=(price?price+' · ':'')+L('Adult','Adult')+' '+money(r.adult)+(r.child!=null?' · '+L('Child','Child')+' '+money(r.child):'');
+    }
+    return {html:'<b>'+esc(r.name)+'</b><small>'+esc(kind)+(price?' · '+esc(price):(admin()?'':' · '+L('the price is added by itself in the Costing Sheet','कीमत Costing Sheet में अपने आप लगती है')))+'</small>'+closed,
+      btns:[[L('＋ Add in Costing Sheet','＋ Costing Sheet में जोड़ें'),act(function(){showPage('dashboard');}),1]]};
+  }
+  var PAGES=[
+    [/my costings?|saved costings?|meri costing|सेव कॉस्टिंग|costing list/,'saved',['My Costings','My Costings']],
+    [/saved rates?|rate list|rates? page|price list/,'rates',['Saved Rates','Saved Rates'],1],
+    [/settings?|setting|सेटिंग/,'settings',['Settings','Settings']],
+    [/create itinerary|itinerary page|voucher page/,'itinerary',['Create Itinerary','Create Itinerary']],
+    [/costing sheet|dashboard/,'dashboard',['Costing Sheet','Costing Sheet']],
+    [/print ?\/? ?pdf page|pdf page/,'pdf',['Print / PDF','Print / PDF']],
+    [/help page|guide/,'help',['Help','Help']],
+    [/about/,'about',['About','About']],
+    [/home( page)?|ghar|main page/,'home',['Home','Home']]
+  ];
+
+  /* ---- the assistant ---- */
+  function handle(q){
+    var m=' '+String(q||'').toLowerCase().replace(/\s+/g,' ')+' ';
+    var how=/\b(kaise|kese|kaisey|how|kyu|kyon|why|kya hota|meaning|matlab)\b|कैसे/.test(m);
+
+    // what can you do
+    if(/(what can you do|kya kya kar|kya kar sakte|aap kya karte|help me with|your features|tum kya kar)/.test(m)){
+      say(L('I can <b>do</b> these for you — just type:','मैं ये काम <b>खुद</b> कर सकता हूँ — बस लिखिए:')+'<ul>'
+        +'<li>'+L('“<b>open Sachin</b>” or “<b>COST-001</b>” — find a costing','“<b>Sachin kholo</b>” या “<b>COST-001</b>” — कॉस्टिंग ढूंढूं')+'</li>'
+        +'<li>'+L('“<b>itinerary for COST-001</b>” — make the itinerary','“<b>COST-001 ka itinerary banao</b>” — itinerary बनाऊं')+'</li>'
+        +'<li>'+L('“<b>pdf of Sachin</b>” / “<b>word file of COST-002</b>”','“<b>Sachin ki pdf</b>” / “<b>COST-002 ki word file</b>”')+'</li>'
+        +'<li>'+L('“<b>Tiger Park price</b>”, “<b>Coral Island closed days</b>”','“<b>Tiger Park ka rate</b>”, “<b>Coral Island kab band</b>”')+'</li>'
+        +'<li>'+L('“<b>upcoming trips</b>”, “<b>costings this month</b>”, “<b>biggest costing</b>”','“<b>aane wale trips</b>”, “<b>is mahine ki costing</b>”, “<b>sabse badi costing</b>”')+'</li>'
+        +'<li>'+L('“<b>new costing</b>”, “<b>open settings</b>”, “<b>dark mode</b>”','“<b>nayi costing</b>”, “<b>settings kholo</b>”, “<b>dark mode</b>”')+'</li>'
+        +'<li>'+L('and every “how do I …?” question','और हर “… kaise kare?” सवाल')+'</li></ul>');
+      return true;
+    }
+    // dark / light mode
+    if(/\b(dark|light|night|raat|andhera)\s*(mode|theme)?\b.*\b(on|off|karo|kar do|chalu|band|lagao|hatao)?/.test(m)&&/\b(mode|theme)\b|डार्क/.test(m)&&!how){
+      var wantDark=!/\blight\b|\b(off|band|hatao)\b/.test(m),isDark=document.body.classList.contains('dark');
+      if(wantDark!==isDark&&typeof toggleTheme==='function')toggleTheme();
+      say(wantDark?L('🌙 Dark mode is on.','🌙 डार्क मोड चालू है।'):L('☀️ Light mode is on.','☀️ लाइट मोड चालू है।'));
+      return true;
+    }
+    // new costing
+    if(/\b(new|nayi|naya|nai|fresh|start|shuru)\b.{0,15}\b(costing|quotation|quote)\b|\b(costing|quotation)\b.{0,10}\b(new|nayi|naya)\b/.test(m)&&!how){
+      if(typeof newCostingFromHome==='function')newCostingFromHome();else showPage('dashboard');
+      say(L('✅ A new costing is open. Fill the client name and travel date first.','✅ नई कॉस्टिंग खुल गई। पहले client का नाम और travel date भरें।'));closeChatOnPhone();
+      return true;
+    }
+    var wantItin=/\b(itinerary|itenary|itinary|itinery|voucher|vochar)\b|इटिनरेरी|वाउचर/.test(m),wantPdf=/\bpdf\b|\bprint\b/.test(m),wantWord=/\bword\b|\bdoc(x)?\b/.test(m);
+    var hasNo=costNo(q)!=null;
+    // a costing named in the question (COST number, phone, or a client name)
+    var found=(hasNo||/\b(open|kholo|khol|find|search|dhundo|dhoondo|khojo|dikhao|show|costing|quotation|ki costing|ka costing)\b/.test(m)||wantItin||wantPdf||wantWord)&&!how?findCostings(q):[];
+    if(found.length){
+      var main=wantItin?'itin':wantWord?'word':wantPdf?'pdf':'open';
+      if(found.length===1&&(main!=='open'||hasNo||/\b(open|kholo|khol do|khol)\b/.test(m))){
+        var r=found[0];
+        try{
+          if(main==='itin')itinFromCosting(r.id);
+          else if(main==='pdf')printCosting(r.id);
+          else if(main==='word')downloadCostingWord(r.id);
+          else openCosting(r.id);
+        }catch(e){console.error(e);}
+        say({itin:L('🗺️ Making the itinerary from <b>'+esc(r.costingNumber)+' · '+esc(r.name)+'</b> — check it, then press Save.','🗺️ <b>'+esc(r.costingNumber)+' · '+esc(r.name)+'</b> से itinerary बन रही है — देखें, फिर Save दबाएं।'),
+          pdf:L('🖨️ Opening the PDF of <b>'+esc(r.costingNumber)+' · '+esc(r.name)+'</b>.','🖨️ <b>'+esc(r.costingNumber)+' · '+esc(r.name)+'</b> की PDF खुल रही है।'),
+          word:L('⬇️ The Word file of <b>'+esc(r.costingNumber)+' · '+esc(r.name)+'</b> is downloading.','⬇️ <b>'+esc(r.costingNumber)+' · '+esc(r.name)+'</b> की Word फ़ाइल डाउनलोड हो रही है।'),
+          open:L('✏️ Opened <b>'+esc(r.costingNumber)+' · '+esc(r.name)+'</b>.','✏️ <b>'+esc(r.costingNumber)+' · '+esc(r.name)+'</b> खुल गई।')}[main],[costingCard(r,main)]);
+        closeChatOnPhone();
+        return true;
+      }
+      return costingList(found,main);
+    }
+    if(hasNo&&!how){say(L('I could not find that costing number. Check it in <b>My Costings</b>.','वो कॉस्टिंग नंबर नहीं मिला। <b>My Costings</b> में देखें।'),[{html:L('Search all costings','सब कॉस्टिंग में ढूंढें'),btns:[[L('Open My Costings','My Costings खोलें'),act(function(){showPage('saved');}),1]]}]);return true;}
+    // upcoming trips
+    if(/(upcoming|aane wal|aanewal|agle|next|coming|future).{0,20}(trip|travel|tour|costing|booking|client|yatra)|(trip|travel).{0,12}(upcoming|aane wal)/.test(m)){
+      var t0=today(),up=costings().filter(function(r){return r.date&&r.date>=t0;}).sort(function(a,b){return a.date<b.date?-1:1;});
+      if(!up.length){say(L('No upcoming trips in your costings.','आपकी कॉस्टिंग में कोई आने वाली यात्रा नहीं है।'));return true;}
+      say(L('Upcoming trips (<b>'+up.length+'</b>):','आने वाली यात्राएं (<b>'+up.length+'</b>):'),up.slice(0,6).map(function(r){return costingCard(r,'open');}));
+      return true;
+    }
+    // this month / today / biggest / total value
+    if(/(this month|is mahine|iss mahine|is month|current month|इस महीने)/.test(m)&&/(costing|quotation|kitni|how many|bani|bane)/.test(m)){
+      var ym=today().slice(0,7),cm=costings().filter(function(r){return String(r.updatedAt||'').slice(0,7)===ym;});
+      var bc={};cm.forEach(function(r){var c=r.currency||'';bc[c]=(bc[c]||0)+total(r);});var vs=Object.keys(bc).map(function(c){return '<b>'+money(bc[c])+'</b> '+esc(c);}).join(' + ')||'<b>0</b>';
+      say(L('This month: <b>'+cm.length+'</b> costing'+(cm.length===1?'':'s')+' · value '+vs+'.','इस महीने: <b>'+cm.length+'</b> कॉस्टिंग · कुल '+vs+'।'),cm.slice(0,4).map(function(r){return costingCard(r,'open');}));
+      return true;
+    }
+    if(/(today|aaj)\b.{0,20}(costing|quotation)|(costing|quotation).{0,20}\b(today|aaj)\b/.test(m)){
+      var td=today(),tc=costings().filter(function(r){return String(r.updatedAt||'').slice(0,10)===td;});
+      say(L('Today: <b>'+tc.length+'</b> costing'+(tc.length===1?'':'s')+'.','आज: <b>'+tc.length+'</b> कॉस्टिंग।'),tc.slice(0,4).map(function(r){return costingCard(r,'open');}));
+      return true;
+    }
+    if(/(biggest|largest|highest|sabse badi|sabse bada|sabse jyada|sabse zyada|max).{0,20}(costing|quotation|amount|total)/.test(m)){
+      var all=costings().slice().sort(function(a,b){return total(b)-total(a);});
+      if(!all.length){say(L('No saved costings yet.','अभी कोई सेव कॉस्टिंग नहीं है।'));return true;}
+      say(L('The biggest costing:','सबसे बड़ी कॉस्टिंग:'),[costingCard(all[0],'open')]);return true;
+    }
+    if(/(total value|kul value|sab ka total|sabka total|total of all|all costings total|kul kitne ki|total business)/.test(m)){
+      var cs=costings(),byCur={};cs.forEach(function(r){var c=r.currency||'';byCur[c]=(byCur[c]||0)+total(r);});
+      say(L('All your <b>'+cs.length+'</b> costings together: ','आपकी सब <b>'+cs.length+'</b> कॉस्टिंग मिलाकर: ')+Object.keys(byCur).map(function(c){return '<b>'+money(byCur[c])+'</b> '+esc(c);}).join(' + ')+'.');
+      return true;
+    }
+    // closed days
+    if(/(closed|close|band|bandh|holiday|chutti|off day|kab nahi|kab band)/.test(m)&&!how){
+      var cr=findRates(q.replace(/closed|close|band|bandh|holiday|chutti|kab/ig,' '));
+      if(cr.length){say(L('Here is what I found:','ये मिला:'),cr.map(rateHtml));return true;}
+    }
+    // prices
+    if(/(price|rate|rates|kimat|keemat|daam|dam|kitne ka|kitne ki|kitna hai|cost of|charges?)/.test(m)&&!how){
+      var pr=findRates(q);
+      if(pr.length){say(admin()?L('Prices from Saved Rates:','Saved Rates की कीमतें:'):L('This is in the list — pick it in the Costing Sheet:','ये लिस्ट में है — Costing Sheet में चुनें:'),pr.map(rateHtml));return true;}
+    }
+    // open a page
+    if(/\b(open|kholo|khol do|khol|jao|chalo|go to|le chalo|dikhao|show)\b/.test(m)&&!how){
+      for(var i=0;i<PAGES.length;i++){var pg=PAGES[i];if(pg[0].test(m)){if(pg[3]&&!admin())break;try{showPage(pg[1]);}catch(e){}say(L('➜ Opened <b>'+pg[2][0]+'</b>.','➜ <b>'+pg[2][1]+'</b> खुल गया।'));closeChatOnPhone();return true;}}
+    }
+    // a client name alone ("sachin")
+    if(!how&&toks(q).length&&toks(q).length<=3){
+      var nm=findCostings(q);if(nm.length&&costingList(nm,'open'))return true;
+      var rr=findRates(q);if(rr.length){say(L('From Saved Rates:','Saved Rates से:'),rr.map(rateHtml));return true;}
+    }
+    return false;
+  }
+  function run(text,shown){
+    if(!shown)chatbotAddMsg(esc(text),'user',false);
+    var b=$('chatbotBody'),t=null;
+    if(b){t=document.createElement('div');t.className='chatbot-msg bot typing';t.innerHTML='<i></i><i></i><i></i>';b.appendChild(t);b.scrollTop=b.scrollHeight;}
+    setTimeout(function(){
+      if(t&&t.parentNode)t.parentNode.removeChild(t);
+      var done=false;try{done=handle(text);}catch(e){console.error('Help chat assistant failed:',e);}
+      if(!done){if(typeof window.chatbotReply==='function')window.chatbotReply(text);else prevAsk(text);}
+    },300);
+  }
+  window.chatbotAsk=function(text){run(text,false);};
+  window.chatbotQuickAsk=function(btn){var q=btn.getAttribute('data-kw')||btn.textContent;chatbotAddMsg(esc(btn.textContent),'user',false);run(q,true);};
+  window.chatbotAssistant=handle;
+  /* a "What can you do?" button with the quick questions */
+  function addChip(){
+    var q=$('chatbotQuick');if(!q||q.querySelector('.cb-can'))return;
+    var b=document.createElement('button');b.type='button';b.className='cb-can';b.setAttribute('data-kw','what can you do');
+    b.textContent=L('🤖 What can you do?','🤖 आप क्या कर सकते हो?');b.setAttribute('onclick','chatbotQuickAsk(this)');
+    q.insertBefore(b,q.firstChild);
+  }
+  addChip();
+  var pl=window.chatbotSetLanguage;
+  if(typeof pl==='function')window.chatbotSetLanguage=function(){var r=pl.apply(this,arguments);var o=document.querySelector('#chatbotQuick .cb-can');if(o)o.remove();addChip();return r;};
+})();}catch(err){console.error('Help chat assistant failed to start:',err);}
 </script>
 </body>
 </html>
