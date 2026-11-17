@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-17-5';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-6';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2073,7 +2073,7 @@ body.dark .svb-btn.is-on{background:var(--gold)!important;border-color:var(--gol
 .sheet-steps li.is-done .ss-n::after{content:"✓";font-size:16px}
 .ss-t{display:flex;flex-direction:column;min-width:0}
 .ss-t b{font-size:14.5px;color:var(--text)}
-.ss-t small{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ss-t small{font-size:12.5px;color:var(--muted);white-space:normal;overflow-wrap:anywhere;line-height:1.35}   /* a long client name goes on 2 lines, never cut */
 body.dark .ss-n{color:var(--gold)}
 .ef-cats{display:flex;flex-direction:column;gap:8px;margin:2px 0 12px}
 .efc-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -2425,6 +2425,8 @@ body.dark .rates-tab.is-on{background:var(--gold)!important;color:#0B1F3A!import
 .rates-form-card .rf-body .builder-actions button{min-height:48px!important}
 .rates-list-card .rate-block{border:0!important;box-shadow:none!important;padding:0!important;margin:0!important;background:transparent!important}
 .rates-list-card .rate-table td .row-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (min-width:761px){.rates-list-card .rate-table td .row-actions{display:grid;grid-template-columns:1fr 1fr;justify-content:stretch;min-width:150px}.rates-list-card .rate-table td .row-actions>button{width:100%;white-space:nowrap}.rates-list-card .rate-table td .row-actions>button.red{grid-column:1/-1}}
+@media (min-width:1500px){.rates-list-card .rate-table td .row-actions{grid-template-columns:repeat(3,auto);justify-content:end}.rates-list-card .rate-table td .row-actions>button.red{grid-column:auto}}   /* Use · Edit over a full Delete, or all 3 in one row on a wide screen — always even */
 .rates-list-card .rate-table td .row-actions button{min-height:40px;padding:0 12px!important;font-size:14px!important}
 /* the old per-panel "Saved …" lists are replaced by the table */
 #rates .admin-grid>div:nth-child(2){display:none!important}
@@ -2459,8 +2461,9 @@ body.dark .rates-tab.is-on{background:var(--gold)!important;color:#0B1F3A!import
 .tr-veh-sub{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
 .tr-veh-note{margin:8px 0 4px!important;font-size:13px!important}
 .form-row.tr-name-only{grid-template-columns:1fr!important}
-.veh-list{display:inline-flex;flex-wrap:wrap;gap:4px 12px;justify-content:flex-end}
-.veh-list span{white-space:nowrap}
+.veh-list{display:inline-grid;grid-template-columns:repeat(3,auto);gap:4px 14px;justify-content:end;align-items:baseline}
+.veh-list span{white-space:nowrap;text-align:right}
+@media (max-width:1180px){.veh-list{grid-template-columns:auto;gap:2px}}   /* Car / SUV / Van: one even row, or one under the other — never 2 + 1 */
 .veh-cell .cell-sub{margin-top:2px}
 @media (max-width:720px){
   .tr-mode-btns{display:grid;grid-template-columns:1fr}
@@ -10075,7 +10078,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (5)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (6)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
