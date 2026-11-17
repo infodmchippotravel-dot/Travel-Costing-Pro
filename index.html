@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-17-4';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-5';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -4706,10 +4706,10 @@ function renderSavedCostings(){
     let bd=recordBreakdown(r);
     return `<div class="saved-card">
       <div class="saved-head">
-        <div><div class="saved-title">${escapeHtml(r.name)} <span style="font-weight:600;color:var(--muted);font-size:12px">(${escapeHtml(r.costingNumber||'')})</span></div><div class="saved-meta">Phone Number: ${r.taglineNumber?escapeHtml((r.phoneCode||'+91')+' '+r.taglineNumber):'Not set'} &nbsp;•&nbsp; Date: ${r.date||'Not set'} &nbsp;•&nbsp; Pax: ${r.pax} &nbsp;•&nbsp; Updated: ${new Date(r.updatedAt).toLocaleString('en-IN')}${window.creatorLabel?creatorLabel(r):''}</div></div>
-        <div class="saved-actions"><button class="blue" onclick="loadCosting('${r.id}')" type="button">✏️ Edit</button><button class="red" onclick="deleteCosting('${r.id}')" type="button">🗑️ Delete</button></div>
+        <div><div class="saved-title">${escapeHtml(r.name)} <span style="font-weight:600;color:var(--muted);font-size:12px">(${escapeHtml(r.costingNumber||'')})</span></div><div class="saved-meta">Phone Number: ${r.taglineNumber?escapeHtml((r.phoneCode||'+91')+' '+r.taglineNumber):'Not set'} &nbsp;•&nbsp; Date: ${escapeHtml(r.date||'Not set')} &nbsp;•&nbsp; Pax: ${escapeHtml(String(+r.pax||0))} &nbsp;•&nbsp; Updated: ${escapeHtml(new Date(r.updatedAt).toLocaleString('en-IN'))}${window.creatorLabel?creatorLabel(r):''}</div></div>
+        <div class="saved-actions"><button class="blue" onclick="loadCosting('${jsAttr(r.id)}')" type="button">✏️ Edit</button><button class="red" onclick="deleteCosting('${jsAttr(r.id)}')" type="button">🗑️ Delete</button></div>
       </div>
-      <div class="saved-services"><b>Total:</b> ${total.toLocaleString('en-IN')} ${r.currency} &nbsp; | &nbsp; <b>Adult / person:</b> ${bd.adult.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})} ${r.currency}${bd.hasChild?` &nbsp; | &nbsp; <b>Child / person:</b> ${bd.child.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})} ${r.currency}`:''}<br><span style="color:var(--muted)">${r.services.map(s=>escapeHtml(s.name)).join(' • ')||'No services'}</span></div>
+      <div class="saved-services"><b>Total:</b> ${total.toLocaleString('en-IN')} ${escapeHtml(r.currency||'')} &nbsp; | &nbsp; <b>Adult / person:</b> ${bd.adult.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})} ${escapeHtml(r.currency||'')}${bd.hasChild?` &nbsp; | &nbsp; <b>Child / person:</b> ${bd.child.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})} ${escapeHtml(r.currency||'')}`:''}<br><span style="color:var(--muted)">${r.services.map(s=>escapeHtml(s.name)).join(' • ')||'No services'}</span></div>
     </div>`;
   }).join('');
 }
@@ -10075,7 +10075,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (4)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (5)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -14373,11 +14373,53 @@ try{(function(){
     busy=true;last=Date.now();
     fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():'';}).then(function(t){
       busy=false;var m=/window\.SITE_BUILD='([^']+)'/.exec(t||'');
-      if(m&&m[1]!==window.SITE_BUILD)bar.hidden=false;
+      if(m&&m[1]!==window.SITE_BUILD&&!pending){pending=true;tryUpdate();}
     }).catch(function(){busy=false;});
   }
+  /* A new version is put in by itself — no "please refresh": only at a quiet moment (nothing being typed,
+     no window open, no click or key for a little while, or the tab is not on screen), so no work is lost.
+     The open page comes back and an unsaved costing comes back from its draft. */
+  var pending=false,lastUse=Date.now(),since=0;
+  ['pointerdown','keydown','input','wheel','touchstart'].forEach(function(t){document.addEventListener(t,function(){lastUse=Date.now();},{capture:true,passive:true});});
+  function typing(doc){
+    try{var a=doc.activeElement;if(!a)return false;
+      if(a.tagName==='IFRAME'){try{return typing(a.contentDocument);}catch(e){return false;}}
+      return /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)||a.isContentEditable;}catch(e){return false;}
+  }
+  function busyScreen(){
+    if(typing(document))return true;
+    var seen=function(e){if(!e||!e.getClientRects().length)return false;var cs=getComputedStyle(e);return cs.visibility!=='hidden'&&cs.display!=='none'&&+cs.opacity>0.1;};
+    if([].some.call(document.querySelectorAll('.modal.show,.modal-overlay.show,.confirm-box.show,[role="dialog"][aria-modal="true"]:not([hidden])'),seen))return true;
+    try{var f=document.getElementById('itinFrame'),d=f&&f.contentDocument;if(d&&[].some.call(d.querySelectorAll('#dlg.show,.tp.show,.tp-wrap.show'),function(e){return !!e.getClientRects().length;}))return true;}catch(e){}
+    return false;
+  }
+  function tryUpdate(){
+    if(!pending)return;
+    if(!since)since=Date.now();
+    var quiet=Date.now()-lastUse>25000;
+    if(document.hidden||(quiet&&!busyScreen())){
+      try{
+        if(typeof window.calculate==='function')calculate();
+        var pg=document.querySelector('.page.active');
+        sessionStorage.setItem('travelUpdatedTo',JSON.stringify({page:pg?pg.id:'',at:Date.now()}));
+      }catch(e){}
+      fresh();return;
+    }
+    /* still busy after 20 minutes: the small bar, so it can be done by hand */
+    if(Date.now()-since>20*60000)bar.hidden=false;
+    setTimeout(tryUpdate,5000);
+  }
+  window.siteUpdateState=function(){return {pending:pending,quietFor:Math.round((Date.now()-lastUse)/1000),busy:busyScreen(),hidden:document.hidden};};
+  /* after the update: the same page, and a short note */
+  try{
+    var up=JSON.parse(sessionStorage.getItem('travelUpdatedTo')||'null');sessionStorage.removeItem('travelUpdatedTo');
+    if(up&&Date.now()-(+up.at||0)<120000)setTimeout(function(){
+      try{var a=document.querySelector('.page.active');if(up.page&&document.getElementById(up.page)&&(!a||a.id!==up.page)&&window.goToPage)goToPage(up.page);}catch(e){}
+      if(window.showToast)showToast('✅ Updated to the newest version','success');
+    },1900);
+  }catch(e){}
   setInterval(check,3*60000);
-  document.addEventListener('visibilitychange',function(){if(!document.hidden)check();});
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)check();else if(pending)tryUpdate();});
   window.addEventListener('focus',check);
 })();}catch(err){console.error('Version check failed to start:',err);}
 </script>
@@ -14468,7 +14510,8 @@ try{(function(){
       if(tr.classList.contains('is-linked'))return;
       var i=+tr.dataset.i,sv=list()[i],td=tr.querySelector('.c-date');if(!sv||!td||td.querySelector('.st-date'))return;
       var v=sv.type==='Hotel'?(sv.checkIn||sv.date||''):(sv.date||'');
-      var no=(tr.querySelector('.c-no')||{}).textContent||'';
+      v=/^\d{4}-\d{2}-\d{2}$/.test(String(v))?String(v):'';   /* only a real date goes into the box (never anything else) */
+      var no=String((tr.querySelector('.c-no')||{}).textContent||'').replace(/[^\d↳]/g,'');
       var out=v&&T.start&&(v<T.start||(T.end&&v>T.end));
       td.innerHTML='<input type="date" class="st-date'+(out?' is-out':'')+'" value="'+v+'" aria-label="Date of entry '+no+'"'+(out?' title="This date is outside the trip"':'')+'>';
     });
@@ -14957,6 +15000,31 @@ try{(function(){
   /* the welcome voice after login uses the same, clearest voice */
   window.chatbotPickFemaleVoice=function(code){var c=String(code||'en-US').toLowerCase(),pre=c.split('-')[0];return best(pre,c)||null;};
 })();}catch(err){console.error('Help chat voice failed to start:',err);}
+</script>
+<script>
+/* =====================================================================
+   BROWSER SPACE — a warning in good time
+     A browser keeps about 5 MB for a website. When 85 % of it is used,
+     a message (once a day) says to take a Backup and remove very old
+     costings — before anything can fail to save.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  function used(){var n=0;try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i)||'';n+=k.length+(localStorage.getItem(k)||'').length;}}catch(e){}return n*2;}
+  function check(){
+    try{
+      var u=used(),max=5*1024*1024;if(u<max*0.85)return;
+      var day=new Date().toISOString().slice(0,10);if(localStorage.getItem('travelSpaceWarned')===day)return;
+      localStorage.setItem('travelSpaceWarned',day);
+      var pc=Math.min(99,Math.round(u/max*100));
+      if(window.showToast)showToast('⚠️ This browser’s space for the website is '+pc+'% full. Please take a Backup (Settings) and delete very old costings, so new work can always be saved.','error');
+    }catch(e){}
+  }
+  setTimeout(check,4000);
+  var ps=window.saveJSON;
+  if(typeof ps==='function')window.saveJSON=function(){var r=ps.apply(this,arguments);setTimeout(check,0);return r;};
+  window.siteSpaceUsed=used;
+})();}catch(err){console.error('Space check failed to start:',err);}
 </script>
 </body>
 </html>
