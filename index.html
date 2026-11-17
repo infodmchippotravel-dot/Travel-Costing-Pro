@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-17-1';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-2';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10075,7 +10075,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026 (2)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -14518,6 +14518,48 @@ try{(function(){
     if(e.target.closest&&e.target.closest('#efAdd')&&editing())setTimeout(function(){if(!editing())sortByDate();},120);
   },true);
 })();}catch(err){console.error('Costing dates failed to start:',err);}
+</script>
+<style id="footIconsCss">
+.foot-info>span>.foot-ico{width:18px!important;height:18px!important;flex:0 0 18px;color:#D9B977!important;display:inline-block!important;vertical-align:-3px;background:none!important;border:0!important;padding:0!important;box-shadow:none!important}
+.foot-info>span>.foot-ico svg{width:18px;height:18px;display:block}
+</style>
+<script>
+/* =====================================================================
+   FOOTER — an icon before each contact detail
+     location · phone · e-mail · website · Instagram
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  var I={
+    pin:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>',
+    phone:'<path d="M5.5 3.5h3l1.5 4-2 1.3a11 11 0 0 0 5.2 5.2l1.3-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 3.5 5.7a2 2 0 0 1 2-2.2z"/>',
+    mail:'<rect x="3.5" y="5.5" width="17" height="13" rx="1.8"/><path d="m4 7 8 6 8-6"/>',
+    web:'<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.3 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.3-3.6-8.5S9.6 5.9 12 3.5z"/>',
+    insta:'<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".9" fill="currentColor" stroke="none"/>'
+  };
+  function kind(sp){
+    var a=sp.querySelector('a'),h=a?(a.getAttribute('href')||''):'';
+    if(/^tel:/i.test(h))return 'phone';
+    if(/^mailto:/i.test(h))return 'mail';
+    if(/instagram\.com/i.test(h))return 'insta';
+    if(/^https?:/i.test(h))return 'web';
+    if(sp.querySelector('#footAddress')||!a)return 'pin';
+    return 'web';
+  }
+  var LABEL={pin:'Address',phone:'Phone',mail:'E-mail',web:'Website',insta:'Instagram'};
+  function add(){
+    [].forEach.call(document.querySelectorAll('.sitefooter .foot-info>span'),function(sp){
+      if(sp.querySelector(':scope>.foot-ico'))return;
+      var k=kind(sp),i=document.createElement('span');
+      i.className='foot-ico';i.setAttribute('role','img');i.setAttribute('aria-label',LABEL[k]);
+      i.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+I[k]+'</svg>';
+      sp.insertBefore(i,sp.firstChild);
+    });
+  }
+  add();
+  var f=document.querySelector('.sitefooter .foot-info');
+  if(f)new MutationObserver(function(){add();}).observe(f,{childList:true});
+})();}catch(err){console.error('Footer icons failed to start:',err);}
 </script>
 </body>
 </html>
