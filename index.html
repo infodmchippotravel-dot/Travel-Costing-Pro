@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-16-9';   /* change with every new version */
+window.SITE_BUILD='2026-11-17-1';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10075,7 +10075,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 16 Nov 2026 (9)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 17 Nov 2026</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -14380,6 +14380,117 @@ try{(function(){
   document.addEventListener('visibilitychange',function(){if(!document.hidden)check();});
   window.addEventListener('focus',check);
 })();}catch(err){console.error('Version check failed to start:',err);}
+</script>
+<style id="autoDateCss">
+#stmtBody .st-date{min-height:38px;width:100%;max-width:158px;padding:4px 8px;border:1px solid #D8D1C4;border-radius:8px;background:var(--card,#fff);color:var(--text,#0b1f3a);font:inherit;font-size:14px}
+#stmtBody .st-date:focus-visible{outline:3px solid var(--gold,#C6A76B);outline-offset:1px}
+#stmtBody .st-date.is-out{border-color:#d92d20;background:#fff1f0}
+body.dark #stmtBody .st-date{background:#0f1b2d;border-color:#334155;color:#e5e7eb}
+</style>
+<script>
+/* =====================================================================
+   COSTING SHEET — DATES BY THEMSELVES, LINE BY LINE (and easy to change)
+     • A new entry gets the right date: arrival = first day, a tour = the
+       next free day, hotel-to-hotel transfer = the next hotel's check-in,
+       departure = the last day. The date box can still be changed.
+     • Every line's date can be changed straight in the costing statement.
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  function $(id){return document.getElementById(id);}
+  var form=$('entryForm'),dateEl=$('efDate');
+  if(!form||!dateEl)return;
+  function pad(n){return String(n).padStart(2,'0');}
+  function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+  function day(s){var d=new Date(String(s||'')+'T00:00:00');return isNaN(d)?null:d;}
+  function addD(s,k){var d=day(s);if(!d)return '';d.setDate(d.getDate()+k);return iso(d);}
+  function list(){return typeof services!=='undefined'&&Array.isArray(services)?services:[];}
+  function trip(){
+    var st=($('travelDate')&&$('travelDate').value)||'',n=parseInt(($('sheetNights')&&$('sheetNights').value)||'0',10)||0;
+    var hs=list().filter(function(x){return x&&x.type==='Hotel'&&x.checkOut;}),end=st&&n?addD(st,n):'';
+    hs.forEach(function(x){if(!end||x.checkOut>end)end=x.checkOut;});
+    return {start:st,end:end||st};
+  }
+  function kind(t){
+    var m=/^(.*?)\s*[-–→]\s*(.*)$/.exec(String(t||''));
+    if(m&&/airport/i.test(m[1])&&/hotel/i.test(m[2]))return 'arr';
+    if(m&&/hotel/i.test(m[1])&&/airport/i.test(m[2]))return 'dep';
+    if(m&&/hotel/i.test(m[1])&&/hotel/i.test(m[2]))return 'move';
+    return 'tour';
+  }
+  function chosenName(){
+    var pk=$('efPick');
+    if(pk&&pk.value&&pk.selectedIndex>=0&&pk.options[pk.selectedIndex]&&pk.value!=='__custom__')return pk.options[pk.selectedIndex].text;
+    return ($('efName')&&$('efName').value)||'';
+  }
+  /* the date a new entry most likely has */
+  function smart(){
+    var T=trip();if(!T.start)return '';
+    var items=list().filter(function(x){return x&&x.type!=='Hotel'&&!x.linked;});
+    var k=kind(chosenName());
+    if(k==='arr')return items.some(function(x){return kind(x.name)==='arr';})?nextFree(T,items):T.start;
+    if(k==='dep')return T.end;
+    if(k==='move'){
+      var hs=list().filter(function(x){return x&&x.type==='Hotel'&&x.checkIn;}).sort(function(a,b){return a.checkIn<b.checkIn?-1:1;});
+      var moves=items.filter(function(x){return kind(x.name)==='move';}).length;
+      if(hs[moves+1])return hs[moves+1].checkIn;
+      /* the next hotel is not added yet: the day the hotel before ends */
+      if(hs[moves]&&hs[moves].checkOut&&(!T.end||hs[moves].checkOut<=T.end))return hs[moves].checkOut;
+      return nextFree(T,items);
+    }
+    return nextFree(T,items);
+  }
+  /* the day after the latest dated entry (never past the last day) */
+  function nextFree(T,items){
+    var last='';items.forEach(function(x){if(x.date&&x.date>last&&kind(x.name)!=='dep')last=x.date;});
+    if(!last)return T.start;
+    var nx=addD(last,1);
+    if(T.end&&nx>=T.end)return last;
+    return nx;
+  }
+  var touched=false;
+  function editing(){return form.classList.contains('is-editing');}
+  function fill(){if(touched||editing())return;var d=smart();if(d)dateEl.value=d;}
+  ['input','change'].forEach(function(t){dateEl.addEventListener(t,function(e){if(e.isTrusted)touched=true;});});
+  document.addEventListener('click',function(e){
+    var c=e.target.closest&&e.target.closest('#dashboard .efc');
+    if(c){touched=false;setTimeout(fill,0);}
+    if(e.target.closest&&e.target.closest('#efAdd'))setTimeout(function(){touched=false;fill();},60);
+  },true);
+  var pk=$('efPick');if(pk)pk.addEventListener('change',function(){setTimeout(fill,0);});
+  var nm=$('efName');if(nm)nm.addEventListener('input',function(){clearTimeout(nm._t);nm._t=setTimeout(fill,250);});
+
+  /* ---- change a line's date straight in the costing statement ---- */
+  var body=$('stmtBody');if(!body)return;
+  function decorate(){
+    var T=trip();
+    [].forEach.call(body.querySelectorAll('tr[data-i]'),function(tr){
+      if(tr.classList.contains('is-linked'))return;
+      var i=+tr.dataset.i,sv=list()[i],td=tr.querySelector('.c-date');if(!sv||!td||td.querySelector('.st-date'))return;
+      var v=sv.type==='Hotel'?(sv.checkIn||sv.date||''):(sv.date||'');
+      var no=(tr.querySelector('.c-no')||{}).textContent||'';
+      var out=v&&T.start&&(v<T.start||(T.end&&v>T.end));
+      td.innerHTML='<input type="date" class="st-date'+(out?' is-out':'')+'" value="'+v+'" aria-label="Date of entry '+no+'"'+(out?' title="This date is outside the trip"':'')+'>';
+    });
+  }
+  new MutationObserver(decorate).observe(body,{childList:true});
+  decorate();
+  body.addEventListener('change',function(e){
+    var inp=e.target.closest&&e.target.closest('.st-date');if(!inp)return;
+    var tr=inp.closest('tr[data-i]'),i=+tr.dataset.i,sv=list()[i],v=inp.value;if(!sv)return;
+    if(sv.type==='Hotel'){
+      if(!v)return;
+      var n=parseInt(sv.nights,10)||1;sv.checkIn=v;sv.checkOut=addD(v,n);sv.date=v;
+      if(typeof sv.detail==='string'&&typeof window.hotelDetail==='function')try{sv.detail=hotelDetail(sv);}catch(er){}
+    }else{
+      if(v)sv.date=v;else delete sv.date;
+      if(sv.groupId)list().forEach(function(x){if(x!==sv&&x.groupId===sv.groupId){if(v)x.date=v;else delete x.date;}});
+      if(sv._ticket){if(v)sv._ticket.date=v;else delete sv._ticket.date;}
+    }
+    if(typeof window.calculate==='function')calculate();
+    if(window.showToast)showToast('Date changed','success');
+  });
+})();}catch(err){console.error('Costing dates failed to start:',err);}
 </script>
 </body>
 </html>
