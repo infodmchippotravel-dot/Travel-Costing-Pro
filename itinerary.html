@@ -517,6 +517,29 @@ html.theme-dark .pv-mode.on{background:#C6A76B;color:#0b1f3a;border-color:#C6A76
 @media (max-width:640px){.pv-btns{flex-direction:column-reverse}.pv-btns .btn{width:100%;justify-content:center}.pv-bar{flex-direction:column;align-items:stretch}.pv-modes{display:grid;grid-template-columns:1fr 1fr 1fr}.pv-lbl{grid-column:1/-1}.pv-mode{flex-direction:column;gap:4px;padding:8px 4px;font-size:13px;line-height:1.2}.pv-go{align-items:stretch}.pv-hint{text-align:center}}
 @media print{.pv-bar{display:none!important}}
 </style>
+<style>
+/* Print / PDF page — same layout as the costing's Print / PDF page */
+.pv-head{display:none}
+body.pp .topbar{display:none!important}
+body.pp #s-preview{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important}
+body.pp #s-preview>summary{display:none!important}
+body.pp #s-preview>.sec-b{padding:4px 0 0!important;background:transparent!important}
+body.pp .pv-head{display:block;margin:0 0 16px}
+.pv-title{font-family:"Playfair Display",Georgia,serif;font-size:30px;font-weight:700;color:#0b1f3a;margin:0 0 4px;line-height:1.15}
+.pv-sub{margin:0;color:#5b6472;font-size:15px}
+.pv-sub b{color:#334155}
+body.pp .pv-bar{background:transparent;border:0;padding:0;margin:0 0 18px;align-items:center;justify-content:flex-start;gap:12px}
+body.pp .pv-modes{background:#fff;border:1px solid #e5dccb;border-radius:14px;padding:10px 12px;box-shadow:0 2px 8px rgba(11,31,58,.05)}
+body.pp .pv-lbl{color:#0b1f3a;font-size:14px}
+body.pp .pv-go{align-items:flex-start}
+body.pp .pv-print{min-height:52px;padding:0 22px;border-radius:12px;border:1px solid #0b1f3a;background:linear-gradient(135deg,#1b3a66 0%,#0b1f3a 100%)!important;color:#fff!important;font-weight:800;font-size:16px;box-shadow:0 10px 22px rgba(11,31,58,.25)}
+body.pp .pv-print:hover{filter:brightness(1.12)}
+html.in-site body.pp .pv-back{display:none!important}   /* inside the website: "← Back to Itinerary" is in the bottom bar, like the costing */
+html.theme-dark .pv-title{color:#fff}html.theme-dark .pv-sub,html.theme-dark .pv-sub b{color:#cbd5e1}
+html.theme-dark body.pp .pv-modes{background:#13284a;border-color:#6b5a33}html.theme-dark body.pp .pv-lbl{color:#E6C27A}
+html.theme-dark body.pp .pv-print{background:linear-gradient(135deg,#E6C27A,#C6A76B)!important;color:#0b1f3a!important;border-color:#C6A76B}
+@media (max-width:640px){.pv-title{font-size:25px}body.pp .pv-bar{align-items:stretch}body.pp .pv-go,body.pp .pv-btns{width:100%}body.pp .pv-print{width:100%}}
+</style>
 </head>
 <body>
 
@@ -549,11 +572,12 @@ html.theme-dark .pv-mode.on{background:#C6A76B;color:#0b1f3a;border-color:#C6A76
 
   <details class="sec" id="s-preview" open><summary class="sec-h">🖨️ Print &amp; Download <span class="hint">choose the company, then print or save as PDF</span></summary>
     <div class="sec-b">
+      <div class="pv-head"><h2 class="pv-title" tabindex="-1">Print / PDF</h2><p class="pv-sub">Check the voucher. Choose the company, press <b>Print / Download PDF</b>, then choose <b>“Save as PDF”</b>.</p></div>
       <div class="pv-bar" id="pvBar">
         <div class="pv-modes" role="group" aria-label="Company on the PDF"><span class="pv-lbl">Company on the PDF</span>
           <button type="button" class="pv-mode" data-mode="hippo"><img class="pv-logo" alt="" data-logo="hippo">Hippo Travel</button><button type="button" class="pv-mode" data-mode="anup"><img class="pv-logo" alt="" data-logo="anup">Anup Group</button><button type="button" class="pv-mode" data-mode="plain"><span class="pv-none" aria-hidden="true"></span>No company</button></div>
         <div class="pv-go"><div class="pv-btns"><button class="btn ghost pv-back" type="button" data-act="printBack">← Back to edit</button><button class="btn orange pv-print" type="button" data-act="print">🖨️ Print / Download PDF</button></div>
-          <small class="pv-hint">To download, choose <b>“Save as PDF”</b> in the print window.</small></div>
+          </div>
       </div>
       <div id="pvCheck"></div><div class="paper-wrap"><div id="paper"></div></div></div></details>
 
@@ -1956,7 +1980,7 @@ function renderPreview() {
   const issues = checkVoucher(draft);
   $('pvCheck').innerHTML = issues.length
     ? `<div class="check"><b>⚠️ Please check before printing (${issues.length}):</b><ul>${issues.map(([m, id]) => `<li><span>${esc(m)}</span><button class="btn sm ghost" type="button" data-act="fix" data-a="${id}">✏️ Fix</button></li>`).join('')}</ul></div>`
-    : `<div class="check ok">✅ Everything is filled${draft.no ? ` · saved as ${esc(draft.no)}` : ''} — press 🖨️ Print / Download PDF</div>`;
+    : '';   // all filled: nothing to say (like the costing's Print / PDF page)
   $('paper').innerHTML = renderSlip(draft, printMode);
   fitPaper();
 }
@@ -2425,42 +2449,15 @@ window.addEventListener('storage',function(e){
   if(e.key==='tv.settings.v1'&&e.newValue){try{var n=JSON.parse(e.newValue)||{};['company','partner','prefix','currency','notes','closing','nextNo'].forEach(function(k){if(n[k]!==undefined)settings[k]=n[k];});if(typeof renderSettings==='function')renderSettings();if(typeof refreshPreview==='function')refreshPreview();}catch(x){}}
 });
 </script>
-<style>
-/* bottom bar like the costing's: client + trip on the left, "Save Complete Itinerary" on the right */
-.it-bar{position:sticky;bottom:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px -2px 0;padding:10px 14px;background:#fff;border-top:1px solid #e8d3a2;box-shadow:0 -8px 28px rgba(11,31,58,.10);border-radius:14px 14px 0 0}
-.it-bar .ib-info{min-width:0;display:flex;flex-direction:column;line-height:1.25}
-.it-bar .ib-info b{font-size:15px;color:#0b1f3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.it-bar .ib-info small{color:#6b5a33;font-size:12.5px}
-.it-bar .ib-save{flex:none;min-height:48px;padding:0 22px;border-radius:14px;border:1px solid #0b1f3a;background:linear-gradient(135deg,#1b3a66 0%,#0b1f3a 100%);color:#fff;font-weight:800;font-size:15.5px;cursor:pointer;box-shadow:0 8px 20px rgba(11,31,58,.25)}
-.it-bar .ib-save:hover{filter:brightness(1.12)}
-.it-bar .ib-save:focus-visible{outline:3px solid #C6A76B;outline-offset:2px}
-html.theme-dark .it-bar{background:#0a1830;border-color:#6b5a33}
-html.theme-dark .it-bar .ib-info b{color:#fff}html.theme-dark .it-bar .ib-info small{color:#E6C27A}
-html.theme-dark .it-bar .ib-save{background:linear-gradient(135deg,#E6C27A,#C6A76B);color:#0b1f3a;border-color:#C6A76B}
-body.pp .it-bar{display:none}
-@media (max-width:640px){.it-bar{flex-direction:column;align-items:stretch;gap:8px}.it-bar .ib-save{width:100%}body:not(.pp) #toast{bottom:150px}}
-@media print{.it-bar{display:none!important}}
-</style>
 <script>
+/* the website's bottom bar (like the costing's) saves this voucher and goes back from the print page */
 (function(){
-  try{
-    var main=document.querySelector('main');if(!main)return;
-    var bar=document.createElement('div');bar.className='it-bar no-print';bar.id='itBar';bar.setAttribute('role','region');bar.setAttribute('aria-label','Save the itinerary');
-    bar.innerHTML='<div class="ib-info"><b id="ibClient"></b><small id="ibTrip"></small></div><button type="button" class="ib-save" id="ibSave">💾 Save Complete Itinerary</button>';
-    var list=document.getElementById('s-list');main.insertBefore(bar,list||null);
-    function upd(){
-      try{
-        document.getElementById('ibClient').textContent=(draft.client||'').trim()?String(draft.client).toUpperCase():'No client name yet';
-        var a=draft.start?dayDate(draft,0):null,z=draft.start?dayDate(draft,draft.days.length-1):null;
-        document.getElementById('ibTrip').textContent=(a?fmtShort(a)+' – '+fmtShort(z)+' · ':'')+duration(draft)+(draft.no?' · '+draft.no:'');
-        var saved=draft.id&&savedList().some(function(x){return x.id===draft.id;});
-        document.getElementById('ibSave').textContent=saved?'💾 Save Changes':'💾 Save Complete Itinerary';
-      }catch(e){}
-    }
-    document.getElementById('ibSave').addEventListener('click',function(){saveVoucher();setTimeout(upd,50);});
-    var prev=showDirty;showDirty=function(){var r=prev.apply(this,arguments);upd();return r;};
-    upd();
-  }catch(e){console.error('Save bar could not start:',e);}
+  function st(){var saved=false;try{saved=!!(draft.id&&savedList().some(function(x){return x.id===draft.id;}));}catch(e){}return {saved:saved,pp:document.body.classList.contains('pp')};}
+  function tell(){try{if(window.parent!==window&&typeof window.parent.itinBarUpdate==='function')window.parent.itinBarUpdate();}catch(e){}}
+  window.tvBar={state:st,save:function(){saveVoucher();setTimeout(tell,60);},back:function(){ACT.printBack();tell();},print:function(){ACT.printPage();tell();}};
+  var prev=showDirty;showDirty=function(){var r=prev.apply(this,arguments);tell();return r;};
+  try{new MutationObserver(tell).observe(document.body,{attributes:true,attributeFilter:['class']});}catch(e){}
+  tell();
 })();
 </script>
 </body>

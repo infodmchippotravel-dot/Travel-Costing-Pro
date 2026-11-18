@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-18-12';   /* change with every new version */
+window.SITE_BUILD='2026-11-18-13';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10111,7 +10111,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (12)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (13)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15174,6 +15174,41 @@ try{(function(){
   if(typeof prev==='function')window.showPage=function(id){var r=prev.apply(this,arguments);if(id==='settings')setTimeout(show,0);return r;};
   ['finishLogin','logoutUser'].forEach(function(fn){var p=window[fn];if(typeof p==='function')window[fn]=function(){var r=p.apply(this,arguments);setTimeout(function(){card.hidden=!admin();},0);return r;};});
 })();}catch(err){console.error('Itinerary settings failed to start:',err);}
+</script>
+<style>
+/* Create Itinerary: the same bottom bar as the costing (no total) */
+body.has-itin-bar main{padding-bottom:110px!important}
+body.has-itin-bar .chatbot-fab{bottom:100px!important}
+body.has-itin-bar .toast-region{bottom:100px}
+@media (max-width:600px){body.has-itin-bar main{padding-bottom:160px!important}body.has-itin-bar .chatbot-fab{bottom:150px!important}body.has-itin-bar .toast-region{bottom:150px}}
+body.itin-pp #itinerary>.page-header{display:none!important}   /* the print page shows only "Print / PDF", like the costing */
+</style>
+<script>
+try{(function(){
+  var bar=document.createElement('div');bar.className='easy-bar no-print';bar.id='itinEasyBar';bar.hidden=true;
+  bar.setAttribute('role','region');bar.setAttribute('aria-label','Save the itinerary');
+  bar.innerHTML='<div class="eb-info"></div><div class="eb-actions"><button type="button" class="btn-ghost" id="ieBack" hidden>← Back to Itinerary</button><button type="button" class="green" id="ieSave">💾 Save Complete Itinerary</button></div>';
+  document.body.appendChild(bar);
+  function api(){try{var f=document.getElementById('itinFrame');return f&&f.contentWindow&&f.contentWindow.tvBar||null;}catch(e){return null;}}
+  function onItin(){var p=document.querySelector('.page.active');return !!(p&&p.id==='itinerary');}
+  function loggedIn(){try{return !!(window.currentSession&&currentSession().key);}catch(e){return false;}}
+  function upd(){
+    var a=onItin()&&loggedIn()?api():null,on=!!a;
+    bar.hidden=!on;document.body.classList.toggle('has-itin-bar',on);
+    var s=on?a.state():{};
+    document.body.classList.toggle('itin-pp',!!(on&&s.pp));
+    if(!on)return;
+    document.getElementById('ieBack').hidden=!s.pp;
+    document.getElementById('ieSave').textContent=s.saved?'💾 Save Changes':'💾 Save Complete Itinerary';
+  }
+  window.itinBarUpdate=upd;
+  document.getElementById('ieSave').addEventListener('click',function(){var a=api();if(a)a.save();});
+  document.getElementById('ieBack').addEventListener('click',function(){var a=api();if(a)a.back();window.scrollTo(0,0);});
+  var prev=window.showPage;if(typeof prev==='function')window.showPage=function(){var r=prev.apply(this,arguments);setTimeout(upd,0);return r;};
+  ['finishLogin','logoutUser'].forEach(function(fn){var p=window[fn];if(typeof p==='function')window[fn]=function(){var r=p.apply(this,arguments);setTimeout(upd,300);return r;};});
+  var f=document.getElementById('itinFrame');if(f)f.addEventListener('load',function(){setTimeout(upd,200);});
+  upd();
+})();}catch(e){console.error('Itinerary bar could not start:',e);}
 </script>
 </body>
 </html>
