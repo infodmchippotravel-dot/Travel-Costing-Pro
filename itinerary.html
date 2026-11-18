@@ -2299,8 +2299,7 @@ html.theme-dark .fc-bar{background:#2a2314;border-color:#6b5a33;color:#f5ecd6}
   bar.className = 'fc-bar'; bar.id = 'fromCostBar'; bar.hidden = true; bar.setAttribute('role', 'note');
   const sec = document.getElementById('c-client'); if (sec && sec.parentNode) sec.parentNode.insertBefore(bar, sec);
   function showBar() {
-    const fc = draft && draft.fromCosting;
-    const canRemake = !!(fc && fc.id && window.parent !== window && typeof window.parent.itinFromCosting === 'function');
+    const fc = draft && draft.fromCosting, canRemake = false;   /* the "Made from costing … Make again" bar is not shown (asked by the owner); "🗺️ Create Itinerary" in My Costings makes it again */
     bar.hidden = !canRemake;
     if (canRemake) bar.innerHTML = `<span>📄 Made from costing <b>${esc(fc.no || '')}</b>. Changed the costing, or something looks wrong?</span><button type="button" id="fcAgain">🔄 Make again from the costing</button>`;
   }
