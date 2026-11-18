@@ -485,6 +485,22 @@ html.theme-dark .auto-tag,html.theme-dark .req{background:rgba(198,167,107,.18);
 html.theme-dark table.st textarea.strong,html.theme-dark table.st textarea,html.theme-dark table.st input,html.theme-dark .ed,html.theme-dark .tp-item b{color:var(--text)}
 }
 
+/* Print & Download bar above the voucher preview */
+.pv-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 18px;margin:0 0 14px;padding:12px 14px;border-radius:14px;background:#fff8e6;border:1px solid #e8d3a2}
+.pv-modes{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pv-lbl{font-weight:800;font-size:13px;color:#7a5c1e;margin-right:4px}
+.pv-mode{min-height:42px;padding:0 14px;border-radius:10px;border:1.5px solid #d8c393;background:#fff;color:#0b1f3a;font-weight:700;font-size:14.5px;cursor:pointer}
+.pv-mode.on{background:#0b1f3a;border-color:#0b1f3a;color:#fff}
+.pv-mode:focus-visible,.pv-print:focus-visible{outline:3px solid #C6A76B;outline-offset:2px}
+.pv-go{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.pv-print{min-height:46px;font-size:15.5px;padding:0 20px}
+.pv-hint{color:#6b5a33;font-size:12.5px}
+html.theme-dark .pv-bar{background:#2a2314;border-color:#6b5a33}
+html.theme-dark .pv-lbl,html.theme-dark .pv-hint{color:#E6C27A}
+html.theme-dark .pv-mode{background:#1b2638;color:#f5ecd6;border-color:#6b5a33}
+html.theme-dark .pv-mode.on{background:#C6A76B;color:#0b1f3a;border-color:#C6A76B}
+@media (max-width:640px){.pv-bar{flex-direction:column;align-items:stretch}.pv-modes{display:grid;grid-template-columns:1fr 1fr 1fr}.pv-lbl{grid-column:1/-1}.pv-mode{padding:0 6px;font-size:13px}.pv-go{align-items:stretch}.pv-hint{text-align:center}}
+@media print{.pv-bar{display:none!important}}
 </style>
 </head>
 <body>
@@ -516,8 +532,15 @@ html.theme-dark table.st textarea.strong,html.theme-dark table.st textarea,html.
     <div id="flightsBox"></div>
     <input type="file" id="ticketIn" accept="image/*,application/pdf,.pdf" multiple hidden></section>
 
-  <details class="sec" id="s-preview"><summary class="sec-h"><span class="n">5</span>👁 Preview — see how the voucher prints</summary>
-    <div class="sec-b"><div id="pvCheck"></div><div class="paper-wrap"><div id="paper"></div></div></div></details>
+  <details class="sec" id="s-preview" open><summary class="sec-h"><span class="n">5</span>🖨️ Print &amp; Download — see the voucher, choose the company, then print or save as PDF</summary>
+    <div class="sec-b">
+      <div class="pv-bar" id="pvBar">
+        <div class="pv-modes" role="group" aria-label="Company on the PDF"><span class="pv-lbl">Company on the PDF</span>
+          <button type="button" class="pv-mode" data-mode="hippo">🦛 Hippo Travel</button><button type="button" class="pv-mode" data-mode="anup">🏢 Anup Group</button><button type="button" class="pv-mode" data-mode="plain">📄 No company</button></div>
+        <div class="pv-go"><button class="btn orange pv-print" type="button" data-act="print">🖨️ Print / Download PDF</button>
+          <small class="pv-hint">To download, choose <b>“Save as PDF”</b> in the print window.</small></div>
+      </div>
+      <div id="pvCheck"></div><div class="paper-wrap"><div id="paper"></div></div></div></details>
 
   <section class="sec" id="s-list"><div class="sec-h">📒 All vouchers
       <span class="r"><button class="btn ghost sm" type="button" data-act="addPdfs">➕ Add PDF vouchers</button></span></div>
@@ -1915,13 +1938,17 @@ function renderPreview() {
   const issues = checkVoucher(draft);
   $('pvCheck').innerHTML = issues.length
     ? `<div class="check"><b>⚠️ Please check before printing (${issues.length}):</b><ul>${issues.map(([m, id]) => `<li><span>${esc(m)}</span><button class="btn sm ghost" type="button" data-act="fix" data-a="${id}">✏️ Fix</button></li>`).join('')}</ul></div>`
-    : `<div class="check ok">✅ Everything is filled${draft.no ? ` · saved as ${esc(draft.no)}` : ''} — press 🖨️ Print / PDF at the top</div>`;
+    : `<div class="check ok">✅ Everything is filled${draft.no ? ` · saved as ${esc(draft.no)}` : ''} — press 🖨️ Print / Download PDF</div>`;
   $('paper').innerHTML = renderSlip(draft, printMode);
 }
 // which company goes on the PDF — chosen at the top, remembered
 $('modeSel').value = printMode;
+/* the same choice also as 3 buttons above the preview (like the costing's Print & Download page) */
+const syncModes = () => document.querySelectorAll('.pv-mode').forEach(b => { const on = b.dataset.mode === printMode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+syncModes();
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.pv-mode'); if (!b || b.dataset.mode === printMode) return; const s = $('modeSel'); s.value = b.dataset.mode; s.dispatchEvent(new Event('change', { bubbles: true })); });
 $('modeSel').addEventListener('change', e => {
-  printMode = e.target.value; settings.printMode = printMode; saveSettings(); refreshPreview();
+  printMode = e.target.value; settings.printMode = printMode; saveSettings(); syncModes(); refreshPreview();
   toast(printMode === 'hippo' ? 'PDF will show Hippo Travel' : printMode === 'anup' ? 'PDF will show Anup Group' : 'PDF without company details');
 });
 const baseTitle = document.title;
