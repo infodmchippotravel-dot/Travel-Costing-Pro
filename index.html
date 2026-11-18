@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-18-17';   /* change with every new version */
+window.SITE_BUILD='2026-11-18-18';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10111,7 +10111,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (17)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (18)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15255,12 +15255,16 @@ try{(function(){
       d.documentElement.style.setProperty('--vy',vy+'px');d.documentElement.style.setProperty('--vh',vh+'px');d.documentElement.style.setProperty('--vb',(Math.max(0,Math.min(r.bottom,innerHeight)-(innerHeight-bb))+16)+'px');
     }catch(e){}
   }
-  var ro=null;
+  /* changes inside the itinerary (rows added, text typed, pictures loaded) → fit again; a MutationObserver
+     and a few events, not a ResizeObserver (that one gives a browser warning when the frame grows) */
+  var mo=null,ft=0;
+  function soon(){if(ft)return;ft=setTimeout(function(){ft=0;fit();},60);}
   function watch(){
     try{
       var d=f.contentDocument;if(!d||!d.body)return;
-      if(ro)ro.disconnect();
-      if(window.ResizeObserver){ro=new ResizeObserver(function(){requestAnimationFrame(fit);});ro.observe(d.body);var m=d.querySelector('main');if(m)ro.observe(m);}
+      if(mo)mo.disconnect();
+      if(window.MutationObserver){mo=new MutationObserver(soon);mo.observe(d.body,{childList:true,subtree:true,attributes:true,characterData:true});}
+      ['input','click','load','transitionend','toggle'].forEach(function(ev){d.addEventListener(ev,soon,true);});
       fit();
     }catch(e){}
   }
