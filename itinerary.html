@@ -1958,7 +1958,7 @@ function fitPaper() {
   sl.style.width = A4 + 'px'; sl.style.maxWidth = 'none'; sl.style.transformOrigin = 'top left'; sl.style.transform = `scale(${k})`;
   pp.style.height = Math.ceil(sl.offsetHeight * k) + 'px';
 }
-if (window.ResizeObserver) { let rw = 0; new ResizeObserver(() => { const w = $('paper').clientWidth; if (w !== rw) { rw = w; fitPaper(); } }).observe($('paper')); }
+if (window.ResizeObserver) { let rw = 0, rq = 0; new ResizeObserver(() => { if (rq) return; rq = requestAnimationFrame(() => { rq = 0; const w = $('paper').clientWidth; if (w !== rw) { rw = w; fitPaper(); } }); }).observe($('paper').parentNode); }
 // which company goes on the PDF — chosen at the top, remembered
 $('modeSel').value = printMode;
 /* the same choice also as 3 buttons above the preview (like the costing's Print & Download page) */
