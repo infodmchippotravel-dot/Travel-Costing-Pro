@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-18-1';   /* change with every new version */
+window.SITE_BUILD='2026-11-18-2';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10111,7 +10111,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (1)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (2)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -13691,7 +13691,7 @@ try{(function(){
         conflict=(r.updatedAt||'')>(get(K_AT)||'')&&rh!==get(K_HASH);
         /* the admin changed prices on two computers: join both by itself (nothing is lost — a safety copy is kept,
            and for the same item this computer's price is kept), then share — no question for the admin */
-        if(conflict&&admin()&&(token()||canCloud())){
+        if(conflict){   /* always — also when this computer cannot share right now (it shares as soon as it can) */
           var mine=snapshot();set('travelSafetyCopyBeforeShare',JSON.stringify({savedAt:new Date().toISOString(),data:mine}));
           apply(join(mine,r.data));set(K_HASH,rh);set(K_AT,r.updatedAt||'');conflict=false;set(K_DIRTY,'1');
         }
@@ -13833,13 +13833,13 @@ try{(function(){
     var dirty=get(K_DIRTY)==='1',cls='',html='';
     /* quiet when all is well: everything is shared by itself — the box only comes when something needs the admin */
     var waiting=dirty||(remoteMissing&&!get(K_HASH));
-    if(!lastErr&&!conflict&&(busy||!waiting||canCloud())){
+    conflict=false;   /* never asked: both computers' prices are joined by themselves */
+    if(!lastErr&&(busy||!waiting||canCloud())){
       if(waiting&&canCloud()&&!busy)autoShare();
       list.forEach(function(el){el.hidden=true;});return;
     }
     if(busy){cls='is-busy';html='<span class="sd-txt">⏳ Sharing your changes with every computer and phone…</span>';}
     else if(lastErr){cls='is-err';html='<span class="sd-txt">⚠️ Not shared: '+escapeHtml(lastErr)+'</span><button type="button" data-sd="share">Try again</button>';}
-    else if(conflict){cls='is-warn';html='<span class="sd-txt">⚠️ Someone shared newer prices'+(remote&&remote.by?' ('+escapeHtml(remote.by)+')':'')+(remote&&remote.updatedAt?' on '+escapeHtml(fmt(remote.updatedAt)):'')+'. Your changes here are not shared yet.</span><button type="button" data-sd="load" class="sd-ghost">Use the shared prices</button><button type="button" data-sd="share">Share mine instead</button>';}
     else if(dirty||remoteMissing&&!get(K_HASH)){cls='is-warn';html='<span class="sd-txt">⚠️ '+(remoteMissing&&!get(K_HASH)?'Your prices, tours and company details are on this computer only.':'Your last changes are on this computer only.')+(canCloud()||(token()&&!(remote&&remote.fs))?'':' Connect in <b>Settings → ☁️ Online copy</b> (Firebase e-mail and password) to share automatically.')+'</span><button type="button" data-sd="share">Share with everyone</button>';}
     else{html='<span class="sd-txt">✅ Every computer and phone uses these prices, tours and company details'+(get(K_AT)?' (shared '+escapeHtml(fmt(get(K_AT)))+')':'')+'.'+(lastShared&&Date.now()-lastShared<180000?(remote&&remote.fs?' Other devices get it within about a minute.':' Other devices get it in about 1–2 minutes.'):'')+'</span>';}
     list.forEach(function(el){el.className='sd-pill '+cls;if(el.innerHTML!==html)el.innerHTML=html;el.hidden=false;});
