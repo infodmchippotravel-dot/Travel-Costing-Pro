@@ -1521,8 +1521,7 @@ const ACT = {
   async print() {
     if (document.activeElement) document.activeElement.blur();
     autoSave();
-    const issues = checkVoucher(draft).filter(x => !/^No hotel/.test(x[0]));
-    if (issues.length && !(await confirmBox(`These are not filled yet:\n• ${issues.map(x => x[0]).join('\n• ')}\n\nPrint anyway?`, '🖨️ Print anyway'))) { ACT.fix(issues[0][1]); return; }
+    /* like the costing: the print window opens straight away (what is not filled yet is listed on the print page) */
     $('printArea').innerHTML = renderSlip(draft, printMode);
     window.print();
   },
