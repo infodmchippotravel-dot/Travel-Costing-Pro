@@ -505,7 +505,8 @@ html.theme-dark table.st textarea.strong,html.theme-dark table.st textarea,html.
 body.pp main>*:not(#s-preview){display:none!important}
 body:not(.pp) #s-preview{display:none!important}   /* Print & Download is only on its own page */
 body.pp .pv-back{display:inline-flex;align-items:center}
-body.pp .topbar [data-act="printPage"],body.pp .topbar .modebox{display:none}
+body.pp .topbar [data-act="printPage"]{display:none}
+.topbar .modebox{display:none!important}   /* the company is chosen on the print page (logo buttons) */
 body.pp #s-preview>summary{cursor:default}
 body.pp #s-preview>summary::after{display:none}
 .pv-hint{color:#6b5a33;font-size:12.5px}
