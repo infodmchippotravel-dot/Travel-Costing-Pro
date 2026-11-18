@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-18-16';   /* change with every new version */
+window.SITE_BUILD='2026-11-18-17';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10111,7 +10111,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (16)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (17)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15177,10 +15177,14 @@ try{(function(){
 </script>
 <style>
 /* Create Itinerary: the same bottom bar as the costing (no total) */
-body.has-itin-bar main{padding-bottom:110px!important}
+/* same space and same button places as the costing's bottom bar */
+body.has-itin-bar main{padding-bottom:32px!important}
+body.has-itin-bar{padding-bottom:88px}
 body.has-itin-bar .chatbot-fab{bottom:100px!important}
 body.has-itin-bar .toast-region{bottom:100px}
-@media (max-width:600px){body.has-itin-bar main{padding-bottom:160px!important}body.has-itin-bar .chatbot-fab{bottom:150px!important}body.has-itin-bar .toast-region{bottom:150px}}
+body.has-itin-bar .sfx-top{bottom:100px}
+@media (max-width:720px){body.has-itin-bar{padding-bottom:76px}}
+@media (max-width:600px){body.has-itin-bar .chatbot-fab{bottom:150px!important}body.has-itin-bar .toast-region{bottom:150px}body.has-itin-bar .sfx-top{bottom:150px}}
 body.itin-pp #itinerary>.page-header{display:none!important}
 body.itin-pp #itinerary .itin-wrap{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important}   /* no box around the print page, like the costing */   /* the print page shows only "Print / PDF", like the costing */
 </style>
@@ -15210,6 +15214,62 @@ try{(function(){
   var f=document.getElementById('itinFrame');if(f)f.addEventListener('load',function(){setTimeout(upd,200);});
   upd();
 })();}catch(e){console.error('Itinerary bar could not start:',e);}
+</script>
+<style>
+/* Create Itinerary: no box around the itinerary maker (its parts are cards, like the Costing Sheet) */
+#itinerary .itin-wrap{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;overflow:visible!important}
+#itinerary #itinFrame.autoh{min-height:400px!important}
+</style>
+<script>
+try{(function(){
+  var f=document.getElementById('itinFrame'),page=document.getElementById('itinerary');if(!f||!page)return;
+  /* buttons in the page header, like the Costing Sheet's "Print / PDF" */
+  var head=page.querySelector('.page-header');
+  if(head&&!document.getElementById('itinHeadActs')){
+    var a=document.createElement('div');a.className='sheet-head-actions';a.id='itinHeadActs';
+    a.innerHTML='<button type="button" class="btn-ghost" id="itinNewBtn">＋ New Voucher</button><button type="button" class="btn-ghost" id="itinPrintBtn">🖨️ Print / PDF</button>';
+    head.appendChild(a);
+    function api(){try{return f.contentWindow&&f.contentWindow.tvBar;}catch(e){return null;}}
+    document.getElementById('itinPrintBtn').addEventListener('click',function(){var x=api();if(x)x.print();});
+    document.getElementById('itinNewBtn').addEventListener('click',function(){try{var w=f.contentWindow;var b=w.document.querySelector('[data-act="newVoucher"]');if(b)b.click();}catch(e){}});
+  }
+  /* the itinerary is as tall as its content, so the whole page scrolls as one (like the Costing Sheet) */
+  var last=0;
+  function fit(){
+    try{
+      var d=f.contentDocument;if(!d||!d.body)return;
+      d.documentElement.classList.add('autoh');f.classList.add('autoh');
+      var m=d.querySelector('main'),h=0;
+      if(m){var r=m.getBoundingClientRect();h=Math.ceil(r.bottom+(d.defaultView.pageYOffset||0)+8);}
+      if(!h)h=d.body.scrollHeight;
+      h=Math.max(400,h);
+      if(Math.abs(h-last)>2){last=h;f.style.height=h+'px';}
+      view();
+    }catch(e){}
+  }
+  function view(){
+    try{
+      var d=f.contentDocument;if(!d)return;var r=f.getBoundingClientRect(),hd=document.querySelector('.topbar'),top=hd?Math.max(0,hd.getBoundingClientRect().bottom):0;
+      var bar=document.getElementById('itinEasyBar'),bb=bar&&!bar.hidden?bar.getBoundingClientRect().height:0;
+      var vy=Math.max(0,top-r.top),vh=Math.max(200,Math.min(r.bottom,innerHeight)-Math.max(r.top,top));
+      d.documentElement.style.setProperty('--vy',vy+'px');d.documentElement.style.setProperty('--vh',vh+'px');d.documentElement.style.setProperty('--vb',(Math.max(0,Math.min(r.bottom,innerHeight)-(innerHeight-bb))+16)+'px');
+    }catch(e){}
+  }
+  var ro=null;
+  function watch(){
+    try{
+      var d=f.contentDocument;if(!d||!d.body)return;
+      if(ro)ro.disconnect();
+      if(window.ResizeObserver){ro=new ResizeObserver(function(){requestAnimationFrame(fit);});ro.observe(d.body);var m=d.querySelector('main');if(m)ro.observe(m);}
+      fit();
+    }catch(e){}
+  }
+  f.addEventListener('load',function(){setTimeout(watch,50);});
+  if(f.contentDocument&&f.contentDocument.readyState==='complete')watch();
+  addEventListener('scroll',view,{passive:true});addEventListener('resize',function(){fit();});
+  var prev=window.showPage;if(typeof prev==='function')window.showPage=function(id){var r=prev.apply(this,arguments);if(id==='itinerary')setTimeout(fit,30);return r;};
+  setInterval(function(){if(page.classList.contains('active'))fit();},1500);
+})();}catch(e){console.error('Itinerary layout could not start:',e);}
 </script>
 </body>
 </html>
