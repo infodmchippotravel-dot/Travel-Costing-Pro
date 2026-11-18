@@ -490,7 +490,11 @@ html.theme-dark table.st textarea.strong,html.theme-dark table.st textarea,html.
 .pv-modes{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .pv-lbl{font-weight:800;font-size:13px;color:#7a5c1e;margin-right:4px}
 .pv-mode{min-height:42px;padding:0 14px;border-radius:10px;border:1.5px solid #d8c393;background:#fff;color:#0b1f3a;font-weight:700;font-size:14.5px;cursor:pointer}
+.pv-mode{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.pv-logo{width:28px;height:28px;object-fit:contain;flex:none;border-radius:50%;background:#fff}
+.pv-none{width:24px;height:24px;flex:none;border-radius:6px;border:2px dashed currentColor;opacity:.55}
 .pv-mode.on{background:#0b1f3a;border-color:#0b1f3a;color:#fff}
+.pv-mode.on .pv-logo{box-shadow:0 0 0 2px #C6A76B}
 .pv-mode:focus-visible,.pv-print:focus-visible{outline:3px solid #C6A76B;outline-offset:2px}
 .pv-go{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .pv-print{min-height:46px;font-size:15.5px;padding:0 20px}
@@ -499,7 +503,7 @@ html.theme-dark .pv-bar{background:#2a2314;border-color:#6b5a33}
 html.theme-dark .pv-lbl,html.theme-dark .pv-hint{color:#E6C27A}
 html.theme-dark .pv-mode{background:#1b2638;color:#f5ecd6;border-color:#6b5a33}
 html.theme-dark .pv-mode.on{background:#C6A76B;color:#0b1f3a;border-color:#C6A76B}
-@media (max-width:640px){.pv-bar{flex-direction:column;align-items:stretch}.pv-modes{display:grid;grid-template-columns:1fr 1fr 1fr}.pv-lbl{grid-column:1/-1}.pv-mode{padding:0 6px;font-size:13px}.pv-go{align-items:stretch}.pv-hint{text-align:center}}
+@media (max-width:640px){.pv-bar{flex-direction:column;align-items:stretch}.pv-modes{display:grid;grid-template-columns:1fr 1fr 1fr}.pv-lbl{grid-column:1/-1}.pv-mode{flex-direction:column;gap:4px;padding:8px 4px;font-size:13px;line-height:1.2}.pv-go{align-items:stretch}.pv-hint{text-align:center}}
 @media print{.pv-bar{display:none!important}}
 </style>
 </head>
@@ -536,7 +540,7 @@ html.theme-dark .pv-mode.on{background:#C6A76B;color:#0b1f3a;border-color:#C6A76
     <div class="sec-b">
       <div class="pv-bar" id="pvBar">
         <div class="pv-modes" role="group" aria-label="Company on the PDF"><span class="pv-lbl">Company on the PDF</span>
-          <button type="button" class="pv-mode" data-mode="hippo">🦛 Hippo Travel</button><button type="button" class="pv-mode" data-mode="anup">🏢 Anup Group</button><button type="button" class="pv-mode" data-mode="plain">📄 No company</button></div>
+          <button type="button" class="pv-mode" data-mode="hippo"><img class="pv-logo" alt="" data-logo="hippo">Hippo Travel</button><button type="button" class="pv-mode" data-mode="anup"><img class="pv-logo" alt="" data-logo="anup">Anup Group</button><button type="button" class="pv-mode" data-mode="plain"><span class="pv-none" aria-hidden="true"></span>No company</button></div>
         <div class="pv-go"><button class="btn orange pv-print" type="button" data-act="print">🖨️ Print / Download PDF</button>
           <small class="pv-hint">To download, choose <b>“Save as PDF”</b> in the print window.</small></div>
       </div>
@@ -1946,6 +1950,8 @@ $('modeSel').value = printMode;
 /* the same choice also as 3 buttons above the preview (like the costing's Print & Download page) */
 const syncModes = () => document.querySelectorAll('.pv-mode').forEach(b => { const on = b.dataset.mode === printMode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
 syncModes();
+/* the real company logos on the buttons */
+document.querySelectorAll('.pv-logo').forEach(i => { i.src = i.dataset.logo === 'anup' ? ANUP_LOGO : HIPPO_LOGO; });
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.pv-mode'); if (!b || b.dataset.mode === printMode) return; const s = $('modeSel'); s.value = b.dataset.mode; s.dispatchEvent(new Event('change', { bubbles: true })); });
 $('modeSel').addEventListener('change', e => {
   printMode = e.target.value; settings.printMode = printMode; saveSettings(); syncModes(); refreshPreview();
