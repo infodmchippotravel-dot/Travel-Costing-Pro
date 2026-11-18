@@ -559,6 +559,27 @@ body.pp .pv-print{min-height:48px!important;padding:12px 18px!important;border-r
 html.theme-dark body.pp .paper-wrap{background:#13284a!important;border-color:#22385c!important}
 @media (max-width:640px){body.pp .paper-wrap{padding:14px!important}.pv-title{font-size:25px!important}}
 </style>
+<style>
+/* All Vouchers — laid out like the costing's "My Saved Costings": space above, a plain heading with a thin gold line,
+   then the search in its own white card and the list in its own white card */
+#s-list{background:transparent!important;border:0!important;box-shadow:none!important;margin-top:40px!important;overflow:visible!important}
+#s-list>.sec-h{background:none!important;background-image:none!important;box-shadow:none!important;border:0!important;border-bottom:1px solid #e3d3b0!important;border-radius:0!important;padding:0 0 5px!important;margin:0 0 12px!important;color:#14213a!important;min-height:0!important;align-items:flex-end}
+#s-list>.sec-h::before,#s-list>.sec-h::after{display:none!important}
+#s-list .sl-title{font-family:"Playfair Display",Georgia,serif;font-size:21px;font-weight:600;color:#14213a;margin:0;line-height:1.5}
+#s-list>.sec-h .btn.ghost{background:#fff!important;color:#0b1f3a!important;border:1.5px solid #d8c393!important;box-shadow:none!important}
+#s-list>.sec-b{padding:0!important;background:transparent!important;border:0!important}
+#s-list .sl-card{display:block!important;background:#fff;border:1px solid rgba(198,167,107,.26);border-radius:20px;padding:24px;margin:0 0 16px;box-shadow:0 1px 2px rgba(11,31,58,.05),0 14px 36px -16px rgba(11,31,58,.22)}
+#s-list .sl-card input{width:100%!important;display:block}
+#s-list .sl-lbl{display:block;font-weight:600;font-size:15px;color:#14213a;margin:0 0 8px}
+#s-list #list{background:#fff;border:1px solid rgba(198,167,107,.26);border-radius:20px;overflow:hidden;box-shadow:0 1px 2px rgba(11,31,58,.05),0 14px 36px -16px rgba(11,31,58,.22)}
+#s-list #list table.list{margin:0}
+#s-list #list>.btn-row,#s-list #list>p{padding:0 16px 16px}
+html.theme-dark #s-list>.sec-h{border-bottom-color:#6b5a33!important}
+html.theme-dark #s-list .sl-title,html.theme-dark #s-list .sl-lbl{color:#fff}
+html.theme-dark #s-list .sl-card,html.theme-dark #s-list #list{background:#13284a;border-color:#22385c}
+html.theme-dark #s-list>.sec-h .btn.ghost{background:#13284a!important;color:#f5ecd6!important;border-color:#6b5a33!important}
+@media (max-width:640px){#s-list{margin-top:28px!important}#s-list .sl-card{padding:16px}}
+</style>
 </head>
 <body>
 
@@ -600,10 +621,10 @@ html.theme-dark body.pp .paper-wrap{background:#13284a!important;border-color:#2
       </div>
       <div id="pvCheck"></div><div class="paper-wrap"><div id="paper"></div></div></div></details>
 
-  <section class="sec" id="s-list"><div class="sec-h">📒 All vouchers
+  <section class="sec" id="s-list"><div class="sec-h"><h2 class="sl-title">All Vouchers</h2>
       <span class="r"><button class="btn ghost sm" type="button" data-act="addPdfs">➕ Add PDF vouchers</button></span></div>
     <div class="sec-b">
-      <div class="search"><input type="search" id="listQ" placeholder="🔍 Search client name, voucher number, place or month (e.g. Pattaya, NOV 2026)" aria-label="Search vouchers"></div>
+      <div class="search sl-card"><label class="sl-lbl" for="listQ">Search</label><input type="search" id="listQ" placeholder="Type client name, voucher number, place or month (e.g. Pattaya, NOV 2026)" aria-label="Search vouchers"></div>
       <div id="list"></div></div>
     <input id="pdfIn" type="file" accept="application/pdf,.pdf" multiple hidden></section>
 

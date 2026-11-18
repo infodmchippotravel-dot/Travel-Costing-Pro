@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-18-15';   /* change with every new version */
+window.SITE_BUILD='2026-11-18-16';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -3464,7 +3464,7 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 <details><summary>Where does the • bullet come?</summary><p>You don't add bullets — the PDF puts them by itself, like your vouchers: each line gets <b>•</b>; hotel name, <b>NOTE</b>, <b>Check in Hotel</b> and the <b>What to bring</b> list have no bullet.</p></details>
 <details><summary>Why does the hotel name show in the day plan?</summary><p>When you add a hotel in <b>3 Hotel details</b>, its name comes by itself in the day of its <b>check-in date</b> — in CAPITALS and bold, like your vouchers (first day: the hotel name; later days: “Check in Hotel – NAME”). Change the hotel or date below and it changes above too.</p></details>
 <details><summary>How do I add the flight ticket?</summary><p>In <b>4 Flight details</b> press <b>📎 Upload ticket</b> and choose the photo, screenshot or PDF. It prints full size under Flight Details.</p></details>
-<details><summary>How do I open a saved voucher?</summary><p>Go down to <b>📒 All vouchers</b> in Create Itinerary, search the name and press <b>Open →</b>. Newest travel date first (a saved one shows its 💾 number under the name). 🖨️ prints it straight away. Users see the vouchers they saved; the admin also sees everyone's vouchers and the old PDF vouchers.</p></details>
+<details><summary>How do I open a saved voucher?</summary><p>Go down to <b>All Vouchers</b> in Create Itinerary, search the name and press <b>Open →</b>. Newest travel date first (a saved one shows its 💾 number under the name). 🖨️ prints it straight away. Users see the vouchers they saved; the admin also sees everyone's vouchers and the old PDF vouchers.</p></details>
 <details><summary>How do I add or change a tour in “Choose tour”? (admin)</summary><p>Go to <b>Saved Rates → 🏝️ Tours</b>. Fill in the tour and press <b>💾 Save Tour</b>, or press <b>Edit</b> / <b>Delete</b> on a saved tour. The change shows in Create Itinerary straight away.</p></details>
 <details><summary>Is my work lost if I close the website?</summary><p>No. Your work is kept in this browser as you type, and it is there when you open the website again. To keep a copy, the admin can use <b>Settings → Download Backup</b> (it includes the tours and the saved vouchers).</p></details>
 <details><summary>I made a mistake — can I undo?</summary><p>Yes. Press <b>↶ Undo</b> in the black message at the bottom right after the change.</p></details>
@@ -10111,7 +10111,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (15)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (16)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -11669,8 +11669,8 @@ try{(function(){
      en:'<b>Bullets (•):</b> you don’t add them — the PDF puts a • before each line by itself. The hotel name, NOTE, Check in Hotel and the What to bring list have no bullet.',
      hi:'<b>Bullet (•):</b> आपको नहीं डालने — PDF हर लाइन के आगे • अपने आप लगाती है। होटल का नाम, NOTE, Check in Hotel और What to bring लिस्ट में bullet नहीं होता।'},
     {id:'itinSaved',ctx:['saved','open','edit','search','find','old','purana','list','delete'],kw:['all vouchers','saved voucher','saved vouchers','open voucher','old voucher','old vouchers','purana voucher','purane voucher','find voucher','search voucher','edit voucher','voucher edit','my vouchers','saved itinerary','open itinerary','edit itinerary'],
-     en:function(){return '<b>Saved vouchers:</b> go down to <b>📒 All vouchers</b> in Create Itinerary, search the name and press <b>Open →</b> (🖨️ prints it straight away). Newest travel date comes first. '+(admin()?'As admin you see everyone’s vouchers and the old PDF vouchers too.':'You see the vouchers you saved.');},
-     hi:function(){return '<b>सेव किए वाउचर:</b> Create Itinerary में नीचे <b>📒 All vouchers</b> में जाएं, नाम खोजें और <b>Open →</b> दबाएं (🖨️ से सीधे प्रिंट)। सबसे नई यात्रा तारीख सबसे ऊपर आती है। '+(admin()?'Admin के रूप में आपको सबके वाउचर और पुराने PDF वाउचर भी दिखते हैं।':'आपको अपने सेव किए वाउचर दिखते हैं।');}},
+     en:function(){return '<b>Saved vouchers:</b> go down to <b>All Vouchers</b> in Create Itinerary, search the name and press <b>Open →</b> (🖨️ prints it straight away). Newest travel date comes first. '+(admin()?'As admin you see everyone’s vouchers and the old PDF vouchers too.':'You see the vouchers you saved.');},
+     hi:function(){return '<b>सेव किए वाउचर:</b> Create Itinerary में नीचे <b>All Vouchers</b> में जाएं, नाम खोजें और <b>Open →</b> दबाएं (🖨️ से सीधे प्रिंट)। सबसे नई यात्रा तारीख सबसे ऊपर आती है। '+(admin()?'Admin के रूप में आपको सबके वाउचर और पुराने PDF वाउचर भी दिखते हैं।':'आपको अपने सेव किए वाउचर दिखते हैं।');}},
     {id:'undo',kw:['undo','mistake','galti','galat ho gaya','wapas lao','go back','गलती'],
      en:'<b>Made a mistake?</b> Press <b>↶ Undo</b> in the black message at the bottom right just after the change (in Create Itinerary and after deleting a costing). Your work is also kept in this browser as you type.',
      hi:'<b>गलती हो गई?</b> बदलाव के तुरंत बाद नीचे दाईं ओर काले मैसेज में <b>↶ Undo</b> दबाएं (Create Itinerary में और कॉस्टिंग डिलीट करने के बाद)। आपका काम लिखते-लिखते इसी browser में सेव होता रहता है।'},
