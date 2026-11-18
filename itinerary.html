@@ -256,12 +256,13 @@ details.qa p,details.qa ol{margin:8px 0 0;color:#334155;line-height:1.6}
 
 /* ============ THE PRINTED VOUCHER (bank-slip style) ============ */
 .paper-wrap{background:#cbd5e1;border-radius:16px;padding:22px 12px}
+#paper{overflow:hidden}
 .slip{background:#fff;color:var(--ink);border:1.5px solid var(--ink);max-width:210mm;margin:auto;font-size:13px;font-variant-numeric:tabular-nums}
 .slip .brandband{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--ink)}
 .slip .bname{font-size:24px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;line-height:1.1}
 .slip .baddr{font-size:11.5px;line-height:1.35;color:#475467;margin-top:4px;max-width:420px;text-wrap:balance}   /* address under the company name (never alone on a last page) */
 .slip .gh{text-align:right;font-size:12.5px;line-height:1.35}
-@media (max-width:640px){.slip .brandband{flex-direction:column;align-items:flex-start}.slip .gh{text-align:left}}
+@media (max-width:640px){.slip:not(.a4) .brandband{flex-direction:column;align-items:flex-start}.slip:not(.a4) .gh{text-align:left}}
 .slip .bl{display:flex;align-items:center;gap:12px}
 .slip .blogo{width:68px;height:68px;object-fit:contain}
 .slip .cap{background:var(--ink);color:#fff;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px}
@@ -320,17 +321,17 @@ details.qa p,details.qa ol{margin:8px 0 0;color:#334155;line-height:1.6}
 .slip .center{text-align:center}
 .slip .close{font-size:18px;font-weight:800;letter-spacing:.3em;padding:10px}
 @media (max-width:640px){
-  .slip .head,.slip .foot{grid-template-columns:1fr}
-  .slip .head table+table,.slip .foot>div+div{border-left:0;border-top:1px solid var(--ink)}
-  .slip table.kv4 colgroup{display:none}
-  .slip table.kv4,.slip table.kv4 tbody{display:block}
-  .slip table.kv4 tr{display:grid;grid-template-columns:36% 64%}
-  .slip table.kv4 th.r{border-left:0}
-  .slip table.tbl.days thead{display:none}
-  .slip table.tbl.days,.slip table.tbl.days tbody,.slip table.tbl.days tr,.slip table.tbl.days td{display:block;width:100%}
-  .slip table.tbl.days tbody.dayg{border-bottom:2px solid var(--ink)}
-  .slip table.tbl.days td{border-right:0;border-bottom:1px dashed #cbd5e1}
-  .slip table.tbl.days td[data-l]::before{content:attr(data-l);display:block;font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b}
+  .slip:not(.a4) .head,.slip:not(.a4) .foot{grid-template-columns:1fr}
+  .slip:not(.a4) .head table+table,.slip:not(.a4) .foot>div+div{border-left:0;border-top:1px solid var(--ink)}
+  .slip:not(.a4) table.kv4 colgroup{display:none}
+  .slip:not(.a4) table.kv4,.slip:not(.a4) table.kv4 tbody{display:block}
+  .slip:not(.a4) table.kv4 tr{display:grid;grid-template-columns:36% 64%}
+  .slip:not(.a4) table.kv4 th.r{border-left:0}
+  .slip:not(.a4) table.tbl.days thead{display:none}
+  .slip:not(.a4) table.tbl.days,.slip:not(.a4) table.tbl.days tbody,.slip:not(.a4) table.tbl.days tr,.slip:not(.a4) table.tbl.days td{display:block;width:100%}
+  .slip:not(.a4) table.tbl.days tbody.dayg{border-bottom:2px solid var(--ink)}
+  .slip:not(.a4) table.tbl.days td{border-right:0;border-bottom:1px dashed #cbd5e1}
+  .slip:not(.a4) table.tbl.days td[data-l]::before{content:attr(data-l);display:block;font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b}
 }
 
 #printArea{display:none}
@@ -1944,7 +1945,20 @@ function renderPreview() {
     ? `<div class="check"><b>⚠️ Please check before printing (${issues.length}):</b><ul>${issues.map(([m, id]) => `<li><span>${esc(m)}</span><button class="btn sm ghost" type="button" data-act="fix" data-a="${id}">✏️ Fix</button></li>`).join('')}</ul></div>`
     : `<div class="check ok">✅ Everything is filled${draft.no ? ` · saved as ${esc(draft.no)}` : ''} — press 🖨️ Print / Download PDF</div>`;
   $('paper').innerHTML = renderSlip(draft, printMode);
+  fitPaper();
 }
+/* small screens: the preview is the real A4 page, made smaller to fit (nothing is cut, it looks as it prints) */
+function fitPaper() {
+  const pp = $('paper'), sl = pp && pp.querySelector('.slip'); if (!sl) return;
+  sl.style.transform = ''; sl.style.width = ''; pp.style.height = ''; sl.classList.remove('a4');
+  const avail = pp.clientWidth, A4 = 794;
+  if (!avail || avail >= A4) return;
+  sl.classList.add('a4');   /* laid out as the printed page, then made smaller */
+  const k = avail / A4;
+  sl.style.width = A4 + 'px'; sl.style.maxWidth = 'none'; sl.style.transformOrigin = 'top left'; sl.style.transform = `scale(${k})`;
+  pp.style.height = Math.ceil(sl.offsetHeight * k) + 'px';
+}
+if (window.ResizeObserver) { let rw = 0; new ResizeObserver(() => { const w = $('paper').clientWidth; if (w !== rw) { rw = w; fitPaper(); } }).observe($('paper')); }
 // which company goes on the PDF — chosen at the top, remembered
 $('modeSel').value = printMode;
 /* the same choice also as 3 buttons above the preview (like the costing's Print & Download page) */
