@@ -580,6 +580,33 @@ html.theme-dark #s-list .sl-card,html.theme-dark #s-list #list{background:#13284
 html.theme-dark #s-list>.sec-h .btn.ghost{background:#13284a!important;color:#f5ecd6!important;border-color:#6b5a33!important}
 @media (max-width:640px){#s-list{margin-top:28px!important}#s-list .sl-card{padding:16px}}
 </style>
+<style>
+/* ===== Inside the website: the itinerary page looks like the Costing Sheet =====
+   white cards, a number in a navy circle, a Playfair title with a short gold line, light buttons,
+   no dark toolbar (its buttons are in the page header and the bottom bar), and the page scrolls as one */
+html.in-site .topbar{display:none!important}
+html.in-site,html.in-site body{background:transparent!important;background-image:none!important}
+html.in-site main{padding:0 0 8px!important;max-width:none!important}
+section.sec{background:#fff!important;border:1px solid rgba(198,167,107,.26)!important;border-radius:20px!important;margin:0 0 16px!important;box-shadow:0 1px 2px rgba(11,31,58,.05),0 14px 36px -16px rgba(11,31,58,.22)!important;overflow:visible}
+section.sec:not(#s-list)>.sec-h{position:relative;background:none!important;background-image:none!important;color:#14213a!important;font-family:"Playfair Display",Georgia,serif!important;font-size:21px!important;font-weight:600!important;padding:22px 24px 12px!important;border:0!important;border-bottom:1px solid #efe4cf!important;border-radius:20px 20px 0 0!important;box-shadow:none!important;gap:12px!important}
+section.sec:not(#s-list)>.sec-h::after{content:"";position:absolute;left:24px;bottom:-1px;width:64px;height:2px;background:linear-gradient(90deg,#c6a76b,#f3e2b3);border-radius:2px}
+section.sec>.sec-h .n{width:30px!important;height:30px!important;border-radius:50%!important;background:#0b1f3a!important;background-image:none!important;color:#c6a76b!important;border:1px solid #c6a76b!important;font-family:"Playfair Display",Georgia,serif!important;font-size:16px!important;font-weight:700!important;box-shadow:none!important}
+section.sec>.sec-h .hint{font-family:Inter,'Segoe UI',Arial,sans-serif!important;font-size:13.5px!important;font-weight:500!important;color:#5e6a7d!important}
+section.sec>.sec-h .btn.ghost{background:#fff!important;color:#0b1f3a!important;border:1.5px solid #d8c393!important;box-shadow:none!important;font-family:Inter,'Segoe UI',Arial,sans-serif!important}
+section.sec>.sec-h .btn.ghost:hover{background:#fbf6ea!important}
+html.theme-dark section.sec{background:#13284a!important;border-color:#22385c!important}
+html.theme-dark section.sec:not(#s-list)>.sec-h{color:#fff!important;border-bottom-color:#22385c!important}
+html.theme-dark section.sec>.sec-h .hint{color:#cbd5e1!important}
+html.theme-dark section.sec>.sec-h .btn.ghost{background:#13284a!important;color:#f5ecd6!important;border-color:#6b5a33!important}
+@media (max-width:640px){section.sec:not(#s-list)>.sec-h{padding:16px 16px 10px!important;font-size:19px!important}section.sec:not(#s-list)>.sec-h::after{left:16px}}
+/* the page scrolls as one: pop-ups and messages are placed in the part of the page that is on screen */
+html.autoh #dlg,html.autoh #tp,html.autoh #lb{position:absolute!important;inset:auto!important;left:0!important;right:0!important;top:var(--vy,0px)!important;height:var(--vh,100vh)!important}
+html.autoh #toast{position:absolute!important;bottom:auto!important;top:calc(var(--vy,0px) + var(--vh,100vh) - var(--vb,96px))!important;transform:translate(-50%,-100%)!important}   /* its bottom sits just above the website's bottom bar */
+html.autoh #tp{padding:calc(var(--vh,100vh) * .04) 12px!important}
+html.autoh .tp-box{max-height:calc(var(--vh,100vh) * .92)!important}
+html.autoh #dlg{padding:calc(var(--vh,100vh) * .18) 16px 0!important}
+@media (max-width:640px){html.autoh #tp{padding:0!important}html.autoh .tp-box{max-height:var(--vh,100vh)!important;height:var(--vh,100vh)!important}}
+</style>
 </head>
 <body>
 
