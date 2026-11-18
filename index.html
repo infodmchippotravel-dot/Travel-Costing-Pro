@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-18-14';   /* change with every new version */
+window.SITE_BUILD='2026-11-18-15';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10111,7 +10111,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (14)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (15)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15181,7 +15181,8 @@ body.has-itin-bar main{padding-bottom:110px!important}
 body.has-itin-bar .chatbot-fab{bottom:100px!important}
 body.has-itin-bar .toast-region{bottom:100px}
 @media (max-width:600px){body.has-itin-bar main{padding-bottom:160px!important}body.has-itin-bar .chatbot-fab{bottom:150px!important}body.has-itin-bar .toast-region{bottom:150px}}
-body.itin-pp #itinerary>.page-header{display:none!important}   /* the print page shows only "Print / PDF", like the costing */
+body.itin-pp #itinerary>.page-header{display:none!important}
+body.itin-pp #itinerary .itin-wrap{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important}   /* no box around the print page, like the costing */   /* the print page shows only "Print / PDF", like the costing */
 </style>
 <script>
 try{(function(){
