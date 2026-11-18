@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-18-7';   /* change with every new version */
+window.SITE_BUILD='2026-11-18-8';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -3457,8 +3457,8 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 <li><b>2 Day by day plan:</b> in each row press <b>🔍 Choose tour</b>. A window opens: press a city (Pattaya, Bangkok…) or type a word (e.g. <i>coral</i>, <i>safari</i>, <i>airport</i>), then click the tour — the row fills itself. To change it later press <b>🔄 Change tour</b>. Not in the list? Press <b>✏️ Type my own</b>.</li>
 <li><b>3 Hotel details:</b> press <b>＋ Add hotel</b>, type the hotel name and click it. Check-in &amp; check-out dates fill by themselves (change them if needed). Add the Confirmation #.</li>
 <li>Press <b>＋ Add next day</b> for more days, <b>✕</b> to remove a day.</li>
-<li>Press <b>🖨️ Print / PDF</b> at the top. It saves by itself.</li></ol></details>
-<details><summary>How do I get a PDF for WhatsApp / Email?</summary><p>Press <b>🖨️ Print / PDF</b>. In the print window choose <b>“Save as PDF”</b> and press Save.</p></details>
+<li>Press <b>🖨️ Print &amp; Download</b> at the top. The print page opens: choose the company (Hippo Travel, Anup Group or no company), then press <b>🖨️ Print / Download PDF</b>. It saves by itself.</li></ol></details>
+<details><summary>How do I get a PDF for WhatsApp / Email?</summary><p>Costing: press <b>🖨️ Print / PDF</b>. Itinerary: press <b>🖨️ Print &amp; Download</b>, then <b>🖨️ Print / Download PDF</b>. In the print window choose <b>“Save as PDF”</b> and press Save.</p></details>
 <details><summary>Hippo Travel, Anup Group or no company?</summary><p>At the top of Create Itinerary, choose it in <b>Company on PDF</b> before printing. Each voucher shows only one company. The admin changes their phone and address in <b>⚙️ Settings</b> at the bottom of Create Itinerary.</p></details>
 <details><summary>How do I make text yellow?</summary><p>In a day's <b>Itinerary details</b>, select the words (or click on the line) and press <b>🖍 Yellow</b>. Press again to remove it. Hotel <b>Confirmation #</b> is always yellow.</p></details>
 <details><summary>Where does the • bullet come?</summary><p>You don't add bullets — the PDF puts them by itself, like your vouchers: each line gets <b>•</b>; hotel name, <b>NOTE</b>, <b>Check in Hotel</b> and the <b>What to bring</b> list have no bullet.</p></details>
@@ -10111,7 +10111,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (7)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (8)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -11657,10 +11657,10 @@ try{(function(){
      en:'<b>Flight ticket in the voucher:</b> in <b>4 Flight details</b> press <b>📎 Upload ticket</b> and choose the photo, screenshot or PDF of the ticket. It prints full size under <b>Flight Details</b>.',
      hi:'<b>वाउचर में फ्लाइट टिकट:</b> <b>4 Flight details</b> में <b>📎 Upload ticket</b> दबाएं और टिकट की फोटो, स्क्रीनशॉट या PDF चुनें। यह <b>Flight Details</b> के नीचे पूरे साइज़ में छपता है।'},
     {id:'itinPdf',ctx:['pdf','print','download','share'],kw:['voucher pdf','itinerary pdf','pdf of voucher','pdf of itinerary','print voucher','voucher print','itinerary print','print itinerary','voucher download','itinerary download','whatsapp','send voucher','voucher bhejna','voucher send'],
-     en:'<b>Voucher PDF (for WhatsApp / Email):</b> in Create Itinerary press <b>🖨️ Print / PDF</b>. In the print window choose <b>“Save as PDF”</b> and press Save. The voucher is saved by itself when you print.',
-     hi:'<b>वाउचर की PDF (WhatsApp / Email के लिए):</b> Create Itinerary में <b>🖨️ Print / PDF</b> दबाएं। प्रिंट विंडो में <b>“Save as PDF”</b> चुनें और Save दबाएं। प्रिंट करते समय वाउचर अपने आप सेव हो जाता है।'},
+     en:'<b>Voucher PDF (for WhatsApp / Email):</b> in Create Itinerary press <b>🖨️ Print &amp; Download</b> — the print page opens with the voucher. Choose the company, press <b>🖨️ Print / Download PDF</b>, and in the print window choose <b>“Save as PDF”</b> and press Save. The voucher is saved by itself when you print.',
+     hi:'<b>वाउचर की PDF (WhatsApp / Email के लिए):</b> Create Itinerary में <b>🖨️ Print &amp; Download</b> दबाएं — प्रिंट पेज खुलेगा। कंपनी चुनें, <b>🖨️ Print / Download PDF</b> दबाएं, फिर प्रिंट विंडो में <b>“Save as PDF”</b> चुनें और Save दबाएं। प्रिंट करते समय वाउचर अपने आप सेव हो जाता है।'},
     {id:'itinCompany',ctx:['company','logo','phone','address'],kw:['company on pdf','company on voucher','which company','anup','anup group','no company','hippo or anup','voucher company','company change'],
-     en:function(){return '<b>Company on the voucher:</b> at the top of Create Itinerary choose it in <b>Company on PDF</b> (Hippo Travel, Anup Group or no company) before printing. Each voucher shows only one company.'+(admin()?' The admin changes their phone and address in <b>⚙️ Settings</b> at the bottom of Create Itinerary.':'');},
+     en:function(){return '<b>Company on the voucher:</b> in Create Itinerary press <b>🖨️ Print &amp; Download</b> and press one of the company buttons (Hippo Travel, Anup Group or No company) before printing. Each voucher shows only one company.'+(admin()?' The admin changes their phone and address in <b>⚙️ Settings</b> at the bottom of Create Itinerary.':'');},
      hi:function(){return '<b>वाउचर पर कंपनी:</b> प्रिंट से पहले Create Itinerary में ऊपर <b>Company on PDF</b> में चुनें (Hippo Travel, Anup Group या कोई कंपनी नहीं)। हर वाउचर पर एक ही कंपनी दिखती है।'+(admin()?' Admin उनका फोन और पता Create Itinerary के नीचे <b>⚙️ Settings</b> में बदलता है।':'');}},
     {id:'itinYellow',kw:['yellow','highlight','peela','pila','पीला','हाइलाइट'],
      en:'<b>Yellow text:</b> in a day’s <b>Itinerary details</b> select the words (or click on the line) and press <b>🖍 Yellow</b>. Press it again to remove the yellow. The hotel Confirmation # is always yellow.',

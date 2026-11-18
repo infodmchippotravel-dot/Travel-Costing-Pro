@@ -499,12 +499,20 @@ html.theme-dark table.st textarea.strong,html.theme-dark table.st textarea,html.
 .pv-mode:focus-visible,.pv-print:focus-visible{outline:3px solid #C6A76B;outline-offset:2px}
 .pv-go{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .pv-print{min-height:46px;font-size:15.5px;padding:0 20px}
+.pv-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.pv-back{display:none;min-height:46px}
+/* the Print & Download page: only the voucher and its buttons */
+body.pp main>*:not(#s-preview){display:none!important}
+body.pp .pv-back{display:inline-flex;align-items:center}
+body.pp .topbar [data-act="printPage"],body.pp .topbar .modebox{display:none}
+body.pp #s-preview>summary{cursor:default}
+body.pp #s-preview>summary::after{display:none}
 .pv-hint{color:#6b5a33;font-size:12.5px}
 html.theme-dark .pv-bar{background:#2a2314;border-color:#6b5a33}
 html.theme-dark .pv-lbl,html.theme-dark .pv-hint{color:#E6C27A}
 html.theme-dark .pv-mode{background:#1b2638;color:#f5ecd6;border-color:#6b5a33}
 html.theme-dark .pv-mode.on{background:#C6A76B;color:#0b1f3a;border-color:#C6A76B}
-@media (max-width:640px){.pv-bar{flex-direction:column;align-items:stretch}.pv-modes{display:grid;grid-template-columns:1fr 1fr 1fr}.pv-lbl{grid-column:1/-1}.pv-mode{flex-direction:column;gap:4px;padding:8px 4px;font-size:13px;line-height:1.2}.pv-go{align-items:stretch}.pv-hint{text-align:center}}
+@media (max-width:640px){.pv-btns{flex-direction:column-reverse}.pv-btns .btn{width:100%;justify-content:center}.pv-bar{flex-direction:column;align-items:stretch}.pv-modes{display:grid;grid-template-columns:1fr 1fr 1fr}.pv-lbl{grid-column:1/-1}.pv-mode{flex-direction:column;gap:4px;padding:8px 4px;font-size:13px;line-height:1.2}.pv-go{align-items:stretch}.pv-hint{text-align:center}}
 @media print{.pv-bar{display:none!important}}
 </style>
 </head>
@@ -517,7 +525,7 @@ html.theme-dark .pv-mode.on{background:#C6A76B;color:#0b1f3a;border-color:#C6A76
     <button class="btn green" type="button" data-act="newVoucher">＋ New Voucher</button>
     <button class="btn blue" type="button" data-act="save">💾 Save</button>
     <span class="modebox"><label for="modeSel">Company on PDF</label><select id="modeSel"><option value="hippo">Hippo Travel</option><option value="anup">Anup Group</option><option value="plain">No company</option></select></span>
-    <button class="btn orange" type="button" data-act="print">🖨️ Print / PDF</button>
+    <button class="btn orange" type="button" data-act="printPage">🖨️ Print &amp; Download</button>
   </div>
 </header>
 <div id="warnbar" class="warnbar">⚠️ Saving is OFF in this browser (private window or blocked storage). Your vouchers cannot be kept.</div>
@@ -537,12 +545,12 @@ html.theme-dark .pv-mode.on{background:#C6A76B;color:#0b1f3a;border-color:#C6A76
     <div id="flightsBox"></div>
     <input type="file" id="ticketIn" accept="image/*,application/pdf,.pdf" multiple hidden></section>
 
-  <details class="sec" id="s-preview" open><summary class="sec-h"><span class="n">5</span>🖨️ Print &amp; Download — see the voucher, choose the company, then print or save as PDF</summary>
+  <details class="sec" id="s-preview" open><summary class="sec-h"><span class="n">5</span>🖨️ Print &amp; Download <span class="hint">choose the company, then print or save as PDF</span></summary>
     <div class="sec-b">
       <div class="pv-bar" id="pvBar">
         <div class="pv-modes" role="group" aria-label="Company on the PDF"><span class="pv-lbl">Company on the PDF</span>
           <button type="button" class="pv-mode" data-mode="hippo"><img class="pv-logo" alt="" data-logo="hippo">Hippo Travel</button><button type="button" class="pv-mode" data-mode="anup"><img class="pv-logo" alt="" data-logo="anup">Anup Group</button><button type="button" class="pv-mode" data-mode="plain"><span class="pv-none" aria-hidden="true"></span>No company</button></div>
-        <div class="pv-go"><button class="btn orange pv-print" type="button" data-act="print">🖨️ Print / Download PDF</button>
+        <div class="pv-go"><div class="pv-btns"><button class="btn ghost pv-back" type="button" data-act="printBack">← Back to edit</button><button class="btn orange pv-print" type="button" data-act="print">🖨️ Print / Download PDF</button></div>
           <small class="pv-hint">To download, choose <b>“Save as PDF”</b> in the print window.</small></div>
       </div>
       <div id="pvCheck"></div><div class="paper-wrap"><div id="paper"></div></div></div></details>
@@ -1080,6 +1088,7 @@ function saveVoucher(auto) {
 const current = 'make';
 const pvOpen = () => $('s-preview').open;
 function goPage(id) {
+  if (id !== 'preview') document.body.classList.remove('pp');
   if (id === 'preview') { autoSave(); $('s-preview').open = true; renderPreview(); $('s-preview').scrollIntoView({ block: 'start' }); return; }
   if (id === 'saved' || id === 'old') { renderList(); $('s-list').scrollIntoView({ block: 'start' }); return; }
   if (id === 'settings') { $('s-settings').open = true; $('s-settings').scrollIntoView({ block: 'start' }); return; }
@@ -1087,7 +1096,7 @@ function goPage(id) {
 }
 let pvT;
 const refreshPreview = () => { if (pvOpen()) { clearTimeout(pvT); pvT = setTimeout(renderPreview, 450); } };
-$('s-preview').addEventListener('toggle', () => { if (pvOpen()) renderPreview(); });
+$('s-preview').addEventListener('toggle', () => { if (document.body.classList.contains('pp') && !pvOpen()) { $('s-preview').open = true; return; } if (pvOpen()) renderPreview(); });
 
 /* =========================================================
    FLIGHT TICKETS (photos / PDF tickets) — kept in the browser's IndexedDB
@@ -1498,6 +1507,9 @@ function scrollToDay(i) { const el = $('day-' + i); if (el) el.scrollIntoView({ 
 
 /* buttons */
 const ACT = {
+  /* like the costing: a page of its own with the voucher, the company buttons and the Print / Download button */
+  printPage() { if (document.activeElement) document.activeElement.blur(); autoSave(); document.body.classList.add('pp'); $('s-preview').open = true; renderPreview(); window.scrollTo(0, 0); try { const f = window.frameElement; if (f && f.getBoundingClientRect().top < 0) f.scrollIntoView({ block: 'start' }); } catch (e) { } },
+  printBack() { document.body.classList.remove('pp'); goPage('make'); },
   newVoucher() {
     const kept = autoSave(); // the voucher you were making is saved first, so nothing is lost
     if (!kept && dirty && (draft.client.trim() || draft.days.some(d => d.title.trim()))) snap();
