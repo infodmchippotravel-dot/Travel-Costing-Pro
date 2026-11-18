@@ -544,6 +544,21 @@ html.theme-dark body.pp .pv-modes{background:#13284a;border-color:#6b5a33}html.t
 html.theme-dark body.pp .pv-print{background:linear-gradient(135deg,#E6C27A,#C6A76B)!important;color:#0b1f3a!important;border-color:#C6A76B}
 @media (max-width:640px){.pv-title{font-size:25px}body.pp .pv-bar{align-items:stretch}body.pp .pv-go,body.pp .pv-btns{width:100%}body.pp .pv-print{width:100%}}
 </style>
+<style>
+/* Print / PDF page — the same page look as the costing's: no box around it, the paper on a flat grey-beige
+   area, a thick navy + gold line on top of the paper and a soft shadow under it */
+html.in-site.pp,html.in-site.pp body{background:transparent!important}
+html.in-site.pp body{background-image:none!important}
+body.pp main{padding:0 0 24px!important;max-width:none!important}
+body.pp .paper-wrap{background:#e9e5dd!important;background-image:none!important;border:1px solid #e4ded3!important;border-radius:16px!important;padding:28px!important}
+body.pp #paper .slip{box-shadow:0 18px 48px rgba(11,31,58,.18)!important}
+body.pp #paper .slip::before{content:"";display:block;height:2.2mm;background:#0b1f3a;border-bottom:.8mm solid #a8874f;margin:-1.5px -1.5px 0}
+.pv-title{font-weight:600!important;font-size:30px!important;line-height:1.15!important}
+.pv-sub{font-size:14.5px!important;color:#5e6a7d!important}
+body.pp .pv-print{min-height:48px!important;padding:12px 18px!important;border-radius:10px!important;font-weight:600!important;font-size:16px!important;border:1px solid rgba(198,167,107,.45)!important;background:linear-gradient(135deg,#16365f 0%,#0b1f3a 60%,#08172c 100%)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 10px 24px -12px rgba(11,31,58,.75)!important}
+html.theme-dark body.pp .paper-wrap{background:#13284a!important;border-color:#22385c!important}
+@media (max-width:640px){body.pp .paper-wrap{padding:14px!important}.pv-title{font-size:25px!important}}
+</style>
 </head>
 <body>
 
@@ -580,7 +595,7 @@ html.theme-dark body.pp .pv-print{background:linear-gradient(135deg,#E6C27A,#C6A
       <div class="pv-bar" id="pvBar">
         <div class="pv-modes" role="group" aria-label="Company on the PDF"><span class="pv-lbl">Company on the PDF</span>
           <button type="button" class="pv-mode" data-mode="hippo"><img class="pv-logo" alt="" data-logo="hippo">Hippo Travel</button><button type="button" class="pv-mode" data-mode="anup"><img class="pv-logo" alt="" data-logo="anup">Anup Group</button><button type="button" class="pv-mode" data-mode="plain"><span class="pv-none" aria-hidden="true"></span>No company</button></div>
-        <div class="pv-go"><div class="pv-btns"><button class="btn ghost pv-back" type="button" data-act="printBack">← Back to edit</button><button class="btn orange pv-print" type="button" data-act="print">🖨️ Print / Download PDF</button></div>
+        <div class="pv-go"><div class="pv-btns"><button class="btn ghost pv-back" type="button" data-act="printBack">← Back to edit</button><button class="btn orange pv-print" type="button" data-act="print">Print / Download PDF</button></div>
           </div>
       </div>
       <div id="pvCheck"></div><div class="paper-wrap"><div id="paper"></div></div></div></details>
@@ -1118,7 +1133,7 @@ function saveVoucher(auto) {
 const current = 'make';
 const pvOpen = () => document.body.classList.contains('pp');
 function goPage(id) {
-  if (id !== 'preview') document.body.classList.remove('pp');
+  if (id !== 'preview') { document.body.classList.remove('pp'); document.documentElement.classList.remove('pp'); }
   if (id === 'preview') { ACT.printPage(); return; }
   if (id === 'saved' || id === 'old') { renderList(); $('s-list').scrollIntoView({ block: 'start' }); return; }
   if (id === 'settings') { $('s-settings').open = true; $('s-settings').scrollIntoView({ block: 'start' }); return; }
@@ -1538,8 +1553,8 @@ function scrollToDay(i) { const el = $('day-' + i); if (el) el.scrollIntoView({ 
 /* buttons */
 const ACT = {
   /* like the costing: a page of its own with the voucher, the company buttons and the Print / Download button */
-  printPage() { if (document.activeElement) document.activeElement.blur(); autoSave(); document.body.classList.add('pp'); $('s-preview').open = true; renderPreview(); window.scrollTo(0, 0); try { const f = window.frameElement; if (f && f.getBoundingClientRect().top < 0) f.scrollIntoView({ block: 'start' }); } catch (e) { } },
-  printBack() { document.body.classList.remove('pp'); goPage('make'); },
+  printPage() { if (document.activeElement) document.activeElement.blur(); autoSave(); document.body.classList.add('pp'); document.documentElement.classList.add('pp'); $('s-preview').open = true; renderPreview(); window.scrollTo(0, 0); try { const f = window.frameElement; if (f && f.getBoundingClientRect().top < 0) f.scrollIntoView({ block: 'start' }); } catch (e) { } },
+  printBack() { document.body.classList.remove('pp'); document.documentElement.classList.remove('pp'); goPage('make'); },
   newVoucher() {
     const kept = autoSave(); // the voucher you were making is saved first, so nothing is lost
     if (!kept && dirty && (draft.client.trim() || draft.days.some(d => d.title.trim()))) snap();
