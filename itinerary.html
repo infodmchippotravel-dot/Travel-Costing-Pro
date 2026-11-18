@@ -2425,5 +2425,43 @@ window.addEventListener('storage',function(e){
   if(e.key==='tv.settings.v1'&&e.newValue){try{var n=JSON.parse(e.newValue)||{};['company','partner','prefix','currency','notes','closing','nextNo'].forEach(function(k){if(n[k]!==undefined)settings[k]=n[k];});if(typeof renderSettings==='function')renderSettings();if(typeof refreshPreview==='function')refreshPreview();}catch(x){}}
 });
 </script>
+<style>
+/* bottom bar like the costing's: client + trip on the left, "Save Complete Itinerary" on the right */
+.it-bar{position:sticky;bottom:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px -2px 0;padding:10px 14px;background:#fff;border-top:1px solid #e8d3a2;box-shadow:0 -8px 28px rgba(11,31,58,.10);border-radius:14px 14px 0 0}
+.it-bar .ib-info{min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.it-bar .ib-info b{font-size:15px;color:#0b1f3a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it-bar .ib-info small{color:#6b5a33;font-size:12.5px}
+.it-bar .ib-save{flex:none;min-height:48px;padding:0 22px;border-radius:14px;border:1px solid #0b1f3a;background:linear-gradient(135deg,#1b3a66 0%,#0b1f3a 100%);color:#fff;font-weight:800;font-size:15.5px;cursor:pointer;box-shadow:0 8px 20px rgba(11,31,58,.25)}
+.it-bar .ib-save:hover{filter:brightness(1.12)}
+.it-bar .ib-save:focus-visible{outline:3px solid #C6A76B;outline-offset:2px}
+html.theme-dark .it-bar{background:#0a1830;border-color:#6b5a33}
+html.theme-dark .it-bar .ib-info b{color:#fff}html.theme-dark .it-bar .ib-info small{color:#E6C27A}
+html.theme-dark .it-bar .ib-save{background:linear-gradient(135deg,#E6C27A,#C6A76B);color:#0b1f3a;border-color:#C6A76B}
+body.pp .it-bar{display:none}
+@media (max-width:640px){.it-bar{flex-direction:column;align-items:stretch;gap:8px}.it-bar .ib-save{width:100%}body:not(.pp) #toast{bottom:150px}}
+@media print{.it-bar{display:none!important}}
+</style>
+<script>
+(function(){
+  try{
+    var main=document.querySelector('main');if(!main)return;
+    var bar=document.createElement('div');bar.className='it-bar no-print';bar.id='itBar';bar.setAttribute('role','region');bar.setAttribute('aria-label','Save the itinerary');
+    bar.innerHTML='<div class="ib-info"><b id="ibClient"></b><small id="ibTrip"></small></div><button type="button" class="ib-save" id="ibSave">💾 Save Complete Itinerary</button>';
+    var list=document.getElementById('s-list');main.insertBefore(bar,list||null);
+    function upd(){
+      try{
+        document.getElementById('ibClient').textContent=(draft.client||'').trim()?String(draft.client).toUpperCase():'No client name yet';
+        var a=draft.start?dayDate(draft,0):null,z=draft.start?dayDate(draft,draft.days.length-1):null;
+        document.getElementById('ibTrip').textContent=(a?fmtShort(a)+' – '+fmtShort(z)+' · ':'')+duration(draft)+(draft.no?' · '+draft.no:'');
+        var saved=draft.id&&savedList().some(function(x){return x.id===draft.id;});
+        document.getElementById('ibSave').textContent=saved?'💾 Save Changes':'💾 Save Complete Itinerary';
+      }catch(e){}
+    }
+    document.getElementById('ibSave').addEventListener('click',function(){saveVoucher();setTimeout(upd,50);});
+    var prev=showDirty;showDirty=function(){var r=prev.apply(this,arguments);upd();return r;};
+    upd();
+  }catch(e){console.error('Save bar could not start:',e);}
+})();
+</script>
 </body>
 </html>
