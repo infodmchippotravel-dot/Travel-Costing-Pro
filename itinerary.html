@@ -503,6 +503,7 @@ html.theme-dark table.st textarea.strong,html.theme-dark table.st textarea,html.
 .pv-back{display:none;min-height:46px}
 /* the Print & Download page: only the voucher and its buttons */
 body.pp main>*:not(#s-preview){display:none!important}
+body:not(.pp) #s-preview{display:none!important}   /* Print & Download is only on its own page */
 body.pp .pv-back{display:inline-flex;align-items:center}
 body.pp .topbar [data-act="printPage"],body.pp .topbar .modebox{display:none}
 body.pp #s-preview>summary{cursor:default}
@@ -545,7 +546,7 @@ html.theme-dark .pv-mode.on{background:#C6A76B;color:#0b1f3a;border-color:#C6A76
     <div id="flightsBox"></div>
     <input type="file" id="ticketIn" accept="image/*,application/pdf,.pdf" multiple hidden></section>
 
-  <details class="sec" id="s-preview" open><summary class="sec-h"><span class="n">5</span>🖨️ Print &amp; Download <span class="hint">choose the company, then print or save as PDF</span></summary>
+  <details class="sec" id="s-preview" open><summary class="sec-h">🖨️ Print &amp; Download <span class="hint">choose the company, then print or save as PDF</span></summary>
     <div class="sec-b">
       <div class="pv-bar" id="pvBar">
         <div class="pv-modes" role="group" aria-label="Company on the PDF"><span class="pv-lbl">Company on the PDF</span>
@@ -1086,17 +1087,17 @@ function saveVoucher(auto) {
    ========================================================= */
 // Everything is on ONE page — "going" somewhere just scrolls to that part
 const current = 'make';
-const pvOpen = () => $('s-preview').open;
+const pvOpen = () => document.body.classList.contains('pp');
 function goPage(id) {
   if (id !== 'preview') document.body.classList.remove('pp');
-  if (id === 'preview') { autoSave(); $('s-preview').open = true; renderPreview(); $('s-preview').scrollIntoView({ block: 'start' }); return; }
+  if (id === 'preview') { ACT.printPage(); return; }
   if (id === 'saved' || id === 'old') { renderList(); $('s-list').scrollIntoView({ block: 'start' }); return; }
   if (id === 'settings') { $('s-settings').open = true; $('s-settings').scrollIntoView({ block: 'start' }); return; }
   renderMake(); window.scrollTo(0, 0);
 }
 let pvT;
 const refreshPreview = () => { if (pvOpen()) { clearTimeout(pvT); pvT = setTimeout(renderPreview, 450); } };
-$('s-preview').addEventListener('toggle', () => { if (document.body.classList.contains('pp') && !pvOpen()) { $('s-preview').open = true; return; } if (pvOpen()) renderPreview(); });
+$('s-preview').addEventListener('toggle', () => { if (!$('s-preview').open) { $('s-preview').open = true; return; } if (pvOpen()) renderPreview(); });   // the print page never folds shut
 
 /* =========================================================
    FLIGHT TICKETS (photos / PDF tickets) — kept in the browser's IndexedDB
