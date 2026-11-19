@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-18-19';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-1';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10111,7 +10111,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 18 Nov 2026 (19)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (1)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15274,6 +15274,161 @@ try{(function(){
   var prev=window.showPage;if(typeof prev==='function')window.showPage=function(id){var r=prev.apply(this,arguments);if(id==='itinerary')setTimeout(fit,30);return r;};
   setInterval(function(){if(page.classList.contains('active'))fit();},1500);
 })();}catch(e){console.error('Itinerary layout could not start:',e);}
+</script>
+<style>
+/* ===== Settings · About · Help — clear, one card under the other, like the Costing Sheet ===== */
+#settings.page.active,#about.page.active,#help.page.active{display:block!important}
+#settings.page.active>.card,#about .card,#help .card{margin:0 0 16px!important}
+.pg-jump{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.pg-jump button{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid rgba(198,167,107,.45);background:var(--card,#fff);color:var(--text,#14213a);font-weight:600;font-size:14px;cursor:pointer;box-shadow:0 1px 2px rgba(11,31,58,.05)}
+.pg-jump button:hover{background:#fbf6ea}
+.pg-jump button:focus-visible{outline:3px solid var(--gold,#c6a76b);outline-offset:2px}
+.pg-card-h{display:flex!important;align-items:center;gap:12px;flex-wrap:wrap}
+.pg-card-h>.step-no{display:inline-flex!important}
+.pg-desc{margin:-6px 0 16px!important;color:var(--muted,#5e6a7d);font-size:14.5px;line-height:1.6}
+#help .card p,#about .card p{max-width:none!important}
+#help .hp-steps{margin:0 0 6px;padding:0;list-style:none;counter-reset:hp}
+#help .hp-steps li{position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--line,#e5dccb);line-height:1.6;color:var(--text,#14213a)}
+#help .hp-steps li:last-child{border-bottom:0}
+#help .hp-steps li::before{counter-increment:hp;content:counter(hp);position:absolute;left:0;top:9px;width:28px;height:28px;border-radius:50%;background:#fbf3df;color:#7a5c1e;border:1px solid #e3d3b0;display:grid;place-items:center;font-weight:800;font-size:14px}
+#help .hp-faq{margin-top:12px}
+#help .hp-faq details{background:var(--card,#fff);border:1px solid rgba(198,167,107,.3);border-radius:12px;padding:10px 14px;margin:8px 0}
+#help .hp-faq summary{font-weight:700;cursor:pointer;color:var(--text,#14213a)}
+#help .hp-faq summary::marker{color:#9a7a3e}
+#help .hp-faq details p{margin:8px 0 2px;color:var(--muted,#5e6a7d);line-height:1.7}
+body.dark #help .hp-faq details{background:#13284a;border-color:#22385c}
+#help .hp-contact{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+#help .hp-contact a,#help .hp-contact button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid rgba(198,167,107,.45);background:var(--card,#fff);color:var(--text,#14213a);font-weight:600;text-decoration:none;cursor:pointer;font-size:15px}
+#help .hp-contact a:hover,#help .hp-contact button:hover{background:#fbf6ea}
+#about .ab-rows{display:grid;grid-template-columns:auto 1fr;gap:10px 14px;align-items:start}
+#about .ab-rows dt{color:var(--muted,#5e6a7d);font-weight:600;font-size:14px;padding-top:2px}
+#about .ab-rows dd{margin:0;color:var(--text,#14213a);line-height:1.6}
+#about .ab-rows a{color:inherit}
+#about .ab-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+#about .ab-tags span{padding:6px 12px;border-radius:999px;background:#fbf3df;color:#7a5c1e;border:1px solid #e3d3b0;font-weight:700;font-size:13px}
+body.dark .pg-jump button,body.dark #help .hp-contact a,body.dark #help .hp-contact button{background:#13284a;color:#f5ecd6;border-color:#6b5a33}
+body.dark #help .hp-steps li{color:#e5e7eb}body.dark #about .ab-rows dd{color:#e5e7eb}
+body.dark #help .hp-steps li::before,body.dark #about .ab-tags span{background:#2a2314;color:#E6C27A;border-color:#6b5a33}
+@media (max-width:600px){#about .ab-rows{grid-template-columns:1fr;gap:2px 0}#about .ab-rows dd{margin-bottom:10px}}
+</style>
+<script>
+try{(function(){
+  function $(id){return document.getElementById(id);}
+  function admin(){try{return typeof isAdminSession==='function'&&isAdminSession();}catch(e){return false;}}
+  function shown(e){return !!(e&&!e.hidden&&getComputedStyle(e).display!=='none');}
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  /* a card heading like the Costing Sheet's: number in a navy circle + title, and one line saying what the card is for */
+  function head(card,n,title,desc){
+    if(!card)return;var h=card.querySelector('h2,h3');if(!h)return;
+    if(title){var emo=h.querySelector('.lux-emo');h.textContent='';if(emo)h.appendChild(emo);h.appendChild(document.createTextNode(title));}
+    var num=h.querySelector('.step-no');if(!num){num=document.createElement('span');num.className='step-no';num.setAttribute('aria-hidden','true');h.insertBefore(num,h.firstChild);}
+    num.textContent=n;h.classList.add('pg-card-h');
+    if(desc){var d=card.querySelector(':scope>.pg-desc');if(!d){d=document.createElement('p');d.className='pg-desc';h.insertAdjacentElement('afterend',d);}d.textContent=desc;}
+  }
+  function jump(page,items){
+    var hdr=page.querySelector('.page-header');if(!hdr)return;
+    var bar=page.querySelector(':scope>.pg-jump');if(!bar){bar=document.createElement('nav');bar.className='pg-jump';bar.setAttribute('aria-label','Go to');hdr.insertAdjacentElement('afterend',bar);}
+    bar.innerHTML=items.map(function(it,i){return '<button type="button" data-i="'+i+'">'+esc(it[0])+'</button>';}).join('');
+    [].forEach.call(bar.querySelectorAll('button'),function(b){b.onclick=function(){var t=items[+b.dataset.i][1];if(t){t.scrollIntoView({behavior:'smooth',block:'start'});}};});
+  }
+  function order(page,cards,after){
+    var ref=after;cards.forEach(function(c){if(c&&c.parentNode===page){ref.insertAdjacentElement('afterend',c);ref=c;}});
+  }
+
+  /* ---------- Settings ---------- */
+  function tidySettings(){
+    var page=$('settings');if(!page)return;
+    var acc=$('myAccountCard'),snd=$('soundsCard'),fa=$('fbAdminCard'),co=$('companySettingsCard'),it=$('itinSettingsCard'),bk=$('backupSettingsCard');
+    var hdr=page.querySelector('.page-header');
+    jump(page,[]);var bar=page.querySelector(':scope>.pg-jump');
+    order(page,[acc,snd,fa,co,it,bk],bar||hdr);
+    var list=[[acc,'My Account','Your name and how you log in on this computer.','👤 My Account'],
+      [snd,'Sounds','Turn the small click sounds on or off.','🔊 Sounds'],
+      [fa,'Admin password','Change the password the admin uses to log in on any computer or phone.','🔑 Admin password'],
+      [co,'Company name','Your company name on the quotations (PDF and Word).','🏢 Company'],
+      [it,'Voucher settings (Create Itinerary)','What is printed on the tour vouchers: company details, voucher numbers and the notes. Changes are saved by themselves.','🗺️ Voucher'],
+      [bk,'Backup','Keep a copy of all your work in one file, and bring it back on any computer.','💾 Backup']];
+    var n=0,items=[];
+    list.forEach(function(x){if(!shown(x[0]))return;n++;head(x[0],n,x[1],x[2]);items.push([x[3],x[0]]);});
+    if(it&&shown(it)){var note=it.querySelector(':scope>.is-note');if(note&&/What is printed/.test(note.textContent))note.hidden=true;}
+    jump(page,items);
+  }
+  /* ---------- About ---------- */
+  function tidyAbout(){
+    var page=$('about');if(!page)return;
+    var nv=$('aboutNormalView'),av=$('aboutAdminView'),sub=$('aboutSub');
+    if(nv){nv.style.display='block';}
+    var cards=nv?nv.querySelectorAll(':scope>.card'):[];
+    if(cards[0]&&!cards[0].dataset.tidy){cards[0].dataset.tidy='1';
+      var p=cards[0].querySelector('p');
+      if(p)p.outerHTML='<p style="color:var(--muted);line-height:1.8;margin:0">Hippo Travel Group makes holidays easy: hotels, transfers, tours and sightseeing. This website is the team’s own tool to make a <b>costing</b> (price) for a client, send it as a <b>PDF or Word quotation</b>, and make the day-by-day <b>tour voucher</b> (Create Itinerary).</p><div class="ab-tags"><span>Holidays</span><span>Hotels</span><span>Transfers</span><span>Sightseeing</span><span>Tour vouchers</span></div>';}
+    if(cards[1]&&!cards[1].dataset.tidy){cards[1].dataset.tidy='1';
+      var foot=document.querySelector('.foot-info')||document;
+      var tels=[].map.call(foot.querySelectorAll('a[href^="tel:"]'),function(a){return '<a href="'+esc(a.getAttribute('href'))+'">'+esc(a.textContent.trim())+'</a>';});
+      var mail=foot.querySelector('a[href^="mailto:"]'),web=foot.querySelector('a[href*="hippotravel.in"]:not([href^="mailto:"])'),ig=foot.querySelector('a[href*="instagram"]');
+      var addr=(cards[1].querySelector('p')||{}).textContent||'';var am=/📍\s*([^\n]+)/.exec(addr);
+      var p2=cards[1].querySelector('p');
+      if(p2)p2.outerHTML='<dl class="ab-rows">'
+        +(am?'<dt>Address</dt><dd>'+esc(am[1].trim())+'</dd>':'')
+        +(tels.length?'<dt>Phone</dt><dd>'+tels.join(' &nbsp;·&nbsp; ')+'</dd>':'')
+        +(mail?'<dt>E-mail</dt><dd><a href="'+esc(mail.getAttribute('href'))+'">'+esc(mail.textContent.trim())+'</a></dd>':'')
+        +(web?'<dt>Website</dt><dd><a href="'+esc(web.getAttribute('href'))+'" target="_blank" rel="noopener">'+esc(web.textContent.trim())+'</a></dd>':'')
+        +(ig?'<dt>Instagram</dt><dd><a href="'+esc(ig.getAttribute('href'))+'" target="_blank" rel="noopener">'+esc(ig.textContent.trim())+'</a></dd>':'')
+        +'<dt>Version</dt><dd>'+esc(((document.getElementById('siteVersion')||{}).textContent||'').replace(/^Version:\s*/,''))+'</dd></dl>';}
+    var n=0,items=[];
+    if(cards[0]){n++;head(cards[0],n,'Hippo Travel Group','Who we are and what this website does.');items.push(['🏢 About us',cards[0]]);}
+    if(cards[1]){n++;head(cards[1],n,'Contact details','Call, e-mail or visit us.');items.push(['📞 Contact',cards[1]]);}
+    var uc=av&&shown(av)?av.querySelector('.card'):null;
+    if(uc){n++;var h=uc.querySelector('h3');if(h){var emo=h.querySelector('.lux-emo');h.textContent='';if(emo)h.appendChild(emo);h.appendChild(document.createTextNode('Website users'));var num=document.createElement('span');num.className='step-no';num.setAttribute('aria-hidden','true');num.textContent=n;h.insertBefore(num,h.firstChild);h.classList.add('pg-card-h');}
+      if(!uc.querySelector('.pg-desc')){var d=document.createElement('p');d.className='pg-desc';d.style.marginTop='10px';d.textContent='Everyone who logged in on this website (admin only). Press “see” to open a person’s costings.';var row=uc.firstElementChild;if(row)row.insertAdjacentElement('afterend',d);}
+      items.push(['👥 Website users',uc]);
+      if(sub)sub.textContent='About Hippo Travel Group — and everyone who uses this website';}
+    else if(sub)sub.textContent='About Hippo Travel Group';
+    jump(page,items);
+  }
+  /* ---------- Help ---------- */
+  function tidyHelp(){
+    var page=$('help');if(!page)return;
+    var cards=[].slice.call(page.querySelectorAll(':scope>.card'));
+    var cost=cards.filter(function(c){return /create a costing/i.test((c.querySelector('h3')||{}).textContent||'');})[0];
+    var roles=cards.filter(function(c){return /Admin vs User|Admin and User/i.test((c.querySelector('h3')||{}).textContent||'');})[0];
+    var itin=$('itinHelp');
+    var more=cards.filter(function(c){return /more help/i.test((c.querySelector('h3')||{}).textContent||'');})[0];
+    if(cost&&!cost.dataset.tidy){cost.dataset.tidy='1';var p=cost.querySelector('p');
+      if(p)p.outerHTML='<ol class="hp-steps">'
+        +'<li><b>Client details</b> — on the <b>Costing Sheet</b>, type the client name, the travel date and how many adults and children.</li>'
+        +'<li><b>Add items</b> — press Transfer, SIC Transfer, Entry Ticket, Hotel, Other or Meal, fill the boxes and press <b>+ Add to Costing</b>. Each item shows as a new line.</li>'
+        +'<li><b>Save</b> — check the total, then press <b>Save Complete Costing</b>. The number (COST-001…) is given by itself.</li>'
+        +'<li><b>PDF / Word</b> — press <b>Print / PDF</b>, then <b>Print / Download PDF</b> (choose “Save as PDF”) or <b>Download Word file</b>.</li></ol>'
+        +'<div class="hp-faq"><details><summary>Where are my saved costings?</summary><p>In <b>My Costings</b> (menu), and at the bottom of the Costing Sheet. Search by name, phone or COST number, then <b>Open / Edit</b>, <b>Print / PDF</b>, <b>Word file</b> or <b>Delete</b>.</p></details>'
+        +'<details><summary>How do I change a saved costing?</summary><p>Open it with <b>Open / Edit</b>, make the change and press <b>Save Changes</b>. The number stays the same.</p></details>'
+        +'<details><summary>How do I make the itinerary from a costing?</summary><p>In <b>My Costings</b> press <b>🗺️ Create Itinerary</b> on that costing. The day-by-day voucher is made by itself.</p></details>'
+        +'<details><summary>Can I hide my company on the PDF?</summary><p>Yes. On the <b>Print / PDF</b> page turn on <b>Hide my company details</b>.</p></details></div>';}
+    if(more&&!more.dataset.tidy){more.dataset.tidy='1';var mp=more.querySelector('p');
+      var foot=document.querySelector('.foot-info')||document;
+      var tel=foot.querySelector('a[href^="tel:"]'),mail=foot.querySelector('a[href^="mailto:"]');
+      var wa=tel?('https://wa.me/'+tel.getAttribute('href').replace(/[^0-9]/g,'')):'';
+      if(mp)mp.outerHTML='<p class="pg-desc" style="margin-top:0!important">Ask the Help chat, or call / message us.</p><div class="hp-contact">'
+        +'<button type="button" class="hp-chat">💬 Ask the Help chat</button>'
+        +(tel?'<a href="'+esc(tel.getAttribute('href'))+'">📞 Call '+esc(tel.textContent.trim())+'</a>':'')
+        +(wa?'<a href="'+esc(wa)+'" target="_blank" rel="noopener">🟢 WhatsApp</a>':'')
+        +(mail?'<a href="'+esc(mail.getAttribute('href'))+'">✉️ '+esc(mail.textContent.trim())+'</a>':'')+'</div>';
+      var cb=more.querySelector('.hp-chat');if(cb)cb.onclick=function(){try{if(typeof toggleChatbot==='function')toggleChatbot();}catch(e){}};}
+    var hdr=page.querySelector('.page-header');
+    jump(page,[]);var bar=page.querySelector(':scope>.pg-jump');
+    order(page,[cost,itin,roles,more],bar||hdr);
+    var n=0,items=[];
+    [[cost,'How to make a costing','Four steps — from client details to the PDF.','🧾 Costing'],
+     [itin,'How to make an itinerary (tour voucher)','Create Itinerary — the day-by-day plan for the client.','🗺️ Itinerary'],
+     [roles,'Admin and User','Who can see and change what.','👥 Admin and User'],
+     [more,'Need more help?','',"📞 Contact"]].forEach(function(x){if(!x[0])return;n++;head(x[0],n,x[1],x[2]);items.push([x[3],x[0]]);});
+    jump(page,items);
+  }
+  function tidy(id){try{if(id==='settings')tidySettings();if(id==='about')tidyAbout();if(id==='help')tidyHelp();}catch(e){console.error('Page layout:',e);}}
+  var prev=window.showPage;if(typeof prev==='function')window.showPage=function(id){var r=prev.apply(this,arguments);setTimeout(function(){tidy(id);},0);return r;};
+  var pa=window.renderAboutPage;if(typeof pa==='function')window.renderAboutPage=function(){var r=pa.apply(this,arguments);setTimeout(function(){tidy('about');},0);return r;};
+  ['settings','about','help'].forEach(function(id){var e=$(id);if(e&&e.classList.contains('active'))tidy(id);});
+})();}catch(e){console.error('Page layout could not start:',e);}
 </script>
 </body>
 </html>
