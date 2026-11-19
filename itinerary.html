@@ -2543,7 +2543,7 @@ window.addEventListener('storage',function(e){
 (function(){
   function st(){var saved=false;try{saved=!!(draft.id&&savedList().some(function(x){return x.id===draft.id;}));}catch(e){}return {saved:saved,pp:document.body.classList.contains('pp')};}
   function tell(){try{if(window.parent!==window&&typeof window.parent.itinBarUpdate==='function')window.parent.itinBarUpdate();}catch(e){}}
-  window.tvBar={state:st,save:function(){saveVoucher();setTimeout(tell,60);},back:function(){ACT.printBack();tell();},print:function(){ACT.printPage();tell();}};
+  window.tvBar={open:function(id){ACT.open(id);tell();},openId:function(){try{return draft&&draft.id||'';}catch(e){return '';}},state:st,save:function(){saveVoucher();setTimeout(tell,60);},back:function(){ACT.printBack();tell();},print:function(){ACT.printPage();tell();}};
   var prev=showDirty;showDirty=function(){var r=prev.apply(this,arguments);tell();return r;};
   try{new MutationObserver(tell).observe(document.body,{attributes:true,attributeFilter:['class']});}catch(e){}
   tell();
