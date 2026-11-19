@@ -31,7 +31,9 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-15';   /* change with every new version */
+/* logged in: no login screen from the first moment (the website decides after it has loaded) */
+try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
+window.SITE_BUILD='2026-11-19-16';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2515,6 +2517,7 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 }
 </style>
 <style>.edited-admin{color:#B7791F!important;font-weight:700}body.dark .edited-admin{color:#E6C27A!important}</style>
+<style>html.boot-in #loginGate{display:none!important}</style>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -6817,7 +6820,7 @@ try{(function(){
     originalFinish(isNew);
     resetNewEntry();                 // fills / clears the Client Name for this role
     if(window.serviceWizard&&serviceWizard.reset)serviceWizard.reset();
-    showPage('dashboard');
+    showPage('home');
     window.scrollTo(0,0);
     renderSavedCostings();
   };
@@ -9277,7 +9280,7 @@ try{(function(){
   if(prevFinish)window.finishLogin=function(){
     var r=prevFinish.apply(this,arguments);
     syncAdminNav();
-    showPage('dashboard');window.scrollTo(0,0);
+    showPage('home');window.scrollTo(0,0);
     return r;
   };
   var prevLogout=window.logoutUser;
@@ -10142,7 +10145,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (15)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (16)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -10236,7 +10239,7 @@ try{(function(){
   syncAdminNav();
   renderSheet();
   // Already logged in when the page opens → start on the working page
-  if(window.currentSession&&currentSession().key&&el('home')&&el('home').classList.contains('active'))showPage('dashboard');
+  /* already logged in: stay on the Overview (it is the page shown first) */
 })();}catch(err){console.error('Costing sheet failed to start:',err);}
 
 </script>
@@ -15730,6 +15733,10 @@ try{(function(){
     if(x){if(inp)inp.value='';run('');}
   });
 })();}catch(e){console.error('Overview search could not start:',e);}
+</script>
+<script>
+/* start-up done: the login screen follows the session from now on */
+addEventListener('load',function(){setTimeout(function(){document.documentElement.classList.remove('boot-in');},0);});
 </script>
 <script>
 /* Opening the website (logged in) or logging in → the Overview first.
