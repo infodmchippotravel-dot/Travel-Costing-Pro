@@ -13995,9 +13995,9 @@ try{(function(){
       return post('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+CFG.apiKey,{email:c.email,password:c.password,returnSecureToken:true})
         .then(function(j){return use(j,me.uid);},function(e){
           if(!/INVALID_LOGIN_CREDENTIALS|EMAIL_NOT_FOUND|INVALID_PASSWORD|INVALID_EMAIL/.test(e.code||'')){throw e;}
-          /* no account yet: this browser's account becomes the user's account (same records, nothing moves) */
-          return post('https://identitytoolkit.googleapis.com/v1/accounts:update?key='+CFG.apiKey,{idToken:me.token,email:c.email,password:c.password,returnSecureToken:true})
-            .then(function(j){j.localId=j.localId||me.uid;return use(j,null);},function(e2){
+          /* no account yet: make the user's account; this browser's records move to it */
+          return post('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+CFG.apiKey,{email:c.email,password:c.password,returnSecureToken:true})
+            .then(function(j){return use(j,me.uid);},function(e2){
               set('travelCloudLinkTried:'+key,c.sig+'|'+me.uid);   /* e.g. the details do not match the account made on the other computer */
               return me;
             });
