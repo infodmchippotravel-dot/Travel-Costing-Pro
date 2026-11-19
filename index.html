@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-5';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-6';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2843,21 +2843,21 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 <button type="button" class="big-act" id="homeItinSavedBtn" onclick="homeSavedItineraries()"><span class="ba-ico" aria-hidden="true">🗂️</span><span><b>My Saved Itineraries</b><small>Open or print a voucher</small></span></button>
 </div>
 <section class="home-guide" id="homeGuide" aria-labelledby="guideTitle">
-<div class="hg-head"><h2 id="guideTitle"><span aria-hidden="true">👋</span> How it works — costing and itinerary</h2><button type="button" class="btn-ghost" data-guide-close>✕ Hide this guide</button></div>
-<div class="hg-cols">
-<div class="hg-col"><h3 class="hg-sub">🧾 Costing</h3>
-<ol class="hg-steps hg-mini">
-<li><b>Create New Costing</b> — press it above</li>
-<li><b>Client details</b> — name, date, people</li>
-<li><b>Add items</b> — transfer, hotel, tour…</li>
-<li><b>Save</b> — then Print / PDF</li>
+<div class="hg-head"><h2 id="guideTitle"><span aria-hidden="true">👋</span> How it works</h2><button type="button" class="btn-ghost" data-guide-close>✕ Hide this guide</button></div>
+<div class="hg-flow">
+<div class="hg-panel"><div class="hg-ph"><b>🧾 Costing</b><button type="button" class="hg-go" onclick="newCostingFromHome()">Start →</button></div>
+<ol class="hg-track">
+<li><span class="n">1</span>New Costing</li>
+<li><span class="n">2</span>Client details</li>
+<li><span class="n">3</span>Add items</li>
+<li><span class="n">4</span>Save &amp; PDF</li>
 </ol></div>
-<div class="hg-col"><h3 class="hg-sub">🗺️ Itinerary</h3>
-<ol class="hg-steps hg-mini">
-<li><b>Create New Itinerary</b> — or from a costing</li>
-<li><b>Client</b> — name, people, start date</li>
-<li><b>Tours &amp; hotels</b> — 🔍 Choose tour each day</li>
-<li><b>Save</b> — then Print / PDF</li>
+<div class="hg-panel"><div class="hg-ph"><b>🗺️ Itinerary</b><button type="button" class="hg-go" onclick="homeNewItinerary()">Start →</button></div>
+<ol class="hg-track">
+<li><span class="n">1</span>New Itinerary</li>
+<li><span class="n">2</span>Client</li>
+<li><span class="n">3</span>Tours &amp; hotels</li>
+<li><span class="n">4</span>Save &amp; PDF</li>
 </ol></div>
 </div>
 </section>
@@ -10130,7 +10130,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (5)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (6)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15525,6 +15525,23 @@ html body .big-actions .big-act>span:last-child{min-width:0;display:block}
 html body .big-actions .big-act b{display:block!important;font-size:17px!important;line-height:1.25!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html body .big-actions .big-act small{display:block!important;margin-top:3px!important;font-size:13.5px!important;line-height:1.35!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:640px){html body .big-actions .big-act{min-height:72px!important;padding:14px 16px!important}}
+/* How it works — two small panels, each a 4-step line (like a progress bar) */
+.home-guide .hg-flow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.home-guide .hg-panel{border:1px solid rgba(198,167,107,.35);border-radius:16px;padding:12px 16px 14px;background:linear-gradient(180deg,#fffcf5 0%,#fff 70%)}
+.home-guide .hg-ph{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px}
+.home-guide .hg-ph b{font-size:15px;font-weight:800;color:var(--text,#14213a)}
+.home-guide .hg-go{min-height:32px!important;padding:0 12px!important;border-radius:999px!important;border:1px solid rgba(198,167,107,.6)!important;background:#fff!important;color:#0b1f3a!important;font-size:13px!important;font-weight:700!important;cursor:pointer;box-shadow:none!important}
+.home-guide .hg-go:hover{background:#fbf3df!important}
+.home-guide ol.hg-track{position:relative;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));list-style:none;margin:0!important;padding:0!important;gap:0!important}
+.home-guide ol.hg-track::before{content:"";position:absolute;top:14px;left:12.5%;right:12.5%;height:2px;background:linear-gradient(90deg,#c6a76b,#e8d6ab);border-radius:2px}
+.home-guide ol.hg-track li{position:relative;display:block!important;text-align:center;padding:0 4px!important;border:0!important;background:none!important;box-shadow:none!important;min-height:0!important;font-size:13px;font-weight:600;line-height:1.3;color:var(--text,#14213a)}
+.home-guide ol.hg-track li .n{position:relative;z-index:1;display:grid;place-items:center;width:30px;height:30px;margin:0 auto 6px;border-radius:50%;background:#0b1f3a;color:#c6a76b;font-size:13px;font-weight:800;border:2px solid #fff;box-shadow:0 0 0 1px #c6a76b}
+body.dark .home-guide .hg-panel{background:#13284a;border-color:#22385c}
+body.dark .home-guide .hg-ph b,body.dark .home-guide ol.hg-track li{color:#f5ecd6}
+body.dark .home-guide .hg-go{background:#13284a!important;color:#f5ecd6!important;border-color:#6b5a33!important}
+body.dark .home-guide ol.hg-track li .n{border-color:#13284a}
+@media (max-width:760px){.home-guide .hg-flow{grid-template-columns:1fr}}
+@media (max-width:400px){.home-guide ol.hg-track li{font-size:12px}}
 /* How it works — small: costing and itinerary side by side, one short line per step */
 .home-guide{padding:16px 20px!important}
 .home-guide .hg-head{margin-bottom:8px!important}
