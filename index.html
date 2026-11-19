@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-4';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-5';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2837,10 +2837,10 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 </form>
 </div>
 <div class="big-actions">
-<button type="button" class="big-act big-act-primary" onclick="newCostingFromHome()"><span class="ba-ico" aria-hidden="true">＋</span><span><b>Create New Costing</b><small>Make a new quotation for a client</small></span></button>
-<button type="button" class="big-act" onclick="goToPage('saved')"><span class="ba-ico" aria-hidden="true">💾</span><span><b>My Saved Costings</b><small>Open, print or download a saved quotation</small></span></button>
-<button type="button" class="big-act big-act-primary" id="homeItinBtn" onclick="homeNewItinerary()"><span class="ba-ico" aria-hidden="true">＋</span><span><b>Create New Itinerary</b><small>Make the day-by-day tour voucher</small></span></button>
-<button type="button" class="big-act" id="homeItinSavedBtn" onclick="homeSavedItineraries()"><span class="ba-ico" aria-hidden="true">🗂️</span><span><b>My Saved Itineraries</b><small>Open or print a saved tour voucher</small></span></button>
+<button type="button" class="big-act big-act-primary" onclick="newCostingFromHome()"><span class="ba-ico" aria-hidden="true">＋</span><span><b>Create New Costing</b><small>New quotation for a client</small></span></button>
+<button type="button" class="big-act" onclick="goToPage('saved')"><span class="ba-ico" aria-hidden="true">💾</span><span><b>My Saved Costings</b><small>Open, print or download</small></span></button>
+<button type="button" class="big-act big-act-primary" id="homeItinBtn" onclick="homeNewItinerary()"><span class="ba-ico" aria-hidden="true">＋</span><span><b>Create New Itinerary</b><small>Day-by-day tour voucher</small></span></button>
+<button type="button" class="big-act" id="homeItinSavedBtn" onclick="homeSavedItineraries()"><span class="ba-ico" aria-hidden="true">🗂️</span><span><b>My Saved Itineraries</b><small>Open or print a voucher</small></span></button>
 </div>
 <section class="home-guide" id="homeGuide" aria-labelledby="guideTitle">
 <div class="hg-head"><h2 id="guideTitle"><span aria-hidden="true">👋</span> How it works — costing and itinerary</h2><button type="button" class="btn-ghost" data-guide-close>✕ Hide this guide</button></div>
@@ -10130,7 +10130,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (4)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (5)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15518,6 +15518,13 @@ try{(function(){
 @media (max-width:1100px){.big-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media (max-width:640px){.big-actions{grid-template-columns:1fr!important}}
 .home-guide .hg-sub{font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:700;color:var(--text,#14213a);margin:6px 0 10px}
+/* the four big buttons: title on one line, one short line under it, same height */
+html body .big-actions .big-act{display:flex!important;align-items:center!important;gap:14px!important;padding:16px 18px!important;min-height:84px!important}
+html body .big-actions .big-act .ba-ico{width:46px!important;height:46px!important;border-radius:14px!important;flex:0 0 46px!important}
+html body .big-actions .big-act>span:last-child{min-width:0;display:block}
+html body .big-actions .big-act b{display:block!important;font-size:17px!important;line-height:1.25!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html body .big-actions .big-act small{display:block!important;margin-top:3px!important;font-size:13.5px!important;line-height:1.35!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:640px){html body .big-actions .big-act{min-height:72px!important;padding:14px 16px!important}}
 /* How it works — small: costing and itinerary side by side, one short line per step */
 .home-guide{padding:16px 20px!important}
 .home-guide .hg-head{margin-bottom:8px!important}
