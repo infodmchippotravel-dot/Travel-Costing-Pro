@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-14';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-15';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -397,6 +397,9 @@ body.dark .foot-brand::before{background:radial-gradient(circle,#0e93c93d,transp
 body.dark .foot-brand b{color:#fff!important}
 body.dark .foot-info{border-left:1px solid #ffffff22!important}
 body.dark .foot-info span{background:#ffffff0d!important;border:1px solid #ffffff14!important;color:#93a6bd!important}
+html body.dark .foot-info span span,html body.dark .foot-info span a,html body .sitefooter .foot-info span a{background:none!important;border:0!important;box-shadow:none!important;padding:0!important}   /* only the chip has a box, not the words inside it */
+html body .sitefooter .foot-credit,html body.dark .sitefooter .foot-credit{background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#D9B977!important;-webkit-text-fill-color:#D9B977!important}   /* gold in both themes */
+html body.dark .sitefooter .foot-info>span,html body.dark .sitefooter .foot-info>span span:not(.foot-ico),html body.dark .sitefooter .foot-info>span a{color:rgba(255,255,255,.86)!important}
 body.dark .foot-credit{background:linear-gradient(90deg,#7bd4f0,#38b6e0,#0e93c9)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important}
 
 body.dark .hero{background:linear-gradient(180deg,#101b2d 0%,#0d1726 100%)!important;border-color:#23344a!important}
@@ -10139,7 +10142,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (14)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (15)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15324,6 +15327,13 @@ try{(function(){
 /* Create Itinerary: no box around the itinerary maker (its parts are cards, like the Costing Sheet) */
 #itinerary .itin-wrap{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;overflow:visible!important}
 #itinerary #itinFrame.autoh{min-height:400px!important}
+/* phone: the page header like the Costing Sheet's — text on top, the two buttons under it, full width */
+@media (max-width:640px){
+  #itinerary>.page-header{flex-wrap:wrap!important;align-items:flex-start!important}
+  #itinerary>.page-header>div:not(.ph-icon):not(.sheet-head-actions){flex:1 1 0!important;min-width:0!important}
+  #itinerary #itinHeadActs{flex:1 1 100%!important;width:100%!important;margin:12px 0 0!important;display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important}
+  #itinerary #itinHeadActs button{width:100%!important;min-height:46px!important;white-space:nowrap}
+}
 </style>
 <script>
 try{(function(){
@@ -15625,7 +15635,7 @@ body.dark .home-guide .hg-panel{background:#13284a;border-color:#22385c}
 body.dark .home-guide .hg-ph b,body.dark .home-guide ol.hg-track li{color:#f5ecd6}
 body.dark .home-guide .hg-go{background:#13284a!important;color:#f5ecd6!important;border-color:#6b5a33!important}
 body.dark .home-guide ol.hg-track li .n{border-color:#13284a}
-@media (max-width:760px){.home-guide .hg-flow{grid-template-columns:1fr}}
+@media (max-width:760px){.home-guide .hg-flow{grid-template-columns:1fr}.home-guide .hg-go{min-height:40px!important;padding:0 16px!important}}
 @media (max-width:400px){.home-guide ol.hg-track li{font-size:12px}}
 /* How it works — small: costing and itinerary side by side, one short line per step */
 .home-guide{padding:16px 20px!important}
