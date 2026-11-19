@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-12';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-13';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -6752,7 +6752,7 @@ try{(function(){
     var isNew=!users[key];
     var u=users[key]||{method:'Name',createdAt:Date.now()};
     var old=String(u.phone||'').replace(/\D/g,'');
-    if(old&&ph&&old.slice(-10)!==ph.slice(-10)){if(phIn){phIn.setAttribute('aria-invalid','true');phIn.focus();}return showLoginError('This name is already used on this computer with another phone number. Type your full name (e.g. Ram Sharma) or check the phone number.');}
+    if(old&&ph&&window.samePhone&&samePhone(old)!==samePhone(ph)){if(phIn){phIn.setAttribute('aria-invalid','true');phIn.focus();}return showLoginError('This name is already used on this computer with another phone number. Type your full name (e.g. Ram Sharma) or check the phone number.');}
     if(ph)u.phone=ph;
     var parts=name.split(' ');
     u.method='Name';u.name=name;u.firstName=parts[0];u.lastName=parts.slice(1).join(' ');
@@ -10139,7 +10139,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (12)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (13)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -13973,8 +13973,8 @@ try{(function(){
   function sha(t){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)).then(hex);}
   function userCreds(key){
     var u=(parse(get('travelLoginUsers'),{})||{})[key]||{};
-    var ph=String(u.phone||'').replace(/\D/g,'').slice(-10);
-    if(!window.crypto||!crypto.subtle||ph.length<7)return Promise.resolve(null);
+    var ph=String(u.phone||'').replace(/\D/g,'');ph=ph.replace(/^0+/,'');if(ph.length>9)ph=ph.slice(-9);   /* same rule as samePhone() */
+    if(!window.crypto||!crypto.subtle||ph.length<6)return Promise.resolve(null);
     return Promise.all([sha('hippo-user|'+key+'|'+ph),sha('hippo-pass|'+key+'|'+ph)]).then(function(h){return {email:'u'+h[0].slice(0,40)+'@users.hippotravel.in',password:h[1],sig:h[1].slice(0,16)};});
   }
   function tokenFrom(j){return {token:j.idToken,uid:j.localId,exp:Date.now()+((+j.expiresIn||3600)-120)*1000};}
@@ -14145,7 +14145,7 @@ try{(function(){
           var f=d.fields||{},doc=d.name.split('/').pop(),kind=val(f,'kind'),del=val(f,'deleted')===true,owner=val(f,'owner')||'';
           if(kind==='test')return;
           /* a user's profile (name, login time): for the admin's list of website users — not a record */
-          if(kind==='profile'){if(!del){var pr=parse(val(f,'data'),null);if(pr&&pr.key&&pr.key!=='admin:main'){pr.seenAt=val(f,'updatedAt');prof[pr.key+'|'+String(pr.phone||'').replace(/\D/g,'').slice(-10)]=pr;}}return;}
+          if(kind==='profile'){if(!del){var pr=parse(val(f,'data'),null);if(pr&&pr.key&&pr.key!=='admin:main'){pr.seenAt=val(f,'updatedAt');prof[pr.key+'|'+(function(d){d=d.replace(/^0+/,'');return d.length>9?d.slice(-9):d;})(String(pr.phone||'').replace(/\D/g,''))]=pr;}}return;}
           var e=m[col][doc];
           if(del){
             if(e&&!e.del){var li=idx[e.id];if(li!=null&&sig(list[li])===e.sig){list.splice(li,1);changed=true;list.forEach(function(r,i){if(r&&r.id!=null)idx[r.id]=i;});}e.del=true;}
@@ -15808,6 +15808,10 @@ try{(function(){
 #phoneAskCard button{min-height:44px;padding:0 18px}
 #phoneAskCard .pa-msg{flex-basis:100%;color:#b42318;font-size:13px;font-weight:600}
 </style>
+<script>
+/* the same phone number however it is typed: +91 98290 11111 = 09829011111 = 9829011111, +66 62 759 0981 = 062 759 0981 */
+window.samePhone=function(p){var d=String(p||'').replace(/\D/g,'').replace(/^0+/,'');return d.length>9?d.slice(-9):d;};
+</script>
 <script>
 /* A user who is logged in from before (no phone yet): asked once on the Overview, so their work can come to their other laptop / phone */
 try{(function(){
