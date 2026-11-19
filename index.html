@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-10';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-11';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10130,7 +10130,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (10)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (11)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -13966,7 +13966,7 @@ try{(function(){
     var u=(parse(get('travelLoginUsers'),{})||{})[key]||{};
     var ph=String(u.phone||'').replace(/\D/g,'').slice(-10),dob=String(u.dob||'');
     if(!window.crypto||!crypto.subtle||(!ph&&!dob))return Promise.resolve(null);
-    return Promise.all([sha('hippo-user|'+key),sha('hippo-pass|'+key+'|'+ph+'|'+dob)]).then(function(h){return {email:'u'+h[0].slice(0,40)+'@users.hippotravel.in',password:h[1],sig:h[1].slice(0,16)};});
+    return Promise.all([sha('hippo-user|'+key+'|'+ph+'|'+dob),sha('hippo-pass|'+key+'|'+ph+'|'+dob)]).then(function(h){return {email:'u'+h[0].slice(0,40)+'@users.hippotravel.in',password:h[1],sig:h[1].slice(0,16)};});
   }
   function tokenFrom(j){return {token:j.idToken,uid:j.localId,exp:Date.now()+((+j.expiresIn||3600)-120)*1000};}
   /* records this browser sent with an older account: marked deleted there, sent again with the user's account */
@@ -14136,7 +14136,7 @@ try{(function(){
           var f=d.fields||{},doc=d.name.split('/').pop(),kind=val(f,'kind'),del=val(f,'deleted')===true,owner=val(f,'owner')||'';
           if(kind==='test')return;
           /* a user's profile (name, login time): for the admin's list of website users — not a record */
-          if(kind==='profile'){if(!del){var pr=parse(val(f,'data'),null);if(pr&&pr.key&&pr.key!=='admin:main'){pr.seenAt=val(f,'updatedAt');prof[pr.key]=pr;}}return;}
+          if(kind==='profile'){if(!del){var pr=parse(val(f,'data'),null);if(pr&&pr.key&&pr.key!=='admin:main'){pr.seenAt=val(f,'updatedAt');prof[pr.key+'|'+String(pr.phone||'').replace(/\D/g,'').slice(-10)]=pr;}}return;}
           var e=m[col][doc];
           if(del){
             if(e&&!e.del){var li=idx[e.id];if(li!=null&&sig(list[li])===e.sig){list.splice(li,1);changed=true;list.forEach(function(r,i){if(r&&r.id!=null)idx[r.id]=i;});}e.del=true;}
@@ -15743,8 +15743,16 @@ try{(function(){
     try{(typeof savedCostings!=='undefined'&&Array.isArray(savedCostings)?savedCostings:parse(get('travelSavedCostings'),[])).forEach(fromRec);}catch(e){}
     try{(parse(get('travelDraftCostings'),[])||[]).forEach(fromRec);}catch(e){}
     try{(parse(get('tv.saved.v1'),[])||[]).forEach(function(v){var c=v&&v.createdBy;if(c&&c.key&&c.key!=='admin:main')add(c.key,{name:c.name||'—',method:'—'});});}catch(e){}
-    var cloud=parse(get('travelCloudPeople'),{})||{};Object.keys(cloud).forEach(function(k){var u=cloud[k];out[k]=Object.assign({},out[k]||{},u);if(hid[k]&&!((+u.lastLoginAt||0)>hid[k]))delete out[k];});
-    var loc=localGet()||{};Object.keys(loc).forEach(function(k){if(k==='admin:main')return;out[k]=Object.assign({},out[k]||{},loc[k]);});
+    /* cloud: one entry per person — two people with the same name (other phone) are shown separately */
+    var cloud=parse(get('travelCloudPeople'),{})||{},byKey={};
+    Object.keys(cloud).forEach(function(ck){var u=cloud[ck],k=u.key||ck.split('|')[0];(byKey[k]=byKey[k]||[]).push([ck,u]);});
+    Object.keys(byKey).forEach(function(k){
+      var arr=byKey[k],base=out[k]||{};delete out[k];
+      arr.forEach(function(x,i){var ck=arr.length>1?x[0]:k,u=Object.assign({},base,x[1]);
+        if(arr.length>1){var ph=String(u.phone||'').replace(/\D/g,'');u.name=(u.name||'—')+(ph?' · phone …'+ph.slice(-4):'');}
+        if(hid[ck]&&!((+u.lastLoginAt||0)>hid[ck]))return;out[ck]=u;});
+    });
+    var loc=localGet()||{};Object.keys(loc).forEach(function(k){if(k==='admin:main')return;if(byKey[k]&&byKey[k].length>1)return;out[k]=Object.assign({},out[k]||{},loc[k]);});
     if(loc['admin:main'])out['admin:main']=loc['admin:main'];
     return out;
   }
