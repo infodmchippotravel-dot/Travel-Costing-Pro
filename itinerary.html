@@ -2541,9 +2541,9 @@ window.addEventListener('storage',function(e){
 <script>
 /* the website's bottom bar (like the costing's) saves this voucher and goes back from the print page */
 (function(){
-  function st(){var saved=false;try{saved=!!(draft.id&&savedList().some(function(x){return x.id===draft.id;}));}catch(e){}return {saved:saved,pp:document.body.classList.contains('pp')};}
+  function st(){var saved=false,o={};try{saved=!!(draft.id&&savedList().some(function(x){return x.id===draft.id;}));}catch(e){}try{var ds=draft.days||[];o={client:String(draft.client||'').trim(),start:draft.start||'',days:ds.length,tours:ds.filter(function(d){return String(d.title||'').trim();}).length,hotels:(draft.hotels||[]).length,no:draft.no||''};}catch(e){}return Object.assign({saved:saved,pp:document.body.classList.contains('pp')},o);}
   function tell(){try{if(window.parent!==window&&typeof window.parent.itinBarUpdate==='function')window.parent.itinBarUpdate();}catch(e){}}
-  window.tvBar={open:function(id){ACT.open(id);tell();},openId:function(){try{return draft&&draft.id||'';}catch(e){return '';}},state:st,save:function(){saveVoucher();setTimeout(tell,60);},back:function(){ACT.printBack();tell();},print:function(){ACT.printPage();tell();}};
+  window.tvBar={go:function(id){var e=document.getElementById(id);if(!e)return;try{var f=window.frameElement;if(f){var y=f.getBoundingClientRect().top+window.parent.pageYOffset+e.getBoundingClientRect().top-90;window.parent.scrollTo({top:Math.max(0,y),behavior:'smooth'});}else e.scrollIntoView({behavior:'smooth',block:'start'});}catch(x){}},open:function(id){ACT.open(id);tell();},openId:function(){try{return draft&&draft.id||'';}catch(e){return '';}},state:st,save:function(){saveVoucher();setTimeout(tell,60);},back:function(){ACT.printBack();tell();},print:function(){ACT.printPage();tell();}};
   var prev=showDirty;showDirty=function(){var r=prev.apply(this,arguments);tell();return r;};
   try{new MutationObserver(tell).observe(document.body,{attributes:true,attributeFilter:['class']});}catch(e){}
   tell();

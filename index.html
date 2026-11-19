@@ -33,7 +33,7 @@
    is what avoids the earlier 404-in-preview issue. */
 /* logged in: no login screen from the first moment (the website decides after it has loaded) */
 try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
-window.SITE_BUILD='2026-11-19-16';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-17';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10145,7 +10145,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (16)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (17)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15297,6 +15297,7 @@ body.has-itin-bar .sfx-top{bottom:100px}
 @media (max-width:720px){body.has-itin-bar{padding-bottom:76px}}
 @media (max-width:600px){body.has-itin-bar .chatbot-fab{bottom:150px!important}body.has-itin-bar .toast-region{bottom:150px}body.has-itin-bar .sfx-top{bottom:150px}}
 body.itin-pp #itinerary>.page-header{display:none!important}
+body.itin-pp #itinSteps{display:none!important}
 body.itin-pp #itinerary .itin-wrap{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important}   /* no box around the print page, like the costing */   /* the print page shows only "Print / PDF", like the costing */
 </style>
 <script>
@@ -15317,7 +15318,27 @@ try{(function(){
     document.getElementById('ieBack').hidden=!s.pp;
     document.getElementById('ieSave').textContent=s.saved?'💾 Save Changes':'💾 Save Complete Itinerary';
   }
-  window.itinBarUpdate=upd;
+  /* the 3 steps on top, like the Costing Sheet's */
+  var steps=document.createElement('ol');steps.className='sheet-steps';steps.id='itinSteps';steps.setAttribute('aria-label','Your progress');
+  steps.innerHTML='<li data-go="c-client"><span class="ss-n">1</span><span class="ss-t"><b>Client details</b><small id="isClient">Name and travel date</small></span></li>'
+    +'<li data-go="c-days"><span class="ss-n">2</span><span class="ss-t"><b>Day by day plan</b><small id="isDays">No tours yet</small></span></li>'
+    +'<li data-go="itinEasyBar"><span class="ss-n">3</span><span class="ss-t"><b>Save</b><small id="isSave">Not saved yet</small></span></li>';
+  var ipage=document.getElementById('itinerary'),ihead=ipage&&ipage.querySelector('.page-header');if(ihead)ihead.insertAdjacentElement('afterend',steps);
+  steps.addEventListener('click',function(e){var li=e.target.closest('li');if(!li)return;var a=api();if(!a)return;if(li.dataset.go==='itinEasyBar'){var b2=document.getElementById('ieSave');if(b2)b2.focus();return;}if(a.go)a.go(li.dataset.go);});
+  var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function sd(iso){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||'');return m?(+m[3])+' '+MON[+m[2]-1]:'';}
+  function updSteps(s){
+    try{
+      var li=steps.children,c=s.client,d=s.start;
+      li[0].classList.toggle('is-done',!!(c&&d));
+      document.getElementById('isClient').textContent=c&&d?c+' · '+sd(d):(!c&&!d?'Name and travel date':(!c?'Add client name':'Add travel date'));
+      li[1].classList.toggle('is-done',!!(s.days&&s.tours===s.days));
+      document.getElementById('isDays').textContent=!s.days?'No days yet':(!s.tours?'No tours yet':s.tours===s.days?s.days+(s.days===1?' day':' days')+' planned':s.tours+' of '+s.days+' days have a tour');
+      li[2].classList.toggle('is-done',!!s.saved);
+      document.getElementById('isSave').textContent=s.saved?'Saved as '+(s.no||''):'Not saved yet';
+    }catch(e){}
+  }
+  window.itinBarUpdate=function(){upd();try{var a=api();if(a)updSteps(a.state());}catch(e){}};
   document.getElementById('ieSave').addEventListener('click',function(){var a=api();if(a)a.save();});
   document.getElementById('ieBack').addEventListener('click',function(){var a=api();if(a)a.back();window.scrollTo(0,0);});
   var prev=window.showPage;if(typeof prev==='function')window.showPage=function(){var r=prev.apply(this,arguments);setTimeout(upd,0);return r;};
@@ -15336,6 +15357,7 @@ try{(function(){
   #itinerary>.page-header>div:not(.ph-icon):not(.sheet-head-actions){flex:1 1 0!important;min-width:0!important}
   #itinerary #itinHeadActs{flex:1 1 100%!important;width:100%!important;margin:12px 0 0!important;display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important}
   #itinerary #itinHeadActs button{width:100%!important;min-height:46px!important;white-space:nowrap}
+  #itinerary>.page-header>.ph-icon{display:none!important}   /* like the Costing Sheet on a phone */
 }
 </style>
 <script>
