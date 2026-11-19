@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-8';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-9';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10130,7 +10130,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (8)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (9)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -14001,6 +14001,16 @@ try{(function(){
 
   /* ---------- send what changed ---------- */
   var busy=false,again=false,lastErr='',lastOk=0,pending=0,explicitDel={costings:{},drafts:{},vouchers:{}};
+  function uploadProfile(me){
+    if(me.which==='admin')return Promise.resolve();
+    var key=get('travelCurrentUserKey')||'';if(!key||key==='admin:main')return Promise.resolve();
+    var u=(parse(get('travelLoginUsers'),{})||{})[key];if(!u)return Promise.resolve();
+    var pr={key:key,name:u.name||((u.firstName||'')+' '+(u.lastName||'')).trim()||'',method:u.method||'',phone:u.phone||'',country:u.country||'',gender:u.gender||'',dob:u.dob||'',createdAt:u.createdAt||0,lastLoginAt:u.lastLoginAt||0};
+    var sg=JSON.stringify(pr),sk='travelCloudProfSig:'+key;
+    if(get(sk)===sg)return Promise.resolve();
+    var body={fields:{owner:{stringValue:me.uid},ownerKey:{stringValue:key},ownerName:{stringValue:pr.name},data:{stringValue:sg},updatedAt:{timestampValue:new Date().toISOString()},deleted:{booleanValue:false},kind:{stringValue:'profile'}}};
+    return api('/drafts/'+encodeURIComponent(me.uid+'_profile_'+safe(key)),{method:'PATCH',body:JSON.stringify(body)},me.token).then(function(){set(sk,sg);},function(){});
+  }
   function upload(me){
     var m=map(),jobs=[];
     Object.keys(COLS).forEach(function(col){
@@ -14061,7 +14071,7 @@ try{(function(){
   function markDl(col,at){var dl=parse(get(K_DL),{})||{};dl[col]=at;set(K_DL,JSON.stringify(dl));}
   var stats={costings:0,drafts:0,vouchers:0,people:0};
   function download(me){
-    var chain=Promise.resolve(),people={};
+    var chain=Promise.resolve(),people={},prof={};
     Object.keys(COLS).forEach(function(col){
       var started=new Date().toISOString();
       chain=chain.then(function(){return listAll(col,me.token,me);}).then(function(docs){
@@ -14071,6 +14081,8 @@ try{(function(){
         docs.forEach(function(d){
           var f=d.fields||{},doc=d.name.split('/').pop(),kind=val(f,'kind'),del=val(f,'deleted')===true,owner=val(f,'owner')||'';
           if(kind==='test')return;
+          /* a user's profile (name, login time): for the admin's list of website users — not a record */
+          if(kind==='profile'){if(!del){var pr=parse(val(f,'data'),null);if(pr&&pr.key&&pr.key!=='admin:main'){pr.seenAt=val(f,'updatedAt');prof[pr.key]=pr;}}return;}
           var e=m[col][doc];
           if(del){
             if(e&&!e.del){var li=idx[e.id];if(li!=null&&sig(list[li])===e.sig){list.splice(li,1);changed=true;list.forEach(function(r,i){if(r&&r.id!=null)idx[r.id]=i;});}e.del=true;}
@@ -14102,7 +14114,15 @@ try{(function(){
         }else saveMap(m);
       });
     });
-    return chain.then(function(){stats.people=Object.keys(people).length;});
+    return chain.then(function(){
+      stats.people=Object.keys(people).length;
+      if(me.which==='admin'&&Object.keys(prof).length){
+        var all=parse(get('travelCloudPeople'),{})||{};
+        Object.keys(prof).forEach(function(k){all[k]=Object.assign({},all[k]||{},prof[k]);});
+        set('travelCloudPeople',JSON.stringify(all));
+        try{var a=document.querySelector('.page.active');if(a&&a.id==='about'&&typeof renderAboutPage==='function')renderAboutPage();}catch(e){}
+      }
+    });
   }
   function redraw(col){
     try{
@@ -14120,7 +14140,7 @@ try{(function(){
     if(!navigator.onLine){lastErr='';show();return Promise.resolve();}
     busy=true;show();
     return identity().then(function(me){
-      return upload(me).then(function(){if(me.which==='admin')return download(me);if(Date.now()-userDlAt<USER_DL_GAP)return null;userDlAt=Date.now();return download(me);}).then(function(){lastErr='';lastOk=Date.now();set(K_AT,new Date().toISOString());});
+      return upload(me).then(function(){return uploadProfile(me);}).then(function(){if(me.which==='admin')return download(me);if(Date.now()-userDlAt<USER_DL_GAP)return null;userDlAt=Date.now();return download(me);}).then(function(){lastErr='';lastOk=Date.now();set(K_AT,new Date().toISOString());});
     }).catch(function(e){if(!/not connected/.test(e.message))lastErr=lastErr||('Could not reach the cloud: '+e.message);})
       .then(function(){busy=false;show();if(again){again=false;setTimeout(run,500);}});
   }
@@ -15652,6 +15672,59 @@ try{(function(){
   var pf=window.finishLogin;
   if(typeof pf==='function')window.finishLogin=function(){var r=pf.apply(this,arguments);setTimeout(home,0);return r;};
 })();}catch(e){console.error('Start page:',e);}
+</script>
+<script>
+/* Website users (admin, About page): people who logged in on THIS computer, plus everyone from the cloud
+   (each user's browser sends its name and login time), plus anyone whose costings / vouchers are here */
+try{(function(){
+  function parse(s,d){try{var v=JSON.parse(s);return v==null?d:v;}catch(e){return d;}}
+  function get(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+  function set(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+  var localGet=window.getLoginUsers;
+  function hidden(){return parse(get('travelCloudPeopleHidden'),{})||{};}
+  function merged(){
+    var out={},hid=hidden();
+    function add(k,u){if(!k||k==='admin:main')return;if(hid[k]&&!((+u.lastLoginAt||0)>hid[k]))return;out[k]=Object.assign({},u,out[k]||{});}
+    function fromRec(r){var c=r&&r.createdBy;if(c&&c.key&&c.role!=='admin'&&c.key!=='admin:main')add(c.key,{name:c.name||'—',method:'—'});}
+    try{(typeof savedCostings!=='undefined'&&Array.isArray(savedCostings)?savedCostings:parse(get('travelSavedCostings'),[])).forEach(fromRec);}catch(e){}
+    try{(parse(get('travelDraftCostings'),[])||[]).forEach(fromRec);}catch(e){}
+    try{(parse(get('tv.saved.v1'),[])||[]).forEach(function(v){var c=v&&v.createdBy;if(c&&c.key&&c.key!=='admin:main')add(c.key,{name:c.name||'—',method:'—'});});}catch(e){}
+    var cloud=parse(get('travelCloudPeople'),{})||{};Object.keys(cloud).forEach(function(k){var u=cloud[k];out[k]=Object.assign({},out[k]||{},u);if(hid[k]&&!((+u.lastLoginAt||0)>hid[k]))delete out[k];});
+    var loc=localGet()||{};Object.keys(loc).forEach(function(k){if(k==='admin:main')return;out[k]=Object.assign({},out[k]||{},loc[k]);});
+    if(loc['admin:main'])out['admin:main']=loc['admin:main'];
+    return out;
+  }
+  window.websiteUsers=merged;
+  var pa=window.renderAboutPage;
+  if(typeof pa==='function')window.renderAboutPage=function(){
+    var admin=false;try{admin=isAdminSession();}catch(e){}
+    if(!admin)return pa.apply(this,arguments);
+    window.getLoginUsers=merged;
+    var r;try{r=pa.apply(this,arguments);}finally{window.getLoginUsers=localGet;}
+    /* each person: how many vouchers (itineraries) too */
+    try{
+      var vs=parse(get('tv.saved.v1'),[])||[],n={};vs.forEach(function(v){var k=v&&v.createdBy&&v.createdBy.key;if(k)n[k]=(n[k]||0)+1;});
+      [].forEach.call(document.querySelectorAll('#aboutUsersList .saved-card'),function(c){
+        var btn=c.querySelector('button[onclick*="deleteWebsiteUser"]');if(!btn)return;var m=/deleteWebsiteUser\('((?:[^'\\]|\\.)*)'\)/.exec(btn.getAttribute('onclick')||'');if(!m)return;
+        var k=m[1].replace(/\\(.)/g,'$1'),meta=c.querySelector('.saved-meta');if(!meta||meta.querySelector('.wu-v'))return;
+        var x=document.createElement('span');x.className='wu-v';x.textContent=' • 🗺️ '+(n[k]||0)+((n[k]||0)===1?' itinerary':' itineraries');
+        var cs=[].filter.call(meta.childNodes,function(nd){return /costing/.test(nd.textContent||'');});
+        var after=meta.querySelector('.see-work');if(after)after.insertAdjacentElement('afterend',x);else meta.appendChild(x);
+      });
+    }catch(e){}
+    return r;
+  };
+  var pd=window.deleteWebsiteUser;
+  if(typeof pd==='function')window.deleteWebsiteUser=function(key){
+    var loc=localGet()||{};
+    if(loc[key])return pd.apply(this,arguments);
+    try{if(!requireAdmin())return;}catch(e){return;}
+    var u=merged()[key]||{};var name=u.name||'this user';
+    if(!confirm('Remove "'+name+'" from the website users list?\n\nTheir costings and vouchers stay. They show again if they log in again.'))return;
+    var h=hidden();h[key]=Date.now();set('travelCloudPeopleHidden',JSON.stringify(h));
+    try{renderAboutPage();}catch(e){}
+  };
+})();}catch(e){console.error('Website users could not start:',e);}
 </script>
 </body>
 </html>
