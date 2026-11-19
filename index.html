@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-11';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-12';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2580,7 +2580,9 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
       <h3 class="login-panel-title" id="userLoginHead">👤 User login</h3>
       <label for="loginUserName">Your name</label>
       <div class="field-icon"><span aria-hidden="true">👤</span><input id="loginUserName" autocomplete="name" type="text" maxlength="60" placeholder="e.g. Rahul Sharma" aria-describedby="loginUserHint"></div>
-      <p class="login-field-hint" id="loginUserHint">Just type your name — no email or password needed.</p>
+      <label for="loginUserPhone" style="margin-top:12px">Phone number</label>
+      <div class="field-icon"><span aria-hidden="true">📱</span><input id="loginUserPhone" autocomplete="tel" type="tel" inputmode="tel" maxlength="20" placeholder="e.g. 98290 11111" aria-describedby="loginUserHint"></div>
+      <p class="login-field-hint" id="loginUserHint">Type your name and phone number — no password needed. Use the same on every laptop and phone to see all your work.</p>
       <button class="blue login-main-btn" onclick="loginWithName()" type="button">Continue ➜</button>
       <div class="login-divider" role="separator"><span class="or-badge">OR</span></div>
       <div style="text-align:center">
@@ -6742,10 +6744,16 @@ try{(function(){
     var problem=nameProblem(name);
     if(problem){input.setAttribute('aria-invalid','true');input.focus();return showLoginError(problem);}
     input.removeAttribute('aria-invalid');
+    var phIn=$('loginUserPhone'),ph=String(phIn&&phIn.value||'').replace(/\D/g,'');
+    if(phIn&&(ph.length<7||ph.length>15)){phIn.setAttribute('aria-invalid','true');phIn.focus();return showLoginError('Please enter your phone number (7–15 digits).');}
+    if(phIn)phIn.removeAttribute('aria-invalid');
     var key='name:'+name.toLowerCase();
     var users=getLoginUsers();
     var isNew=!users[key];
     var u=users[key]||{method:'Name',createdAt:Date.now()};
+    var old=String(u.phone||'').replace(/\D/g,'');
+    if(old&&ph&&old.slice(-10)!==ph.slice(-10)){if(phIn){phIn.setAttribute('aria-invalid','true');phIn.focus();}return showLoginError('This name is already used on this computer with another phone number. Type your full name (e.g. Ram Sharma) or check the phone number.');}
+    if(ph)u.phone=ph;
     var parts=name.split(' ');
     u.method='Name';u.name=name;u.firstName=parts[0];u.lastName=parts.slice(1).join(' ');
     u.lastLoginAt=Date.now();
@@ -6813,7 +6821,7 @@ try{(function(){
 
   window.resetLoginForm=function(){
     pendingLoginKey=null;pendingNewUserData=null;pendingAdminName=null;
-    ['loginUserName','adminFullName','adminLoginId','adminLoginPassword'].forEach(function(id){var x=$(id);if(x){x.value='';x.removeAttribute('aria-invalid');}});
+    ['loginUserName','loginUserPhone','adminFullName','adminLoginId','adminLoginPassword'].forEach(function(id){var x=$(id);if(x){x.value='';x.removeAttribute('aria-invalid');}});
     var extra=$('loginExtraInfo');if(extra)extra.style.display='none';
     document.querySelectorAll('.login-panel').forEach(function(p){p.classList.toggle('active',p.id==='loginPanel-email');});
     showLoginError('');
@@ -6915,7 +6923,7 @@ try{(function(){
     if(!s.key){box.textContent='Not logged in.';return;}
     var u=getLoginUsers()[s.key]||{};
     var rows=[['Name',s.name||'-'],
-      ['Login type',s.role==='admin'?'Admin login (e-mail + password)':(u.method==='Name'?'User login (name only)':(u.method||'User'))],
+      ['Login type',s.role==='admin'?'Admin login (e-mail + password)':(u.method==='Name'?'User login (name + phone)':(u.method||'User'))],
       ['Role',s.role==='admin'?'Admin — can change prices and sees all costings':'User — makes costings and sees only own costings']];
     if(u.email)rows.splice(1,0,['Email',u.email]);
     if(u.phone)rows.push(['Phone',u.phone]);
@@ -6923,7 +6931,7 @@ try{(function(){
   };
 
   /* Enter key submits the right form */
-  [['loginUserName',function(){loginWithName();}],['adminFullName',function(){$('adminLoginId').focus();}],
+  [['loginUserName',function(){var ph=$('loginUserPhone');if(ph&&!ph.value.trim())ph.focus();else loginWithName();}],['loginUserPhone',function(){loginWithName();}],['adminFullName',function(){$('adminLoginId').focus();}],
    ['adminLoginId',function(){$('adminLoginPassword').focus();}],['adminLoginPassword',function(){loginAsAdmin();}]].forEach(function(p){
     var x=$(p[0]);
     if(x)x.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();e.stopPropagation();p[1]();}});
@@ -7415,6 +7423,7 @@ try{(function(){
 
   /* ---------------- 5. Login ---------------- */
   rule('userLogin','loginUserName',{msg:'Please enter your name.'});
+  rule('userLogin','loginUserPhone',{test:function(){var d=String(($('loginUserPhone')||{}).value||'').replace(/\D/g,'');return d.length>=7&&d.length<=15;},msg:'Please enter your phone number (7–15 digits).'});
   rule('adminLogin','adminFullName',{msg:'Please enter the admin name.'});
   rule('adminLogin','adminLoginId',{msg:'Please enter the Admin ID.'});
   rule('adminLogin','adminLoginPassword',{msg:'Please enter the password.'});
@@ -7901,7 +7910,7 @@ try{(function(){
     $('homeAccount').innerHTML=
       '<div class="acct-row"><span>Name</span><b>'+escapeHtml(s.name||'—')+'</b></div>'
       +'<div class="acct-row"><span>Role</span><b>'+(admin?'Admin — full access':'User')+'</b></div>'
-      +'<div class="acct-row"><span>Login type</span><b>'+(admin?'Admin e-mail + password':'Name only')+'</b></div>'
+      +'<div class="acct-row"><span>Login type</span><b>'+(admin?'Admin e-mail + password':'Name + phone')+'</b></div>'
       +'<div class="acct-row"><span>Signed in</span><b>'+(u.lastLoginAt?fmtWhen(u.lastLoginAt):'—')+'</b></div>';
     document.querySelectorAll('[data-admin-only]').forEach(function(x){x.hidden=!admin;});
     // admin: costings per person
@@ -7948,7 +7957,7 @@ try{(function(){
     list.innerHTML=keys.map(function(k){
       var u=users[k]||{},name=(u.name||((u.firstName||'')+' '+(u.lastName||'')).trim()||u.email||'—');
       var n=savedCostings.filter(function(c){return c.createdBy&&c.createdBy.key===k;}).length;
-      var method=u.method==='Name'?'Name only':(u.method||'—');
+      var method=u.method==='Name'?'Name + phone':(u.method||'—');
       var since=u.createdAt?new Date(u.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';
       return '<div class="saved-card"><div class="saved-head"><div>'
         +'<div class="saved-title">👤 '+escapeHtml(name)+'</div>'
@@ -10130,7 +10139,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (11)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (12)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -10291,7 +10300,7 @@ try{(function(){
   if(help){
     var av=[].slice.call(help.querySelectorAll('.card')).find(function(c){return /Admin vs User/.test(c.textContent);});
     var avp=av&&av.querySelector('p');
-    if(avp)avp.innerHTML='<b>User</b>: logs in with a name and sees only their own costings. Prices of saved items are hidden.<br>'
+    if(avp)avp.innerHTML='<b>User</b>: logs in with their name and phone number and sees only their own costings and itineraries — on every laptop and phone they log in on. Prices of saved items are hidden.<br>'
       +'<b>Admin</b>: logs in with the admin e-mail and password (on any computer or phone). Can change prices and sees every costing.';
     var hs=q('#help .ph-sub');if(hs)hs.textContent='How to use the website';
   }
@@ -10427,7 +10436,7 @@ try{(function(){
 
   /* ---- Login: say what the website does + one clear button ---- */
   var lt=el('loginTitle');if(lt)lt.textContent='Make travel quotations in minutes';
-  var ls=el('loginSub');if(ls)ls.innerHTML='Type your name and press Start. No password needed.<br><small class="login-trust">✔ Prices come from your saved rate list &nbsp;✔ Every costing gets its own number</small>';
+  var ls=el('loginSub');if(ls)ls.innerHTML='Type your name and phone number, then press Start. No password needed.<br><small class="login-trust">✔ Prices come from your saved rate list &nbsp;✔ Every costing gets its own number</small>';
   var uh=el('userLoginHead');if(uh)uh.classList.add('visually-hidden');
   var hint=el('loginUserHint');if(hint)hint.textContent='No email or password needed.';
   var go=document.querySelector('#loginPanel-email .login-main-btn');if(go)go.textContent='Start ➜';
@@ -11722,8 +11731,8 @@ try{(function(){
      en:'The PDF shows <b>Total Package Cost</b> and a separate box for each per-person rate that is used: Adult (Single / Double / Triple sharing), Child (With Bed) and Child (No Bed).',
      hi:'PDF में <b>Total Package Cost</b> और हर per person रेट का अलग बॉक्स आता है: Adult (Single / Double / Triple sharing), Child (With Bed) और Child (No Bed) — जो इस्तेमाल हुए हों।'},
     {id:'login',kw:['password bhool','password bhul','password yaad nahi','password nahi yaad','password forgot','password change','password badalna','forgot password','password','login','log in','sign in','logout','log out','locked','पासवर्ड','लॉगिन'],
-     en:function(){return '<b>Users</b> log in with their name only — no password.<br><b>Admin</b> logs in with the <b>admin e-mail</b> and its password — on any computer or phone, and then everything is there (everyone’s costings, drafts, vouchers and the prices). '+(admin()?'Change the password in <b>Settings → 🔐 Admin login</b>; other devices are then logged out.':'')+' After 5 wrong passwords the admin login locks for a while.<br>Forgot the admin password? On the admin login press <b>Forgot password?</b>, type the admin e-mail and press <b>Send the reset link</b> — choose a new password from the e-mail.';},
-     hi:function(){return '<b>User</b> सिर्फ अपने नाम से लॉगिन करते हैं — पासवर्ड नहीं।<br><b>Admin</b> <b>admin e-mail</b> और उसके पासवर्ड से लॉगिन करता है — किसी भी कंप्यूटर या फोन पर, और फिर सब कुछ दिखता है (सबकी costings, drafts, vouchers और कीमतें)। '+(admin()?'पासवर्ड <b>Settings → 🔐 Admin login</b> में बदलें; बाकी devices पर logout हो जाता है।':'')+' 5 बार गलत पासवर्ड पर admin login कुछ देर के लिए बंद हो जाता है।<br>Admin पासवर्ड भूल गए? Admin login पर <b>Forgot password?</b> दबाएं, admin e-mail लिखें और <b>Send the reset link</b> दबाएं — e-mail से नया पासवर्ड रखें।';}},
+     en:function(){return '<b>Users</b> log in with their name and phone number — no password. Use the same name and phone on every laptop and phone, and all your work is there.<br><b>Admin</b> logs in with the <b>admin e-mail</b> and its password — on any computer or phone, and then everything is there (everyone’s costings, drafts, vouchers and the prices). '+(admin()?'Change the password in <b>Settings → 🔐 Admin login</b>; other devices are then logged out.':'')+' After 5 wrong passwords the admin login locks for a while.<br>Forgot the admin password? On the admin login press <b>Forgot password?</b>, type the admin e-mail and press <b>Send the reset link</b> — choose a new password from the e-mail.';},
+     hi:function(){return '<b>User</b> अपने नाम और फोन नंबर से लॉगिन करते हैं — पासवर्ड नहीं। हर लैपटॉप और फोन पर वही नाम और फोन डालें, आपका सारा काम वहाँ आ जाएगा।<br><b>Admin</b> <b>admin e-mail</b> और उसके पासवर्ड से लॉगिन करता है — किसी भी कंप्यूटर या फोन पर, और फिर सब कुछ दिखता है (सबकी costings, drafts, vouchers और कीमतें)। '+(admin()?'पासवर्ड <b>Settings → 🔐 Admin login</b> में बदलें; बाकी devices पर logout हो जाता है।':'')+' 5 बार गलत पासवर्ड पर admin login कुछ देर के लिए बंद हो जाता है।<br>Admin पासवर्ड भूल गए? Admin login पर <b>Forgot password?</b> दबाएं, admin e-mail लिखें और <b>Send the reset link</b> दबाएं — e-mail से नया पासवर्ड रखें।';}},
     {id:'rates',kw:['saved rates','rate list','rates','rate','price list','change price','add price','kimat','daam','admin','रेट','कीमत'],
      en:function(){return admin()
        ?'<b>Saved Rates</b> (top menu) has tabs for <b>Transfers</b> (Car / SUV / Van price), <b>SIC Transfers</b>, <b>Entry Tickets</b>, <b>Meals</b> and <b>🏝️ Tours</b> (the tours for Create Itinerary). Add, edit or delete there; press <b>＋ Use</b> to put it straight into the costing.'
@@ -13958,15 +13967,15 @@ try{(function(){
   }
   /* ---------- the same user on another laptop / phone ----------
      A user's cloud account is found from what they type when they log in on a new computer:
-     name + phone number + date of birth. All three must match → their own records come to that computer.
+     name + phone number. Both must match → their own records come to that computer.
      (Only the name is never enough.) */
   function hex(buf){return [].map.call(new Uint8Array(buf),function(b){return ('0'+b.toString(16)).slice(-2);}).join('');}
   function sha(t){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)).then(hex);}
   function userCreds(key){
     var u=(parse(get('travelLoginUsers'),{})||{})[key]||{};
-    var ph=String(u.phone||'').replace(/\D/g,'').slice(-10),dob=String(u.dob||'');
-    if(!window.crypto||!crypto.subtle||(!ph&&!dob))return Promise.resolve(null);
-    return Promise.all([sha('hippo-user|'+key+'|'+ph+'|'+dob),sha('hippo-pass|'+key+'|'+ph+'|'+dob)]).then(function(h){return {email:'u'+h[0].slice(0,40)+'@users.hippotravel.in',password:h[1],sig:h[1].slice(0,16)};});
+    var ph=String(u.phone||'').replace(/\D/g,'').slice(-10);
+    if(!window.crypto||!crypto.subtle||ph.length<7)return Promise.resolve(null);
+    return Promise.all([sha('hippo-user|'+key+'|'+ph),sha('hippo-pass|'+key+'|'+ph)]).then(function(h){return {email:'u'+h[0].slice(0,40)+'@users.hippotravel.in',password:h[1],sig:h[1].slice(0,16)};});
   }
   function tokenFrom(j){return {token:j.idToken,uid:j.localId,exp:Date.now()+((+j.expiresIn||3600)-120)*1000};}
   /* records this browser sent with an older account: marked deleted there, sent again with the user's account */
@@ -15787,6 +15796,45 @@ try{(function(){
     try{renderAboutPage();}catch(e){}
   };
 })();}catch(e){console.error('Website users could not start:',e);}
+</script>
+<style>
+#phoneAskCard{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 18px!important;border-left:4px solid #c6a76b!important}
+#phoneAskCard[hidden]{display:none!important}
+#phoneAskCard .pa-txt{flex:1 1 280px;min-width:0}
+#phoneAskCard .pa-txt b{display:block;font-size:16px}
+#phoneAskCard .pa-txt small{color:var(--muted,#5e6a7d);font-size:13.5px}
+#phoneAskCard .pa-form{display:flex;gap:8px;flex:1 1 300px}
+#phoneAskCard input{flex:1;min-width:0;min-height:44px}
+#phoneAskCard button{min-height:44px;padding:0 18px}
+#phoneAskCard .pa-msg{flex-basis:100%;color:#b42318;font-size:13px;font-weight:600}
+</style>
+<script>
+/* A user who is logged in from before (no phone yet): asked once on the Overview, so their work can come to their other laptop / phone */
+try{(function(){
+  function $(id){return document.getElementById(id);}
+  var home=$('home');if(!home)return;
+  var card=document.createElement('section');card.className='card';card.id='phoneAskCard';card.hidden=true;
+  card.innerHTML='<div class="pa-txt"><b>📱 Add your phone number</b><small>Then all your costings and itineraries come to your other laptop or phone too — log in there with the same name and phone.</small></div>'
+    +'<div class="pa-form"><label class="visually-hidden" for="paPhone">Phone number</label><input id="paPhone" type="tel" inputmode="tel" maxlength="20" placeholder="e.g. 98290 11111" autocomplete="tel"><button type="button" class="blue" id="paSave">Save</button></div><div class="pa-msg" id="paMsg" role="alert"></div>';
+  var hdr=home.querySelector('.page-header');if(hdr)hdr.insertAdjacentElement('afterend',card);
+  function key(){try{return localStorage.getItem('travelCurrentUserKey')||'';}catch(e){return '';}}
+  function show(){
+    var k=key();if(!k||k==='admin:main'){card.hidden=true;return;}
+    var u=(typeof getLoginUsers==='function'?getLoginUsers():{})[k]||{};
+    card.hidden=String(u.phone||'').replace(/\D/g,'').length>=7;
+  }
+  $('paSave').addEventListener('click',function(){
+    var d=String($('paPhone').value||'').replace(/\D/g,'');
+    if(d.length<7||d.length>15){$('paMsg').textContent='Please enter your phone number (7–15 digits).';$('paPhone').focus();return;}
+    var k=key(),users=getLoginUsers();if(!users[k])return;
+    users[k].phone=d;saveLoginUsers(users);$('paMsg').textContent='';card.hidden=true;
+    try{if(window.showToast)showToast('✅ Phone saved — your work now comes to your other laptop or phone too','success');}catch(e){}
+    try{if(window.cloudSync)cloudSync();}catch(e){}
+  });
+  $('paPhone').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();$('paSave').click();}});
+  var prev=window.showPage;if(typeof prev==='function')window.showPage=function(id){var r=prev.apply(this,arguments);if(id==='home')setTimeout(show,0);return r;};
+  show();
+})();}catch(e){console.error('Phone question could not start:',e);}
 </script>
 </body>
 </html>
