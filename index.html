@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-6';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-7';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2831,8 +2831,8 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 <div class="page-header dash-header home-header"><div aria-hidden="true" class="ph-icon navy">🏠</div>
 <div class="dash-head-text"><span class="role-badge is-user" id="homeRole">Dashboard</span><h1 class="ph-title" id="homeTitle" tabindex="-1">Welcome</h1><div class="ph-sub" id="homeSub"></div></div>
 <form class="hero-search dash-search" role="search" onsubmit="heroSearch(event)">
-<label for="heroSearchInput" class="visually-hidden">Search saved costings by client name, phone or costing number</label>
-<input type="search" id="heroSearchInput" placeholder="🔍 Name or COST-001">
+<label for="heroSearchInput" class="visually-hidden">Search costings and itineraries by client name, phone, COST or voucher number</label>
+<input type="search" id="heroSearchInput" placeholder="🔍 Name, phone, COST-001 or HT-0001" autocomplete="off">
 <button class="green" type="submit">🔍 Search</button>
 </form>
 </div>
@@ -10130,7 +10130,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (6)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (7)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15505,6 +15505,7 @@ try{(function(){
       if(++tries<100)setTimeout(go,200);
     })();
   }
+  window.homeOpenVoucher=openVoucher;
   document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#homeItinRecent .hi-open');if(b)openVoucher(b.dataset.vid);});
   var prev=window.showPage;if(typeof prev==='function')window.showPage=function(id){var r=prev.apply(this,arguments);if(id==='home')setTimeout(render,0);return r;};
   var rh=window.renderHome;if(typeof rh==='function')window.renderHome=function(){var r=rh.apply(this,arguments);try{render();}catch(e){}return r;};
@@ -15585,6 +15586,56 @@ try{(function(){
     });
   };
 })();}catch(e){console.error('Overview buttons could not start:',e);}
+</script>
+<style>
+/* Overview search: costings and itineraries together */
+#homeSearchCard{margin:0 0 18px!important}
+#homeSearchCard[hidden]{display:none!important}
+#homeSearchCard .hs-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
+#homeSearchCard .hs-head h2{margin:0;font-size:19px}
+#homeSearchCard .hs-grp{font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#7a5c1e;margin:12px 0 6px}
+#homeSearchCard .hs-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line,#eee6d6)}
+#homeSearchCard .hs-row:first-of-type{border-top:0}
+#homeSearchCard .hs-main{flex:1;min-width:0}
+#homeSearchCard .hs-main b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#homeSearchCard .hs-main small{color:var(--muted,#5e6a7d)}
+#homeSearchCard .hs-row button{min-height:38px;padding:0 14px;flex:none}
+#homeSearchCard .hs-none{color:var(--muted,#5e6a7d);padding:6px 0}
+body.dark #homeSearchCard .hs-grp{color:#E6C27A}
+</style>
+<script>
+try{(function(){
+  function $(id){return document.getElementById(id);}
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  var home=$('home');if(!home)return;
+  var card=document.createElement('section');card.className='card';card.id='homeSearchCard';card.hidden=true;card.setAttribute('aria-live','polite');
+  var hdr=home.querySelector('.page-header');if(hdr)hdr.insertAdjacentElement('afterend',card);
+  function words(q){return String(q||'').toLowerCase().split(/\s+/).filter(Boolean);}
+  function hit(text,ws){text=String(text||'').toLowerCase();return ws.every(function(w){return text.indexOf(w)!==-1;});}
+  function costings(){var l=[];try{l=(typeof savedCostings!=='undefined'&&Array.isArray(savedCostings))?savedCostings:JSON.parse(localStorage.getItem('travelSavedCostings')||'[]');}catch(e){}return l.filter(function(r){try{return window.canSeeCosting?canSeeCosting(r):true;}catch(e){return false;}});}
+  function vouchers(){var l=[];try{l=JSON.parse(localStorage.getItem('tv.saved.v1')||'[]')||[];}catch(e){}var key='';try{key=localStorage.getItem('travelCurrentUserKey')||'';}catch(e){}var adm=key==='admin:main';return l.filter(function(v){return v&&v.id&&(adm||(v.createdBy&&v.createdBy.key===key));});}
+  function fmtD(iso){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||'');if(!m)return '';return m[3]+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m[2]-1]+' '+m[1];}
+  function run(q){
+    var ws=words(q);
+    if(!ws.length){card.hidden=true;card.innerHTML='';return;}
+    var cs=costings().filter(function(r){return hit([r.name,r.costingNumber,r.taglineNumber,r.phoneCode,r.destination,r.date].join(' '),ws);}).slice(0,6);
+    var vs=vouchers().filter(function(v){return hit([v.client,v.no,v.destination,v.start,(v.days||[]).map(function(d){return d.title;}).join(' ')].join(' '),ws);}).slice(0,6);
+    var h='<div class="hs-head"><h2 class="card-title" style="margin:0">🔍 Results for “'+esc(q)+'”</h2><button type="button" class="btn-ghost hs-close">✕ Clear</button></div>';
+    h+='<div class="hs-grp">🧾 Costings ('+cs.length+')</div>';
+    h+=cs.length?cs.map(function(r){return '<div class="hs-row"><div class="hs-main"><b>'+esc((r.costingNumber||'')+' · '+(r.name||'—'))+'</b><small>'+esc([fmtD(r.date),r.taglineNumber?(r.phoneCode||'')+' '+r.taglineNumber:'',(r.pax||0)+' pax'].filter(Boolean).join(' · '))+'</small></div><button type="button" class="blue" data-hs-cost="'+esc(r.id)+'">Open →</button></div>';}).join(''):'<div class="hs-none">No costing found.</div>';
+    h+='<div class="hs-grp">🗺️ Itineraries ('+vs.length+')</div>';
+    h+=vs.length?vs.map(function(v){return '<div class="hs-row"><div class="hs-main"><b>'+esc((v.no||'')+' · '+String(v.client||'—').toUpperCase())+'</b><small>'+esc([fmtD(v.start),((v.days||[]).length||0)+' days'].filter(Boolean).join(' · '))+'</small></div><button type="button" class="blue" data-hs-itin="'+esc(v.id)+'">Open →</button></div>';}).join(''):'<div class="hs-none">No itinerary found.</div>';
+    card.innerHTML=h;card.hidden=false;
+  }
+  window.heroSearch=function(e){if(e)e.preventDefault();var q=($('heroSearchInput')||{}).value||'';run(q.trim());if(q.trim())card.scrollIntoView({behavior:'smooth',block:'nearest'});};
+  var t=0;var inp=$('heroSearchInput');if(inp)inp.addEventListener('input',function(){clearTimeout(t);t=setTimeout(function(){run(inp.value.trim());},180);});
+  card.addEventListener('click',function(e){
+    var c=e.target.closest('[data-hs-cost]'),v=e.target.closest('[data-hs-itin]'),x=e.target.closest('.hs-close');
+    if(c){try{openCosting(c.dataset.hsCost);}catch(er){}}
+    if(v&&window.homeOpenVoucher)homeOpenVoucher(v.dataset.hsItin);
+    if(x){if(inp)inp.value='';run('');}
+  });
+})();}catch(e){console.error('Overview search could not start:',e);}
 </script>
 </body>
 </html>
