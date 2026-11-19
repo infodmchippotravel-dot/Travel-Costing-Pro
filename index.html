@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-9';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-10';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -7501,7 +7501,7 @@ try{(function(){
   function renumber(){
     var changed=ensureOrder(),adm=me()==='admin:main',groups={};
     savedCostings.forEach(function(r){var g=owner(r);if(adm&&g!=='admin:main')return;(groups[g]=groups[g]||[]).push(r);});
-    Object.keys(groups).forEach(function(g){groups[g].sort(function(a,b){return (a.seq-b.seq)||(created(a)-created(b));}).forEach(function(r,i){
+    Object.keys(groups).forEach(function(g){groups[g].sort(function(a,b){return (created(a)-created(b))||((a.seq||0)-(b.seq||0))||String(a.date||'').localeCompare(String(b.date||''))||String(a.name||'').localeCompare(String(b.name||''));}).forEach(function(r,i){
       var n=fmt(i+1);
       if(r.costingNumber!==n){
         if(r.costingNumber&&!/^COST-\d+$/.test(r.costingNumber)&&!r.oldCostingNumber)r.oldCostingNumber=r.costingNumber;
@@ -10130,7 +10130,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (9)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (10)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -13956,6 +13956,56 @@ try{(function(){
       return Object.assign({which:'user'},idt.user);
     });
   }
+  /* ---------- the same user on another laptop / phone ----------
+     A user's cloud account is found from what they type when they log in on a new computer:
+     name + phone number + date of birth. All three must match → their own records come to that computer.
+     (Only the name is never enough.) */
+  function hex(buf){return [].map.call(new Uint8Array(buf),function(b){return ('0'+b.toString(16)).slice(-2);}).join('');}
+  function sha(t){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)).then(hex);}
+  function userCreds(key){
+    var u=(parse(get('travelLoginUsers'),{})||{})[key]||{};
+    var ph=String(u.phone||'').replace(/\D/g,'').slice(-10),dob=String(u.dob||'');
+    if(!window.crypto||!crypto.subtle||(!ph&&!dob))return Promise.resolve(null);
+    return Promise.all([sha('hippo-user|'+key),sha('hippo-pass|'+key+'|'+ph+'|'+dob)]).then(function(h){return {email:'u'+h[0].slice(0,40)+'@users.hippotravel.in',password:h[1],sig:h[1].slice(0,16)};});
+  }
+  function tokenFrom(j){return {token:j.idToken,uid:j.localId,exp:Date.now()+((+j.expiresIn||3600)-120)*1000};}
+  /* records this browser sent with an older account: marked deleted there, sent again with the user's account */
+  function moveRecords(oldTok,oldUid){
+    var m=map(),jobs=[];
+    Object.keys(COLS).forEach(function(col){Object.keys(m[col]).forEach(function(doc){var e=m[col][doc];if(e.owner===oldUid){if(!e.del)jobs.push({col:col,doc:doc});delete m[col][doc];}});});
+    saveMap(m);
+    var chain=Promise.resolve();
+    if(oldTok)jobs.forEach(function(j){chain=chain.then(function(){return api('/'+j.col+'/'+encodeURIComponent(j.doc),{method:'PATCH',body:JSON.stringify(fields(oldUid,{},true,j.col))},oldTok).catch(function(){});});});
+    return chain;
+  }
+  function ensureUser(me){
+    var key=get('travelCurrentUserKey')||'';
+    if(me.which!=='user'||!key||key==='admin:main')return Promise.resolve(me);
+    var cur=parse(get(K_USER),null)||{};
+    if(cur.linked&&cur.key===key)return Promise.resolve(me);
+    return userCreds(key).then(function(c){
+      if(!c)return me;
+      if(get('travelCloudLinkTried:'+key)===c.sig+'|'+me.uid)return me;   /* tried with these details already */
+      function use(j,moved){
+        set(K_USER,JSON.stringify({rt:j.refreshToken,uid:j.localId,linked:true,key:key}));
+        idt.user=tokenFrom(j);userDlAt=0;
+        var p=moved&&moved!==j.localId?moveRecords(me.token,moved):Promise.resolve();
+        return p.then(function(){return Object.assign({which:'user'},idt.user);});
+      }
+      return post('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+CFG.apiKey,{email:c.email,password:c.password,returnSecureToken:true})
+        .then(function(j){return use(j,me.uid);},function(e){
+          if(!/INVALID_LOGIN_CREDENTIALS|EMAIL_NOT_FOUND|INVALID_PASSWORD|INVALID_EMAIL/.test(e.code||'')){throw e;}
+          /* no account yet: this browser's account becomes the user's account (same records, nothing moves) */
+          return post('https://identitytoolkit.googleapis.com/v1/accounts:update?key='+CFG.apiKey,{idToken:me.token,email:c.email,password:c.password,returnSecureToken:true})
+            .then(function(j){j.localId=j.localId||me.uid;return use(j,null);},function(e2){
+              set('travelCloudLinkTried:'+key,c.sig+'|'+me.uid);   /* e.g. the details do not match the account made on the other computer */
+              return me;
+            });
+        });
+    },function(){return me;});
+  }
+  var identity0=identity;
+  identity=function(){return identity0().then(function(me){return ensureUser(me).catch(function(){return me;});});};
   window.cloudConnectAdmin=function(email,pass){
     return post('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+CFG.apiKey,{email:email,password:pass,returnSecureToken:true}).then(function(j){
       set(K_ADMIN,JSON.stringify({rt:j.refreshToken,uid:j.localId,email:j.email}));
@@ -14017,9 +14067,13 @@ try{(function(){
       var list=listOf(col),byId={};
       Object.keys(m[col]).forEach(function(doc){byId[m[col][doc].id]=doc;});
       var present={};
+      var ukey=me.which==='user'?(get('travelCurrentUserKey')||''):'';
       list.forEach(function(rec){
         if(!rec||rec.id==null)return;
         var doc=byId[rec.id],e=doc&&m[col][doc];
+        /* another person's record on this computer (shared computer): not sent with this person's account */
+        var ck=rec.createdBy&&rec.createdBy.key;
+        if(ukey&&ukey!=='admin:main'&&ck&&ck!==ukey){if(doc)present[doc]=1;return;}
         if(!doc){doc=me.uid+'_'+device()+'_'+safe(rec.id);e=m[col][doc]={id:rec.id,sig:'',owner:me.uid};}
         present[doc]=1;
         var s=sig(rec);
@@ -14099,7 +14153,7 @@ try{(function(){
             return;
           }
           /* already here (a record of this browser that the map lost): link it, never make a copy */
-          if(owner&&owner===me.uid&&rec.id!=null&&idx[rec.id]!=null){m[col][doc]={id:rec.id,sig:sig(list[idx[rec.id]]),owner:owner,del:false};changed=true;return;}
+          if(owner&&owner===me.uid&&rec.id!=null&&idx[rec.id]!=null&&doc.indexOf(me.uid+'_'+device()+'_')===0){m[col][doc]={id:rec.id,sig:sig(list[idx[rec.id]]),owner:owner,del:false};changed=true;return;}
           /* new to this browser */
           if(rec.id==null||idx[rec.id]!=null)rec.id=(col==='vouchers'?'v':'R')+hash(doc).replace(':','');
           list.push(rec);idx[rec.id]=list.length-1;
@@ -14126,7 +14180,7 @@ try{(function(){
   }
   function redraw(col){
     try{
-      if(col==='costings'){try{savedCostings=listOf('costings');}catch(e){}window.dispatchEvent(new StorageEvent('storage',{key:COLS.costings}));if(typeof renderSavedCostings==='function')renderSavedCostings();}
+      if(col==='costings'){try{savedCostings=listOf('costings');}catch(e){}try{if(typeof window.renumberCostings==='function')renumberCostings();}catch(e){}window.dispatchEvent(new StorageEvent('storage',{key:COLS.costings}));if(typeof renderSavedCostings==='function')renderSavedCostings();}
       if(col==='drafts')window.dispatchEvent(new StorageEvent('storage',{key:COLS.drafts}));
       if(col==='vouchers'){var f=$('itinFrame');if(f&&f.contentWindow)try{f.contentWindow.dispatchEvent(new StorageEvent('storage',{key:COLS.vouchers}));}catch(e){}}
     }catch(e){}
