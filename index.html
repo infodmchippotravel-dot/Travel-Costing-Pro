@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-3';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-4';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2844,20 +2844,22 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 </div>
 <section class="home-guide" id="homeGuide" aria-labelledby="guideTitle">
 <div class="hg-head"><h2 id="guideTitle"><span aria-hidden="true">👋</span> How it works — costing and itinerary</h2><button type="button" class="btn-ghost" data-guide-close>✕ Hide this guide</button></div>
-<h3 class="hg-sub">🧾 Costing (price for the client)</h3>
-<ol class="hg-steps">
-<li><span class="hg-num" aria-hidden="true">1</span><span><b>Create New Costing</b><small>Press the Create New Costing button above.</small></span></li>
-<li><span class="hg-num" aria-hidden="true">2</span><span><b>Fill in the client details</b><small>Name, travel date and number of people.</small></span></li>
-<li><span class="hg-num" aria-hidden="true">3</span><span><b>Add transfers or services</b><small>Pick from the list and press Add.</small></span></li>
-<li><span class="hg-num" aria-hidden="true">4</span><span><b>Press 💾 Save Costing</b><small>Then print it or download it as a PDF.</small></span></li>
-</ol>
-<h3 class="hg-sub">🗺️ Itinerary (tour voucher for the client)</h3>
-<ol class="hg-steps">
-<li><span class="hg-num" aria-hidden="true">1</span><span><b>Create New Itinerary</b><small>Press it above — or press 🗺️ Create Itinerary on a saved costing (it fills by itself).</small></span></li>
-<li><span class="hg-num" aria-hidden="true">2</span><span><b>Fill in the client</b><small>Name, adults, kids and the travel start date.</small></span></li>
-<li><span class="hg-num" aria-hidden="true">3</span><span><b>Choose the tours and hotels</b><small>Press 🔍 Choose tour on each day, then add the hotels.</small></span></li>
-<li><span class="hg-num" aria-hidden="true">4</span><span><b>Save and print</b><small>Press Save Complete Itinerary, then Print / PDF and choose the company.</small></span></li>
-</ol>
+<div class="hg-cols">
+<div class="hg-col"><h3 class="hg-sub">🧾 Costing</h3>
+<ol class="hg-steps hg-mini">
+<li><b>Create New Costing</b> — press it above</li>
+<li><b>Client details</b> — name, date, people</li>
+<li><b>Add items</b> — transfer, hotel, tour…</li>
+<li><b>Save</b> — then Print / PDF</li>
+</ol></div>
+<div class="hg-col"><h3 class="hg-sub">🗺️ Itinerary</h3>
+<ol class="hg-steps hg-mini">
+<li><b>Create New Itinerary</b> — or from a costing</li>
+<li><b>Client</b> — name, people, start date</li>
+<li><b>Tours &amp; hotels</b> — 🔍 Choose tour each day</li>
+<li><b>Save</b> — then Print / PDF</li>
+</ol></div>
+</div>
 </section>
 <section class="card" aria-labelledby="recentTitle"><h2 class="card-title" id="recentTitle"><span aria-hidden="true">🕘</span> Recent costings <button class="btn-ghost ct-sub-btn" type="button" onclick="goToPage('saved')">View all →</button></h2>
 <table class="data-table records-table"><caption class="visually-hidden">Your five most recently saved costings</caption>
@@ -10128,7 +10130,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (3)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (4)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15516,7 +15518,19 @@ try{(function(){
 @media (max-width:1100px){.big-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media (max-width:640px){.big-actions{grid-template-columns:1fr!important}}
 .home-guide .hg-sub{font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:700;color:var(--text,#14213a);margin:6px 0 10px}
-.home-guide .hg-sub+.hg-steps{margin-bottom:16px}
+/* How it works — small: costing and itinerary side by side, one short line per step */
+.home-guide{padding:16px 20px!important}
+.home-guide .hg-head{margin-bottom:8px!important}
+.home-guide .hg-head h2{font-size:18px!important}
+.home-guide .hg-head .btn-ghost{min-height:36px!important;padding:0 12px!important;font-size:13px!important}
+.home-guide .hg-cols{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px}
+.home-guide .hg-sub{margin:2px 0 6px!important;font-size:14px!important}
+.home-guide ol.hg-mini{display:block!important;list-style:none;margin:0!important;padding:0!important;counter-reset:hg}
+.home-guide ol.hg-mini li{display:block!important;position:relative;padding:5px 0 5px 30px!important;border:0!important;background:none!important;box-shadow:none!important;min-height:0!important;font-size:14px;line-height:1.45;color:var(--muted,#5e6a7d)}
+.home-guide ol.hg-mini li b{display:inline!important;color:var(--text,#14213a);font-size:14px!important;font-weight:700!important;margin:0!important}
+.home-guide ol.hg-mini li::before{counter-increment:hg;content:counter(hg);position:absolute;left:0;top:5px;width:21px;height:21px;border-radius:50%;background:var(--navy,#0b1f3a);color:#c6a76b;font-size:12px;font-weight:700;display:grid;place-items:center}
+body.dark .home-guide ol.hg-mini li b{color:#f5ecd6}
+@media (max-width:760px){.home-guide .hg-cols{grid-template-columns:1fr}}
 body.dark .home-guide .hg-sub{color:#f5ecd6}
 </style>
 <script>
