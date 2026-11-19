@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-1';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-2';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2839,6 +2839,7 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 <div class="big-actions">
 <button type="button" class="big-act big-act-primary" onclick="newCostingFromHome()"><span class="ba-ico" aria-hidden="true">＋</span><span><b>Create New Costing</b><small>Make a new quotation for a client</small></span></button>
 <button type="button" class="big-act" onclick="goToPage('saved')"><span class="ba-ico" aria-hidden="true">💾</span><span><b>My Saved Costings</b><small>Open, print or download a saved quotation</small></span></button>
+<button type="button" class="big-act" id="homeItinBtn" onclick="showPage('itinerary',document.getElementById('navItinerary'))"><span class="ba-ico" aria-hidden="true">🗺️</span><span><b>Create Itinerary</b><small>Make the day-by-day tour voucher</small></span></button>
 </div>
 <section class="home-guide" id="homeGuide" aria-labelledby="guideTitle">
 <div class="hg-head"><h2 id="guideTitle"><span aria-hidden="true">👋</span> How it works — 4 easy steps</h2><button type="button" class="btn-ghost" data-guide-close>✕ Hide this guide</button></div>
@@ -2854,11 +2855,17 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 <thead><tr><th scope="col">Costing No.</th><th scope="col">Client</th><th scope="col">Travel date</th><th scope="col" class="num">Total</th><th scope="col">Updated</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
 <tbody id="homeRecent"></tbody></table>
 </section>
+<section class="card" id="homeItinCard" aria-labelledby="itinRecentTitle"><h2 class="card-title" id="itinRecentTitle"><span aria-hidden="true">🗺️</span> Recent itineraries <button class="btn-ghost ct-sub-btn" type="button" onclick="showPage('itinerary',document.getElementById('navItinerary'))">Open Create Itinerary →</button></h2>
+<table class="data-table records-table"><caption class="visually-hidden">Your five most recently saved itineraries (tour vouchers)</caption>
+<thead><tr><th scope="col">Voucher No.</th><th scope="col">Client</th><th scope="col">Travel dates</th><th scope="col">Days</th><th scope="col">Updated</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+<tbody id="homeItinRecent"></tbody></table>
+</section>
 <div class="home-grid">
 <section class="card" aria-labelledby="qaTitle"><h2 class="card-title" id="qaTitle"><span aria-hidden="true">⚡</span> More things you can do</h2>
 <div class="qa-grid">
 <button type="button" class="qa" onclick="goToPage('transfers')"><span class="qa-ico" aria-hidden="true">🚐</span><span><b>Add transfers</b><small>Airport, hotel &amp; city transfers</small></span></button>
 <button type="button" class="qa" onclick="goToPage('services')"><span class="qa-ico" aria-hidden="true">🧾</span><span><b>Add services</b><small>SIC, private transfers &amp; tickets</small></span></button>
+<button type="button" class="qa" onclick="showPage('itinerary',document.getElementById('navItinerary'))"><span class="qa-ico" aria-hidden="true">🗺️</span><span><b>Create Itinerary</b><small>Day-by-day tour voucher for the client</small></span></button>
 <button type="button" class="qa" onclick="goToPage('pdf')"><span class="qa-ico" aria-hidden="true">📄</span><span><b>Print &amp; Download</b><small>Print or save the open costing as PDF</small></span></button>
 <button type="button" class="qa" data-admin-only hidden onclick="goToPage('services');setTimeout(function(){{var a=document.getElementById('svAdminArea');if(a)a.scrollIntoView({{block:'start'}});}},80)"><span class="qa-ico" aria-hidden="true">⚙️</span><span><b>Manage rates</b><small>Add or change saved rates</small></span></button>
 <button type="button" class="qa" data-admin-only hidden onclick="goToPage('settings')"><span class="qa-ico" aria-hidden="true">🔐</span><span><b>Admin settings</b><small>Admin password &amp; backup</small></span></button>
@@ -2874,6 +2881,7 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 <div class="stat-card"><div class="stat-icon" aria-hidden="true">🗂️</div><div><div class="stat-label" id="statTotalLabel">Total costings</div><div class="stat-value" id="statTotal">0</div><div class="stat-sub" id="statTotalSub"></div></div></div>
 <div class="stat-card"><div class="stat-icon" aria-hidden="true">📅</div><div><div class="stat-label" id="statMonthLabel">This month</div><div class="stat-value" id="statMonth">0</div><div class="stat-sub" id="statMonthSub"></div></div></div>
 <div class="stat-card"><div class="stat-icon" aria-hidden="true">💰</div><div><div class="stat-label" id="statValueLabel">Total amount</div><div class="stat-value" id="statValue">0</div><div class="stat-sub" id="statValueSub"></div></div></div>
+<div class="stat-card"><div class="stat-icon" aria-hidden="true">🗺️</div><div><div class="stat-label">Itineraries</div><div class="stat-value" id="statItin">0</div><div class="stat-sub" id="statItinSub"></div></div></div>
 <div class="stat-card"><div class="stat-icon" aria-hidden="true">⭐</div><div><div class="stat-label" id="statFourthLabel">Last saved</div><div class="stat-value" id="statFourth">0</div><div class="stat-sub" id="statFourthSub"></div></div></div>
 </div>
 <section class="card" data-admin-only hidden aria-labelledby="peopleTitle"><h2 class="card-title" id="peopleTitle"><span aria-hidden="true">👥</span> Costings by person</h2><div id="homePeople"></div></section>
@@ -10111,7 +10119,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (1)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (2)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15429,6 +15437,69 @@ try{(function(){
   var pa=window.renderAboutPage;if(typeof pa==='function')window.renderAboutPage=function(){var r=pa.apply(this,arguments);setTimeout(function(){tidy('about');},0);return r;};
   ['settings','about','help'].forEach(function(id){var e=$(id);if(e&&e.classList.contains('active'))tidy(id);});
 })();}catch(e){console.error('Page layout could not start:',e);}
+</script>
+<style>
+/* Overview: the itinerary next to the costing */
+.big-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+@media (max-width:900px){.big-actions{grid-template-columns:1fr!important}}
+#homeItinCard .hi-open{min-height:36px;padding:0 12px}
+@media (min-width:1100px){#home .stat-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important}}
+</style>
+<script>
+try{(function(){
+  function $(id){return document.getElementById(id);}
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function d(iso,add){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||'');if(!m)return null;return new Date(+m[1],+m[2]-1,+m[3]+(add||0));}
+  function f(x){return x?String(x.getDate()).padStart(2,'0')+' '+MON[x.getMonth()]:'';}
+  function when(t){t=Date.parse(t||'');if(!isFinite(t))return '—';var s=(Date.now()-t)/1000;if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+' min ago';if(s<86400)return Math.floor(s/3600)+' h ago';return new Date(t).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}
+  function mine(){
+    var list=[];try{list=JSON.parse(localStorage.getItem('tv.saved.v1')||'[]')||[];}catch(e){}
+    if(!Array.isArray(list))return [];
+    var key='';try{key=localStorage.getItem('travelCurrentUserKey')||'';}catch(e){}
+    var admin=key==='admin:main';
+    return list.filter(function(v){return v&&v.id&&(admin||(v.createdBy&&v.createdBy.key===key));});
+  }
+  function render(){
+    var tb=$('homeItinRecent');if(!tb)return;
+    var all=mine().sort(function(a,b){return String(b.updated||'').localeCompare(String(a.updated||''));});
+    if($('statItin'))$('statItin').textContent=all.length;
+    if($('statItinSub')){var mth=new Date().toISOString().slice(0,7);var n=all.filter(function(v){return String(v.updated||'').slice(0,7)===mth;}).length;$('statItinSub').textContent=n?n+' this month':'tour vouchers saved';}
+    var top=all.slice(0,5);
+    if(!top.length){tb.innerHTML='<tr><td colspan="6" class="empty" style="text-align:center;padding:22px;color:var(--muted)">No itineraries yet. Press <b>🗺️ Create Itinerary</b> above, or <b>Create Itinerary</b> on a costing in My Costings.</td></tr>';return;}
+    tb.innerHTML=top.map(function(v){
+      var n=(v.days||[]).length,a=d(v.start),z=d(v.start,Math.max(n-1,0));
+      var pax=(+v.adults||0)+(+v.kids?' + '+(+v.kids):'');
+      return '<tr><td data-label="Voucher No."><span class="cost-no">'+esc(v.no||'—')+'</span></td>'
+        +'<td data-label="Client"><b>'+esc(String(v.client||'—').toUpperCase())+'</b>'+(pax?'<div class="cell-sub">'+esc(pax)+' pax</div>':'')+'</td>'
+        +'<td data-label="Travel dates">'+(a?esc(f(a)+' – '+f(z)):'—')+'</td>'
+        +'<td data-label="Days">'+(n?esc(String(Math.max(n-1,0)).padStart(2,'0')+'N / '+String(n).padStart(2,'0')+'D'):'—')+'</td>'
+        +'<td data-label="Updated">'+esc(when(v.updated))+'</td>'
+        +'<td data-label="Actions"><button type="button" class="blue hi-open" data-vid="'+esc(v.id)+'">Open →</button></td></tr>';
+    }).join('');
+  }
+  /* open a saved voucher in Create Itinerary */
+  function openVoucher(id){
+    try{showPage('itinerary',$('navItinerary'));}catch(e){}
+    var tries=0;(function go(){
+      var f=$('itinFrame'),w=null,ok=false;try{w=f&&f.contentWindow;}catch(e){}
+      try{
+        if(w&&w.document&&w.document.readyState==='complete'&&w.tvBar&&typeof w.tvBar.open==='function'){
+          w.tvBar.open(id);
+          ok=!!(w.tvBar&&w.tvBar.openId&&w.tvBar.openId()===id);
+        }
+      }catch(e){}
+      if(ok)return;   /* opened — otherwise the itinerary is still loading (or reloading): try again */
+      if(!tries&&typeof window.itinLoadFrame==='function')try{window.itinLoadFrame();}catch(e){}
+      if(++tries<100)setTimeout(go,200);
+    })();
+  }
+  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#homeItinRecent .hi-open');if(b)openVoucher(b.dataset.vid);});
+  var prev=window.showPage;if(typeof prev==='function')window.showPage=function(id){var r=prev.apply(this,arguments);if(id==='home')setTimeout(render,0);return r;};
+  var rh=window.renderHome;if(typeof rh==='function')window.renderHome=function(){var r=rh.apply(this,arguments);try{render();}catch(e){}return r;};
+  addEventListener('storage',function(e){if(e.key==='tv.saved.v1')render();});
+  render();
+})();}catch(e){console.error('Overview itineraries could not start:',e);}
 </script>
 </body>
 </html>
