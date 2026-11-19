@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-7';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-8';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10130,7 +10130,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (7)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (8)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -14493,6 +14493,7 @@ try{(function(){
   /* after the update: the same page, and a short note */
   try{
     var up=JSON.parse(sessionStorage.getItem('travelUpdatedTo')||'null');sessionStorage.removeItem('travelUpdatedTo');
+    if(up&&Date.now()-(+up.at||0)<120000)window.__updRestore=1;
     if(up&&Date.now()-(+up.at||0)<120000)setTimeout(function(){
       try{var a=document.querySelector('.page.active');if(up.page&&document.getElementById(up.page)&&(!a||a.id!==up.page)&&window.goToPage)goToPage(up.page);}catch(e){}
       if(window.showToast)showToast('✅ Updated to the newest version','success');
@@ -15636,6 +15637,21 @@ try{(function(){
     if(x){if(inp)inp.value='';run('');}
   });
 })();}catch(e){console.error('Overview search could not start:',e);}
+</script>
+<script>
+/* Opening the website (logged in) or logging in → the Overview first.
+   (A quiet reload for a new version keeps the page you were on.) */
+try{(function(){
+  function loggedIn(){try{return !!(window.currentSession&&currentSession().key);}catch(e){return false;}}
+  function home(){try{var a=document.querySelector('.page.active');if(a&&a.id==='home')return;showPage('home',document.getElementById('navHome')||undefined);window.scrollTo(0,0);}catch(e){}}
+  var touched=false;['pointerdown','keydown'].forEach(function(ev){addEventListener(ev,function(){touched=true;},{capture:true,once:true});});
+  if(loggedIn()&&!window.__updRestore){
+    home();
+    addEventListener('load',function(){if(!touched&&!window.__updRestore&&loggedIn())home();});
+  }
+  var pf=window.finishLogin;
+  if(typeof pf==='function')window.finishLogin=function(){var r=pf.apply(this,arguments);setTimeout(home,0);return r;};
+})();}catch(e){console.error('Start page:',e);}
 </script>
 </body>
 </html>
