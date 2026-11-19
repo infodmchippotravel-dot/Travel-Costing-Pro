@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-2';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-3';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2839,15 +2839,24 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 <div class="big-actions">
 <button type="button" class="big-act big-act-primary" onclick="newCostingFromHome()"><span class="ba-ico" aria-hidden="true">＋</span><span><b>Create New Costing</b><small>Make a new quotation for a client</small></span></button>
 <button type="button" class="big-act" onclick="goToPage('saved')"><span class="ba-ico" aria-hidden="true">💾</span><span><b>My Saved Costings</b><small>Open, print or download a saved quotation</small></span></button>
-<button type="button" class="big-act" id="homeItinBtn" onclick="showPage('itinerary',document.getElementById('navItinerary'))"><span class="ba-ico" aria-hidden="true">🗺️</span><span><b>Create Itinerary</b><small>Make the day-by-day tour voucher</small></span></button>
+<button type="button" class="big-act big-act-primary" id="homeItinBtn" onclick="homeNewItinerary()"><span class="ba-ico" aria-hidden="true">＋</span><span><b>Create New Itinerary</b><small>Make the day-by-day tour voucher</small></span></button>
+<button type="button" class="big-act" id="homeItinSavedBtn" onclick="homeSavedItineraries()"><span class="ba-ico" aria-hidden="true">🗂️</span><span><b>My Saved Itineraries</b><small>Open or print a saved tour voucher</small></span></button>
 </div>
 <section class="home-guide" id="homeGuide" aria-labelledby="guideTitle">
-<div class="hg-head"><h2 id="guideTitle"><span aria-hidden="true">👋</span> How it works — 4 easy steps</h2><button type="button" class="btn-ghost" data-guide-close>✕ Hide this guide</button></div>
+<div class="hg-head"><h2 id="guideTitle"><span aria-hidden="true">👋</span> How it works — costing and itinerary</h2><button type="button" class="btn-ghost" data-guide-close>✕ Hide this guide</button></div>
+<h3 class="hg-sub">🧾 Costing (price for the client)</h3>
 <ol class="hg-steps">
-<li><span class="hg-num" aria-hidden="true">1</span><span><b>Create New Costing</b><small>Press the big green button below.</small></span></li>
+<li><span class="hg-num" aria-hidden="true">1</span><span><b>Create New Costing</b><small>Press the Create New Costing button above.</small></span></li>
 <li><span class="hg-num" aria-hidden="true">2</span><span><b>Fill in the client details</b><small>Name, travel date and number of people.</small></span></li>
 <li><span class="hg-num" aria-hidden="true">3</span><span><b>Add transfers or services</b><small>Pick from the list and press Add.</small></span></li>
 <li><span class="hg-num" aria-hidden="true">4</span><span><b>Press 💾 Save Costing</b><small>Then print it or download it as a PDF.</small></span></li>
+</ol>
+<h3 class="hg-sub">🗺️ Itinerary (tour voucher for the client)</h3>
+<ol class="hg-steps">
+<li><span class="hg-num" aria-hidden="true">1</span><span><b>Create New Itinerary</b><small>Press it above — or press 🗺️ Create Itinerary on a saved costing (it fills by itself).</small></span></li>
+<li><span class="hg-num" aria-hidden="true">2</span><span><b>Fill in the client</b><small>Name, adults, kids and the travel start date.</small></span></li>
+<li><span class="hg-num" aria-hidden="true">3</span><span><b>Choose the tours and hotels</b><small>Press 🔍 Choose tour on each day, then add the hotels.</small></span></li>
+<li><span class="hg-num" aria-hidden="true">4</span><span><b>Save and print</b><small>Press Save Complete Itinerary, then Print / PDF and choose the company.</small></span></li>
 </ol>
 </section>
 <section class="card" aria-labelledby="recentTitle"><h2 class="card-title" id="recentTitle"><span aria-hidden="true">🕘</span> Recent costings <button class="btn-ghost ct-sub-btn" type="button" onclick="goToPage('saved')">View all →</button></h2>
@@ -7851,7 +7860,7 @@ try{(function(){
     $('homeRole').textContent=admin?'Admin dashboard':'User dashboard';
     $('homeRole').className='role-badge '+(admin?'is-admin':'is-user');
     $('homeSub').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
-      +' · '+(admin?'Overview of every costing made on this browser.':'Overview of the costings you have made.');
+      +' · '+(admin?'Overview of every costing and itinerary.':'Overview of your costings and itineraries.');
     // statistics
     var now=new Date(),month=list.filter(function(r){var d=new Date(updatedTime(r));return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
     var byCur={};list.forEach(function(r){var c=String(r.currency||'THB').toUpperCase();byCur[c]=(byCur[c]||0)+recordTotal(r);});
@@ -10119,7 +10128,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (2)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (3)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -10796,6 +10805,8 @@ try{(function(){
     var ba=document.querySelectorAll('.big-actions .ba-ico');
     if(ba[0]&&!ba[0].querySelector('.lux-ico')){ba[0].textContent='';put(ba[0],'plus');}
     if(ba[1]&&!ba[1].querySelector('.lux-ico')){ba[1].textContent='';put(ba[1],'folder');}
+    if(ba[2]&&!ba[2].querySelector('.lux-ico')){ba[2].textContent='';put(ba[2],'plus');}
+    if(ba[3]&&!ba[3].querySelector('.lux-ico')){ba[3].textContent='';put(ba[3],'folder');}
     document.querySelectorAll('.qa').forEach(function(q){
       var i=q.querySelector('.qa-ico');if(!i||i.querySelector('.lux-ico'))return;
       var t=q.textContent;
@@ -15440,8 +15451,6 @@ try{(function(){
 </script>
 <style>
 /* Overview: the itinerary next to the costing */
-.big-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-@media (max-width:900px){.big-actions{grid-template-columns:1fr!important}}
 #homeItinCard .hi-open{min-height:36px;padding:0 12px}
 @media (min-width:1100px){#home .stat-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important}}
 </style>
@@ -15500,6 +15509,44 @@ try{(function(){
   addEventListener('storage',function(e){if(e.key==='tv.saved.v1')render();});
   render();
 })();}catch(e){console.error('Overview itineraries could not start:',e);}
+</script>
+<style>
+/* Overview: costing and itinerary side by side — the two "create" buttons look the same */
+.big-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+@media (max-width:1100px){.big-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media (max-width:640px){.big-actions{grid-template-columns:1fr!important}}
+.home-guide .hg-sub{font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:700;color:var(--text,#14213a);margin:6px 0 10px}
+.home-guide .hg-sub+.hg-steps{margin-bottom:16px}
+body.dark .home-guide .hg-sub{color:#f5ecd6}
+</style>
+<script>
+try{(function(){
+  function $(id){return document.getElementById(id);}
+  /* wait for the itinerary maker, then do something in it */
+  function inItin(fn){
+    try{showPage('itinerary',$('navItinerary'));}catch(e){}
+    var tries=0;(function go(){
+      var f=$('itinFrame'),w=null;try{w=f&&f.contentWindow;}catch(e){}
+      var ready=false;try{ready=!!(w&&w.document&&w.document.readyState==='complete'&&w.tvBar);}catch(e){}
+      if(ready){try{fn(w,f);}catch(e){}return;}
+      if(!tries&&typeof window.itinLoadFrame==='function')try{window.itinLoadFrame();}catch(e){}
+      if(++tries<100)setTimeout(go,200);
+    })();
+  }
+  window.homeNewItinerary=function(){
+    inItin(function(w){var b=w.document.querySelector('[data-act="newVoucher"]');if(b)b.click();window.scrollTo(0,0);});
+  };
+  window.homeSavedItineraries=function(){
+    inItin(function(w,f){
+      setTimeout(function(){try{
+        var el=w.document.getElementById('s-list');if(!el)return;
+        var y=f.getBoundingClientRect().top+window.pageYOffset+el.getBoundingClientRect().top+(w.pageYOffset||0)-90;
+        window.scrollTo({top:Math.max(0,y),behavior:'smooth'});
+        var q=w.document.getElementById('listQ');if(q)try{q.focus({preventScroll:true});}catch(e){}
+      }catch(e){}},250);
+    });
+  };
+})();}catch(e){console.error('Overview buttons could not start:',e);}
 </script>
 </body>
 </html>
