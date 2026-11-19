@@ -31,7 +31,7 @@
    run when the page is the actual top-level page (a real visit in a
    browser tab), never when embedded in an iframe/preview — that guard
    is what avoids the earlier 404-in-preview issue. */
-window.SITE_BUILD='2026-11-19-13';   /* change with every new version */
+window.SITE_BUILD='2026-11-19-14';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -10139,7 +10139,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (13)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 19 Nov 2026 (14)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -15822,10 +15822,19 @@ try{(function(){
     +'<div class="pa-form"><label class="visually-hidden" for="paPhone">Phone number</label><input id="paPhone" type="tel" inputmode="tel" maxlength="20" placeholder="e.g. 98290 11111" autocomplete="tel"><button type="button" class="blue" id="paSave">Save</button></div><div class="pa-msg" id="paMsg" role="alert"></div>';
   var hdr=home.querySelector('.page-header');if(hdr)hdr.insertAdjacentElement('afterend',card);
   function key(){try{return localStorage.getItem('travelCurrentUserKey')||'';}catch(e){return '';}}
+  /* a user logged in from before without a phone number: logged out, asked to log in again with name + phone
+     (their work stays on this computer and comes back when they log in with the same name) */
+  var done=false;
   function show(){
-    var k=key();if(!k||k==='admin:main'){card.hidden=true;return;}
+    card.hidden=true;
+    var k=key();if(!k||k==='admin:main'||done)return;
     var u=(typeof getLoginUsers==='function'?getLoginUsers():{})[k]||{};
-    card.hidden=String(u.phone||'').replace(/\D/g,'').length>=7;
+    if(String(u.phone||'').replace(/\D/g,'').length>=7)return;
+    done=true;
+    var c=window.confirm;window.confirm=function(){return true;};
+    try{logoutUser();}catch(e){}finally{window.confirm=c;}
+    try{var n=document.getElementById('loginUserName');if(n&&u.name)n.value=u.name;var ph=document.getElementById('loginUserPhone');if(ph)setTimeout(function(){try{ph.focus();}catch(e){}},300);}catch(e){}
+    try{showLoginError('Please log in again with your name and phone number — then your work comes to your other laptop and phone too. Nothing is lost.');}catch(e){}
   }
   $('paSave').addEventListener('click',function(){
     var d=String($('paPhone').value||'').replace(/\D/g,'');
