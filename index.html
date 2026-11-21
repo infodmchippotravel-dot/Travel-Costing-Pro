@@ -7003,8 +7003,9 @@ try{(function(){
   /* ---- one admin login for every computer and phone: assets/admin-login.json ---- */
   var GLOBAL_KEY='travelAdminGlobal';
   function validG(g){return !!(g&&typeof g==='object'&&g.id&&g.salt&&g.kdf==='pbkdf2'&&/^[0-9a-f]{64}$/.test(g.hash||''));}
-  var globalReady=(window.fetch&&location.protocol!=='file:')?fetch('assets/admin-login.json?v='+Date.now(),{cache:'no-store'})
-    .then(function(r){return r.ok?r.json():null;}).then(function(g){if(validG(g)){window.__adminGlobal=g;saveJSON(GLOBAL_KEY,g);}}).catch(function(){}):Promise.resolve();
+  /* the public admin-login.json was removed (a password hash must not be public); the admin logs in with Firebase */
+  try{localStorage.removeItem(GLOBAL_KEY);}catch(e){}
+  var globalReady=Promise.resolve();
   function waitGlobal(){return Promise.race([globalReady,new Promise(function(r){setTimeout(r,4000);})]);}
   window.adminGlobalReady=waitGlobal;
   function globalC(){
@@ -7080,10 +7081,7 @@ try{(function(){
     },350);
   }
   function refreshGlobal(){
-    if(!window.fetch||location.protocol==='file:')return Promise.resolve();
-    return fetch('assets/admin-login.json?v='+Date.now(),{cache:'no-store'})
-      .then(function(r){return r.ok?r.json():null;})
-      .then(function(g){if(validG(g)){window.__adminGlobal=g;saveJSON(GLOBAL_KEY,g);}}).catch(function(){});
+    return Promise.resolve();
   }
   var lastCheck=0;
   function recheck(){var n=Date.now();if(n-lastCheck<15000)return;lastCheck=n;if(isAdminSession())refreshGlobal().then(checkStamp);else checkStamp();}
@@ -7142,6 +7140,7 @@ try{(function(){
   var GH_REPO='infodmchippotravel-dot/Travel-Costing-Pro',GH_BRANCH='main',GH_PATH='assets/admin-login.json';
   function b64(t){return btoa(unescape(encodeURIComponent(t)));}
   window.adminPublishLogin=function(token,email){
+    return Promise.reject(new Error('The admin password is kept in Firebase now — it is never put on GitHub.'));
     var c=stored();if(!c||!c.hash)return Promise.reject(new Error('Nothing to publish.'));
     var g=globalC()||{};
     var rec={_note:'Admin login for every computer and phone. Only a salted PBKDF2 hash — never the password. Changed from Settings → Admin Login Credentials.',
