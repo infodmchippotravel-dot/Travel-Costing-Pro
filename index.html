@@ -8774,7 +8774,10 @@ function toggleChatbot(){
 
   /* ---- Help assistant dialog ---- */
   var originalToggleChatbot=window.toggleChatbot;
+  var chatOpener=null; /* the button that opened the chat — focus goes back to it on close (the old round button is hidden now) */
   window.toggleChatbot=function(){
+    var wasOpen=$('chatbotPanel').classList.contains('show');
+    if(!wasOpen){var ae=document.activeElement;chatOpener=(ae&&ae!==document.body&&!$('chatbotPanel').contains(ae))?ae:null;}
     originalToggleChatbot();
     var panel=$('chatbotPanel'),fab=$('chatbotFab');
     var open=panel.classList.contains('show');
@@ -8788,7 +8791,9 @@ function toggleChatbot(){
         if(target&&target.offsetParent!==null)target.focus();
       },60);
     }else{
-      fab.focus();
+      var back=[chatOpener,document.querySelector('.assist-btn[aria-controls="chatbotPanel"]:not([hidden])'),fab].filter(function(x){return x&&x.isConnected&&x.getClientRects().length&&getComputedStyle(x).visibility!=='hidden';})[0];
+      if(back)back.focus();
+      chatOpener=null;
     }
   };
   var originalAddMsg=window.chatbotAddMsg;
