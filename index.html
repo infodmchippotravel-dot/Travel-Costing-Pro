@@ -34,7 +34,7 @@
 /* logged in: no login screen from the first moment (the website decides after it has loaded) */
 try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-21-4';   /* change with every new version */
+window.SITE_BUILD='2026-11-21-5';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2587,6 +2587,10 @@ html body #oldvBox>h3.oldv-h{font-size:16px!important;font-weight:700;line-heigh
 /* PDF quotation: the small gold words (tagline, "prepared for", inclusion titles, item numbers) were too light to read (3.4:1) — same gold, a little deeper (5.2:1). Lines and bars keep the original gold. */
 html body #pdf .pdf-page .pdf-tagline,html body #pdf .pdf-page .pdf-for,html body #pdf .pdf-page .pdf-incl-title,html body #pdf .pdf-page .pdf-number{color:#876830!important}
 html body #pdf .pdf-page .pdf-terms li::marker{color:#876830}
+/* One scrollbar only. main had overflow-x:hidden, which (by the CSS rules) also turns it into its own up-down scroll box;
+   whenever a card stuck out a little (the slide-in animation, Saved Rates) a second thick gold scrollbar showed and the
+   mouse wheel got stuck in it. overflow-x:clip still stops sideways scrolling but never makes a scroll box. */
+@supports (overflow-x:clip){html body main{overflow-x:clip!important;overflow-y:visible!important}}
 </style>
 <style id="cssEnd"></style>
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -10254,7 +10258,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 21 Nov 2026 (4)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 21 Nov 2026 (5)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
