@@ -461,6 +461,18 @@ table.st input:focus,table.st textarea:focus{border-color:var(--gold)}
 html:not(.is-admin) [data-act="addPdfs"],html:not(.is-admin) #s-settings{display:none!important}
 
 /* dark theme (follows the website) */
+html.theme-dark{color-scheme:dark}
+/* phones: 16px text in boxes so an iPhone does not zoom the page when a box is tapped; easier to tap header buttons */
+@media screen and (max-width:700px){
+ input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea,.ed{font-size:16px!important}
+ section.sec>.sec-h .btn.ghost,#s-list>.sec-h .btn.ghost{min-height:38px}
+}
+/* phones and tablets: the table turns into cards, so the boxes need their own border to look like boxes (dark mode already has one) */
+@media screen and (max-width:900px){
+ html:not(.theme-dark) table.st input:not([readonly]):not([type=checkbox]):not([type=radio]):not([type=hidden]),html:not(.theme-dark) table.st textarea,html:not(.theme-dark) table.st .ed{border-color:#e6dcc7!important;background:#fff!important}
+ html:not(.theme-dark) table.st input:not([readonly]):focus,html:not(.theme-dark) table.st textarea:focus,html:not(.theme-dark) table.st .ed:focus{border-color:var(--gold,#c6a76b)!important}
+}
+html:not(.theme-dark){color-scheme:light}
 html.theme-dark{--bg:#081426;--text:#e8edf5;--muted:#9aa8bd;--line:#26385a}
 html.theme-dark body{background-image:radial-gradient(1200px 500px at 85% -10%,rgba(198,167,107,.10),transparent 60%)}
 html.theme-dark .sec,html.theme-dark .card,html.theme-dark details.qa,html.theme-dark .tp-box,html.theme-dark #dlg .box,html.theme-dark .tp-item,html.theme-dark .chip,html.theme-dark .sres,html.theme-dark .sopt,

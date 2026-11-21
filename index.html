@@ -34,7 +34,7 @@
 /* logged in: no login screen from the first moment (the website decides after it has loaded) */
 try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-21-1';   /* change with every new version */
+window.SITE_BUILD='2026-11-21-2';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2544,6 +2544,41 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 </style>
 <style>.edited-admin{color:#B7791F!important;font-weight:700}body.dark .edited-admin{color:#E6C27A!important}</style>
 <style>html.boot-in #loginGate{display:none!important}</style>
+<style id="uiPolish">
+/* dark mode: the numbers on the Saved Rates tabs were dark brown on dark blue */
+body.dark .rates-tab:not(.is-on) .rt-n{color:#ecd29b}
+/* home: the header holds the search box, so it stays still and clear while scrolling (it used to fade and slide under the cards) */
+/* the total amount: the currency is written smaller, so the number stays on one line like the other cards */
+#statValue .stat-cur{font-size:.55em;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+#statValue{overflow-wrap:normal;word-break:normal}
+html body #statValue.sv-long{font-size:clamp(22px,2.1vw,28px)!important}
+html body #statValue.sv-xlong{font-size:clamp(19px,1.65vw,23px)!important}
+html body #statValue.sv-xxlong{font-size:clamp(16px,1.3vw,19px)!important}
+html body .page.active>.page-header.home-header{transform:none!important;opacity:1!important}
+/* My Saved Costings filters: the Sort box was too narrow and cut its words ("Newest first (COST") */
+@media (min-width:1181px){html body .records-toolbar .rt-grid{grid-template-columns:minmax(200px,1.7fr) minmax(0,.8fr) minmax(0,.95fr) minmax(245px,.9fr) minmax(0,.8fr)}}
+@media (min-width:1001px) and (max-width:1180px){html body .records-toolbar .rt-grid{grid-template-columns:minmax(0,.8fr) minmax(155px,1fr) minmax(245px,1.4fr) minmax(0,.8fr)!important}}
+@media (max-width:1000px){html body .records-toolbar .rt-grid{grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr)!important}html body .records-toolbar .rt-grid>.rt-search,html body .records-toolbar .rt-grid>div:has(>#savedSort){grid-column:1/-1}}
+@media (max-width:355px){html body .records-toolbar .rt-grid{grid-template-columns:minmax(0,1fr)!important}}
+/* the line under the big Save button sits in the middle, under the button */
+#sheetSaveHint{margin-left:auto;margin-right:auto}
+/* Settings: the voucher notes box gets the same inside space and letters as the other boxes */
+#isNotes{min-height:210px;padding:12px 14px!important;font-size:15px!important;line-height:1.55!important;font-family:inherit}
+/* Settings → Backup: upload buttons look like the other buttons; the note is the same size as the other card notes */
+html body .page label.file-btn.blue,html body .page label.file-btn.btn-ghost{font-size:16px!important;font-weight:600!important;min-height:48px;padding:12px 18px;border-radius:10px}
+#backupSettingsCard .bk-note{font-size:14px}
+/* login: the intro line fits the open panel (the admin panel needs e-mail + password, not name + phone) */
+#loginSub .ls-admin{display:none}
+body:has(#loginPanel-admin.active) #loginSub .ls-user,body:has(#loginPanel-forgot.active) #loginSub .ls-user{display:none}
+body:has(#loginPanel-admin.active) #loginSub .ls-admin{display:inline}
+/* dark mode: the gold tick lines on the login were dark brown on dark blue */
+body.dark .login-trust{color:#e2c48a!important}
+/* card titles with a number: a long title wraps next to its number instead of dropping below it (phones) */
+html body .pg-card-h{flex-wrap:nowrap!important}
+html body .pg-card-h>.step-no{flex-shrink:0}
+/* phones: a bigger finger area for the footer phone / e-mail / website links (the look does not change) */
+@media (max-width:700px){html body footer.sitefooter .foot-info span a{padding:10px 0!important;margin:-10px 0!important}}
+</style>
 <style id="cssEnd"></style>
 <a class="skip-link" href="#main">Skip to main content</a>
 <div class="cache-consent no-print" id="cacheConsent" role="region" aria-label="Notice about saving on this device">
@@ -3467,10 +3502,10 @@ html body .foot-logo img{width:60px!important;height:60px!important;box-shadow:0
 
 <div class="card" id="backupSettingsCard">
 <h3>💾 Permanent Data Backup</h3>
-<p style="color:var(--muted);margin-top:-5px">Your data is saved in this browser. Download a backup anytime and restore it whenever you need.</p>
+<p style="color:var(--muted);margin-top:-5px" class="bk-note">Your data is saved in this browser. Download a backup anytime and restore it whenever you need.</p>
 <div style="display:flex;gap:10px;flex-wrap:wrap">
 <button class="green" onclick="exportBackup()" type="button">⬇️ Download Backup</button>
-<label class="blue file-btn">
+<label class="btn-ghost file-btn">
 ⬆️ Restore Backup
 <input type="file" class="visually-hidden" accept=".json,application/json" onchange="importBackup(event)">
 </label>
@@ -7913,7 +7948,9 @@ try{(function(){
     $('statTotalSub').textContent=admin?'All saved costings':'Saved by you';
     $('statMonth').textContent=month.length+vmonth.length;
     $('statMonthSub').textContent=month.length+(month.length===1?' costing':' costings')+' · '+vmonth.length+(vmonth.length===1?' itinerary':' itineraries')+' in '+now.toLocaleDateString('en-IN',{month:'long'});
-    $('statValue').textContent=curs.length?money(byCur[curs[0]])+' '+curs[0]:'0';
+    var sv=$('statValue');sv.textContent=curs.length?money(byCur[curs[0]]):'0';
+    if(curs.length){var cu=document.createElement('span');cu.className='stat-cur';cu.textContent=' '+curs[0];sv.appendChild(cu);}
+    var nl=(curs.length?money(byCur[curs[0]]):'0').length;sv.classList.toggle('sv-long',nl>7&&nl<=10);sv.classList.toggle('sv-xlong',nl>10&&nl<=12);sv.classList.toggle('sv-xxlong',nl>12);
     $('statValueSub').textContent=curs.length>1?'+ '+plural(curs.length-1,'other currency','other currencies'):'All saved costings added together';
     if(admin){
       var rates=(loadJSON('travelTransfers',[])||[]).length+Object.keys(getOther()).length+Object.keys(getTickets()).length;
@@ -10203,7 +10240,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 21 Nov 2026 (1)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 21 Nov 2026 (2)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -10500,7 +10537,7 @@ try{(function(){
 
   /* ---- Login: say what the website does + one clear button ---- */
   var lt=el('loginTitle');if(lt)lt.textContent='Make costings and itineraries in minutes';
-  var ls=el('loginSub');if(ls)ls.innerHTML='Type your name and phone number, then press Start. No password needed.<br><small class="login-trust">✔ Prices come from your saved rate list<br>✔ The itinerary is made from the costing in one click</small>';
+  var ls=el('loginSub');if(ls)ls.innerHTML='<span class="ls-user">Type your name and phone number, then press Start. No password needed.</span><span class="ls-admin">Admin: type the admin e-mail and password, then press Login as Admin.</span><br><small class="login-trust">✔ Prices come from your saved rate list<br>✔ The itinerary is made from the costing in one click</small>';
   var uh=el('userLoginHead');if(uh)uh.classList.add('visually-hidden');
   var hint=el('loginUserHint');if(hint)hint.textContent='No email or password needed.';
   var go=document.querySelector('#loginPanel-email .login-main-btn');if(go)go.textContent='Start ➜';
@@ -12512,10 +12549,10 @@ html body .page .hg-num,html body .page .flow-num{background:linear-gradient(135
 html body .page .flow-step.is-done .flow-num{background:linear-gradient(135deg,var(--lx-gold-l),var(--lx-gold))!important;color:var(--lx-navy)!important}
 
 /* ---------- Buttons ---------- */
-html body .page button.green,html body .page button.blue,html body .easy-bar button.green,html body .login-card button.blue{
+html body .page button.green,html body .page button.blue,html body .page label.file-btn.blue,html body .easy-bar button.green,html body .login-card button.blue{
   background:linear-gradient(135deg,var(--lx-navy2) 0%,var(--lx-navy) 60%,#08172c 100%)!important;color:#fff!important;border:1px solid rgba(198,167,107,.45)!important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 10px 24px -12px rgba(11,31,58,.75)!important;transition:transform .2s ease,box-shadow .25s ease,filter .25s ease;position:relative;overflow:hidden}
-html body .page button.green:hover,html body .page button.blue:hover,html body .easy-bar button.green:hover,html body .login-card button.blue:hover{
+html body .page button.green:hover,html body .page button.blue:hover,html body .page label.file-btn.blue:hover,html body .easy-bar button.green:hover,html body .login-card button.blue:hover{
   transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 14px 30px -12px rgba(11,31,58,.85),0 0 0 3px rgba(198,167,107,.22)!important;filter:brightness(1.08)}
 html body .page button.orange{background:linear-gradient(135deg,var(--lx-gold-l),var(--lx-gold) 50%,var(--lx-gold-d))!important;color:var(--lx-navy)!important;border:0!important}
 html body .page .btn-ghost{transition:border-color .25s ease,box-shadow .25s ease,background .25s ease}
@@ -12556,7 +12593,7 @@ html body.dark .easy-bar .eb-info strong{color:#fff!important}
 @media (max-width:600px){html body .page>.page-header,html body #dashboard.page>.page-header{padding:20px 18px!important;border-radius:18px!important}}
 @media (prefers-reduced-motion:reduce){
   html body .page .card,html body .page .home-guide,html body .page .summary,html body .page .stat-card,html body .page .flow-step,html body .page .big-act,html body .page .qa,html body .page .hg-steps li{transition-duration:.35s!important}
-  html body .page button.green,html body .page button.blue,html body .easy-bar button.green,html body .login-card button.blue{transition-duration:.2s,.25s,.25s!important}
+  html body .page button.green,html body .page button.blue,html body .page label.file-btn.blue,html body .easy-bar button.green,html body .login-card button.blue{transition-duration:.2s,.25s,.25s!important}
   html body .big-act-primary::before,html body .hdr-new::before,html body .lx-shine::before{transition-duration:.8s!important}
 }
 /* The bottom-bar Save button always stays visible while scrolling.
