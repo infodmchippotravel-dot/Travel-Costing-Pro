@@ -34,7 +34,7 @@
 /* logged in: no login screen from the first moment (the website decides after it has loaded) */
 try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-21-2';   /* change with every new version */
+window.SITE_BUILD='2026-11-21-3';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2578,6 +2578,15 @@ html body .pg-card-h{flex-wrap:nowrap!important}
 html body .pg-card-h>.step-no{flex-shrink:0}
 /* phones: a bigger finger area for the footer phone / e-mail / website links (the look does not change) */
 @media (max-width:700px){html body footer.sitefooter .foot-info span a{padding:10px 0!important;margin:-10px 0!important}}
+/* card titles became h2 (right level under the page title) — these keep exactly the look they had as h3 */
+html body .card h2.pg-h2{font-size:18px!important;font-weight:700!important;line-height:1.35!important;letter-spacing:-.1px!important}
+html body .card h2.pg-h2:not([style*=margin]){margin-bottom:18px!important}
+html body #settings .card>h2.pg-h2{font-family:var(--serif)!important;font-size:21px!important;font-weight:600!important;letter-spacing:.005em!important;color:var(--text)!important;padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:16px!important}
+@media (max-width:720px){html body #settings .card>h2.pg-h2{font-size:19px!important}}
+html body #oldvBox>h3.oldv-h{font-size:16px!important;font-weight:700;line-height:1.6!important;letter-spacing:.005em!important}
+/* PDF quotation: the small gold words (tagline, "prepared for", inclusion titles, item numbers) were too light to read (3.4:1) — same gold, a little deeper (5.2:1). Lines and bars keep the original gold. */
+html body #pdf .pdf-page .pdf-tagline,html body #pdf .pdf-page .pdf-for,html body #pdf .pdf-page .pdf-incl-title,html body #pdf .pdf-page .pdf-number{color:#876830!important}
+html body #pdf .pdf-page .pdf-terms li::marker{color:#876830}
 </style>
 <style id="cssEnd"></style>
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -10240,7 +10249,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 21 Nov 2026 (2)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 21 Nov 2026 (3)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -13189,7 +13198,7 @@ try{(function(){
    ===================================================================== */
 try{(function(){
   'use strict';
-  var C={navy:'#0B1F3A',gold:'#A8874F',gold2:'#D9C49A',cream:'#FAF6EE',text:'#1D2430',muted:'#667085',rule:'#E6DCC7',white:'#FFFFFF'};
+  var C={navy:'#0B1F3A',gold:'#A8874F',goldText:'#876830',gold2:'#D9C49A',cream:'#FAF6EE',text:'#1D2430',muted:'#667085',rule:'#E6DCC7',white:'#FFFFFF'};
   var SANS="'Segoe UI',Calibri,Arial,sans-serif",SERIF="Georgia,'Times New Roman',serif";
   function esc(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function shown(el,stop){for(var e=el;e&&e!==stop;e=e.parentElement){var cs=getComputedStyle(e);if(cs.display==='none'||cs.visibility==='hidden')return false;}return !!el;}
@@ -13223,7 +13232,7 @@ try{(function(){
       +(logo?'<td width="70" valign="top" style="'+HB+'width:56pt;padding:14pt 10pt 12pt 0"><img src="'+logo+'" width="64" height="64" style="width:48pt;height:48pt" alt=""></td>':'')
       +'<td valign="top" style="'+HB+'padding:14pt 0 12pt">'
       +'<div style="font-family:'+SERIF+';font-size:'+(plain?'19':'21')+'pt;font-weight:bold;letter-spacing:1.5pt;color:'+C.navy+'">'+esc(txt(q(inner,'#pdfCompany')))+'</div>'
-      +(txt(q(inner,'#pdfTagline'))&&shown(q(inner,'#pdfTagline'),page)?'<div style="font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.6pt;color:'+C.gold+';margin-top:3pt">'+esc(txt(q(inner,'#pdfTagline')).toUpperCase())+'</div>':'')
+      +(txt(q(inner,'#pdfTagline'))&&shown(q(inner,'#pdfTagline'),page)?'<div style="font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.6pt;color:'+C.goldText+';margin-top:3pt">'+esc(txt(q(inner,'#pdfTagline')).toUpperCase())+'</div>':'')
       +(contactLines.length?'<div style="font-family:'+SANS+';font-size:7.5pt;color:'+C.muted+';margin-top:5pt;line-height:1.5">'+contactLines.join('<br>')+'</div>':'')
       +'</td><td width="210" valign="top" style="'+HB+'width:160pt;padding:14pt 0 12pt">'
       +'<div style="font-family:'+SERIF+';font-size:20pt;letter-spacing:5pt;color:'+C.navy+';text-align:right;margin-bottom:6pt">'+esc(txt(q(inner,'.quotation h2'))||'QUOTATION')+'</div>'
@@ -13232,7 +13241,7 @@ try{(function(){
 
     /* prepared for */
     var forEl=q(inner,'#pdfFor');
-    out.push('<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse"><tr><td style="border-top:1pt solid '+C.gold+';padding:12pt 0 5pt;font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.6pt;color:'+C.gold+'">'+(forEl&&shown(forEl,page)?esc(txt(forEl).toUpperCase()):'&nbsp;')+'</td></tr></table>');
+    out.push('<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse"><tr><td style="border-top:1pt solid '+C.gold+';padding:12pt 0 5pt;font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.6pt;color:'+C.goldText+'">'+(forEl&&shown(forEl,page)?esc(txt(forEl).toUpperCase()):'&nbsp;')+'</td></tr></table>');
     var boxes=[].slice.call(inner.querySelectorAll('.client-grid .client-box')).filter(function(b){return shown(b,page);});
     if(boxes.length)out.push('<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1pt solid '+C.rule+';background:'+C.cream+'"><tr>'
       +boxes.map(function(b,i){return '<td valign="top" style="padding:7pt 9pt;background:'+C.cream+';'+(i?'border-left:1pt solid '+C.rule+';':'')+'width:'+Math.floor(100/boxes.length)+'%">'
@@ -13250,11 +13259,11 @@ try{(function(){
         var rows=['<tr><td style="background:'+C.navy+';color:#fff;font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.2pt;padding:6pt 9pt;width:32pt">NO.</td><td style="background:'+C.navy+';color:#fff;font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.2pt;padding:6pt 9pt">SERVICE DESCRIPTION</td></tr>'];
         [].forEach.call(el.children,function(r){
           if(!shown(r,page))return;
-          if(r.classList.contains('pdf-incl-title')){rows.push('<tr><td colspan="2" style="padding:9pt 9pt 4pt;border-bottom:1pt solid '+C.gold2+';font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.4pt;color:'+C.gold+'">'+esc(txt(r).toUpperCase())+'</td></tr>');return;}
+          if(r.classList.contains('pdf-incl-title')){rows.push('<tr><td colspan="2" style="padding:9pt 9pt 4pt;border-bottom:1pt solid '+C.gold2+';font-family:'+SANS+';font-size:7.5pt;font-weight:bold;letter-spacing:1.4pt;color:'+C.goldText+'">'+esc(txt(r).toUpperCase())+'</td></tr>');return;}
           if(r.classList.contains('pdf-service')){
             var lines=[].slice.call(r.querySelectorAll('.pdf-service-type')).filter(function(x){return shown(x,page);}).map(function(x){return esc(txt(x));});
             var price=r.querySelector('.pdf-service-price');
-            rows.push('<tr><td valign="top" style="padding:7pt 9pt;border-bottom:1pt solid '+C.rule+';font-family:'+SERIF+';font-size:10pt;font-weight:bold;color:'+C.gold+'">'+esc(txt(r.querySelector('.pdf-number')))+'.</td>'
+            rows.push('<tr><td valign="top" style="padding:7pt 9pt;border-bottom:1pt solid '+C.rule+';font-family:'+SERIF+';font-size:10pt;font-weight:bold;color:'+C.goldText+'">'+esc(txt(r.querySelector('.pdf-number')))+'.</td>'
               +'<td valign="top" style="padding:7pt 9pt;border-bottom:1pt solid '+C.rule+'"><div style="font-family:'+SANS+';font-size:10pt;font-weight:bold;color:'+C.text+'">'+esc(txt(r.querySelector('.pdf-service-name')))+'</div>'
               +(lines.length?'<div style="font-family:'+SANS+';font-size:8pt;color:'+C.muted+';margin-top:2pt;line-height:1.45">'+lines.join('<br>')+'</div>':'')
               +(price&&shown(price,page)&&txt(price)?'<div style="font-family:'+SANS+';font-size:9pt;font-weight:bold;color:'+C.navy+';margin-top:3pt">'+esc(txt(price))+'</div>':'')+'</td></tr>');
@@ -13278,7 +13287,7 @@ try{(function(){
       }
       if(c.contains('pdf-terms')){
         var li=[].slice.call(el.querySelectorAll('li')).filter(function(x){return shown(x,page);});
-        out.push('<table cellspacing="0" cellpadding="0" style="border-collapse:collapse">'+li.map(function(x,k){return '<tr><td valign="top" style="padding:1pt 6pt 1pt 0"><p style="margin:0;font-family:'+SANS+';font-size:8pt;line-height:11pt;font-weight:bold;color:'+C.gold+'">'+(k+1)+'.</p></td><td style="padding:1pt 0"><p style="margin:0;font-family:'+SANS+';font-size:8pt;line-height:11pt;color:'+C.muted+'">'+esc(txt(x))+'</p></td></tr>';}).join('')+'</table>');return;
+        out.push('<table cellspacing="0" cellpadding="0" style="border-collapse:collapse">'+li.map(function(x,k){return '<tr><td valign="top" style="padding:1pt 6pt 1pt 0"><p style="margin:0;font-family:'+SANS+';font-size:8pt;line-height:11pt;font-weight:bold;color:'+C.goldText+'">'+(k+1)+'.</p></td><td style="padding:1pt 0"><p style="margin:0;font-family:'+SANS+';font-size:8pt;line-height:11pt;color:'+C.muted+'">'+esc(txt(x))+'</p></td></tr>';}).join('')+'</table>');return;
       }
       if(c.contains('pdf-thanks')){out.push(wrap('<span style="font-family:'+SERIF+';font-style:italic;font-size:9pt;color:'+C.text+'">'+esc(txt(el))+'</span>',10));return;}
       if(c.contains('pdf-sign')){
@@ -15578,8 +15587,10 @@ try{(function(){
   function shown(e){return !!(e&&!e.hidden&&getComputedStyle(e).display!=='none');}
   function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   /* a card heading like the Costing Sheet's: number in a navy circle + title, and one line saying what the card is for */
+  /* card titles sit straight under the page title (h1), so they are h2 for screen readers; class pg-h2 keeps the old look */
+  function asH2(h){if(!h||h.tagName!=='H3')return h;var x=document.createElement('h2');[].forEach.call(h.attributes,function(a){x.setAttribute(a.name,a.value);});x.classList.add('pg-h2');while(h.firstChild)x.appendChild(h.firstChild);h.parentNode.replaceChild(x,h);return x;}
   function head(card,n,title,desc){
-    if(!card)return;var h=card.querySelector('h2,h3');if(!h)return;
+    if(!card)return;var h=asH2(card.querySelector('h2,h3'));if(!h)return;
     if(title){var emo=h.querySelector('.lux-emo');h.textContent='';if(emo)h.appendChild(emo);h.appendChild(document.createTextNode(title));}
     var num=h.querySelector('.step-no');if(!num){num=document.createElement('span');num.className='step-no';num.setAttribute('aria-hidden','true');h.insertBefore(num,h.firstChild);}
     num.textContent=n;h.classList.add('pg-card-h');
@@ -15639,7 +15650,7 @@ try{(function(){
     if(cards[0]){n++;head(cards[0],n,'Hippo Travel Group','Who we are and what this website does.');items.push(['🏢 About us',cards[0]]);}
     if(cards[1]){n++;head(cards[1],n,'Contact details','Call, e-mail or visit us.');items.push(['📞 Contact',cards[1]]);}
     var uc=av&&shown(av)?av.querySelector('.card'):null;
-    if(uc){n++;var h=uc.querySelector('h3');if(h){var emo=h.querySelector('.lux-emo');h.textContent='';if(emo)h.appendChild(emo);h.appendChild(document.createTextNode('Website users'));var num=document.createElement('span');num.className='step-no';num.setAttribute('aria-hidden','true');num.textContent=n;h.insertBefore(num,h.firstChild);h.classList.add('pg-card-h');}
+    if(uc){n++;var h=asH2(uc.querySelector('h2,h3'));if(h){var emo=h.querySelector('.lux-emo');h.textContent='';if(emo)h.appendChild(emo);h.appendChild(document.createTextNode('Website users'));var num=document.createElement('span');num.className='step-no';num.setAttribute('aria-hidden','true');num.textContent=n;h.insertBefore(num,h.firstChild);h.classList.add('pg-card-h');}
       if(!uc.querySelector('.pg-desc')){var d=document.createElement('p');d.className='pg-desc';d.style.marginTop='10px';d.textContent='Everyone who logged in on this website (admin only). Press “see” to open a person’s costings.';var row=uc.firstElementChild;if(row)row.insertAdjacentElement('afterend',d);}
       items.push(['👥 Website users',uc]);
       if(sub)sub.textContent='About Hippo Travel Group — and everyone who uses this website';}
@@ -15650,10 +15661,10 @@ try{(function(){
   function tidyHelp(){
     var page=$('help');if(!page)return;
     var cards=[].slice.call(page.querySelectorAll(':scope>.card'));
-    var cost=cards.filter(function(c){return /create a costing/i.test((c.querySelector('h3')||{}).textContent||'');})[0];
-    var roles=cards.filter(function(c){return /Admin vs User|Admin and User/i.test((c.querySelector('h3')||{}).textContent||'');})[0];
+    var cost=cards.filter(function(c){return /create a costing/i.test((c.querySelector('h2,h3')||{}).textContent||'');})[0];
+    var roles=cards.filter(function(c){return /Admin vs User|Admin and User/i.test((c.querySelector('h2,h3')||{}).textContent||'');})[0];
     var itin=$('itinHelp');
-    var more=cards.filter(function(c){return /more help/i.test((c.querySelector('h3')||{}).textContent||'');})[0];
+    var more=cards.filter(function(c){return /more help/i.test((c.querySelector('h2,h3')||{}).textContent||'');})[0];
     if(cost&&!cost.dataset.tidy){cost.dataset.tidy='1';var p=cost.querySelector('p');
       if(p)p.outerHTML='<ol class="hp-steps">'
         +'<li><b>Client details</b> — on the <b>Costing Sheet</b>, type the client name, the travel date and how many adults and children.</li>'
@@ -16043,7 +16054,7 @@ try{(function(){
   function $(id){return document.getElementById(id);}
   var card=$('backupSettingsCard');if(!card||$('oldvBox'))return;
   var box=document.createElement('div');box.id='oldvBox';box.style.cssText='margin-top:16px;padding-top:14px;border-top:1px solid var(--line)';
-  box.innerHTML='<h4 style="margin:0 0 4px">🔒 Old vouchers (private)</h4>'
+  box.innerHTML='<h3 class="oldv-h" style="margin:0 0 4px">🔒 Old vouchers (private)</h3>'
     +'<p class="field-hint" style="margin:0 0 8px">Old PDF vouchers are kept in the private cloud. Only the admin can see them, on every computer and phone.</p>'
     +'<p id="oldvState" role="status" aria-live="polite" style="margin:0 0 8px;font-weight:700"></p>'
     +'<label class="blue file-btn" id="oldvPick">⬆️ Upload old vouchers file<input type="file" class="visually-hidden" id="oldvFile" accept=".json,application/json"></label>';
