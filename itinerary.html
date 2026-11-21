@@ -25,7 +25,7 @@
 <meta name="theme-color" content="#0B1F3A">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://cdnjs.cloudflare.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
 <script>
 /* Only the Hippo Travel website itself may show this page inside it. */
 (function(){
@@ -689,7 +689,7 @@ window.PDFIMPORT = (() => {
 'use strict';
 /* ---------------- 1. PDF → positioned text lines ---------------- */
 async function extract(url) {
-  const pdf = await pdfjsLib.getDocument(url).promise;
+  const pdf = await pdfjsLib.getDocument(Object.assign({ isEvalSupported: false }, (url && typeof url === 'object') ? url : { url })).promise;   /* no eval: a harmful PDF cannot run code */
   const pages = [];
   for (let n = 1; n <= pdf.numPages; n++) {
     const page = await pdf.getPage(n);
@@ -1274,13 +1274,13 @@ function canvasJpeg(src, w, h) {
 }
 async function ensurePdfJs() {
   if (window.pdfjsLib) return;
-  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  await loadScript('assets/vendor/pdfjs-3.11.174/pdf.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/vendor/pdfjs-3.11.174/pdf.worker.min.js';
 }
 // PDF ticket → one picture per page (up to 4 pages)
 async function pdfToImages(file) {
   await ensurePdfJs();
-  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise, out = [];
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer(), isEvalSupported: false }).promise, out = [];
   for (let n = 1; n <= Math.min(pdf.numPages, 4); n++) {
     const page = await pdf.getPage(n), vp = page.getViewport({ scale: 2 });
     const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
@@ -1289,6 +1289,18 @@ async function pdfToImages(file) {
     out.push(canvasJpeg(c, c.width, c.height));
   }
   return out;
+}
+async function fileKind(f) {
+  try {
+    const b = new Uint8Array(await f.slice(0, 16).arrayBuffer()), t = String.fromCharCode.apply(null, b);
+    if (t.indexOf('%PDF-') >= 0 && t.indexOf('%PDF-') < 8) return 'pdf';
+    if (b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) return 'image';                 /* JPEG */
+    if (t.slice(0, 8) === '\x89PNG\r\n\x1a\n') return 'image';                         /* PNG */
+    if (t.slice(0, 4) === 'GIF8' || t.slice(0, 2) === 'BM') return 'image';            /* GIF, BMP */
+    if (t.slice(0, 4) === 'RIFF' && t.slice(8, 12) === 'WEBP') return 'image';          /* WEBP */
+    if (t.slice(4, 8) === 'ftyp') return 'image';                                        /* HEIC / AVIF (phone photos) */
+  } catch (e) {}
+  return '';
 }
 async function addTicketFiles(files) {
   if (!files.length) return;
@@ -1300,6 +1312,9 @@ async function addTicketFiles(files) {
       toast(`Adding ${f.name}…`);
       const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
       if (!isPdf && !/^image\//.test(f.type)) { toast(`${f.name}: please choose a picture or a PDF`); continue; }
+      /* the file's first bytes must really be a PDF or a picture (a renamed program or web page is refused) */
+      const kind = await fileKind(f);
+      if (kind !== (isPdf ? 'pdf' : 'image')) { toast(`${f.name}: this is not a real ${isPdf ? 'PDF' : 'picture'} file`); continue; }
       const pics = isPdf ? await pdfToImages(f) : [await fileToImage(f)];
       for (let i = 0; i < pics.length; i++) {
         const id = 't' + Date.now() + Math.random().toString(36).slice(2, 7);
@@ -1791,11 +1806,12 @@ $('pdfIn').addEventListener('change', async e => {
   const files = [...e.target.files]; e.target.value = '';
   if (!files.length || !window.PDFIMPORT) return;
   try {
-    if (!window.pdfjsLib) { await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; }
+    if (!window.pdfjsLib) { await loadScript('assets/vendor/pdfjs-3.11.174/pdf.min.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/vendor/pdfjs-3.11.174/pdf.worker.min.js'; }
   } catch (err) { toast(err.message); return; }
   const raw = [];
   for (let i = 0; i < files.length; i++) {
     toast(`Reading PDF ${i + 1} of ${files.length}…`);
+    if (typeof fileKind === 'function' && await fileKind(files[i]) !== 'pdf') { toast(`${files[i].name}: this is not a real PDF file`); continue; }
     try { raw.push({ file: 'Added/' + files[i].name, pages: await PDFIMPORT.extract({ data: await files[i].arrayBuffer() }) }); }
     catch (err) { raw.push({ file: 'Added/' + files[i].name, error: String(err && err.message || err) }); }
   }
@@ -1862,7 +1878,7 @@ function renderSettings() {
     const r = new FileReader();
     r.onload = async () => {
       try {
-        const d = JSON.parse(r.result); if (d.app !== 'tour-voucher' || !Array.isArray(d.saved)) throw new Error('not a Tour Voucher backup');
+        const d = JSON.parse(r.result, (k, v) => (k === '__proto__' || k === 'constructor' || k === 'prototype') ? undefined : v); if (!d || d.app !== 'tour-voucher' || !Array.isArray(d.saved)) throw new Error('not a Tour Voucher backup');
         const mine = savedList(), ids = new Set(mine.map(x => x.id));
         const add = d.saved.filter(x => !ids.has(x.id));
         if (!(await confirmBox(`Restore ${add.length} voucher(s) from this backup?\nYour current vouchers stay.`, 'Restore'))) return;
@@ -2515,16 +2531,19 @@ html.theme-dark .fc-bar{background:#2a2314;border-color:#6b5a33;color:#f5ecd6}
 })();
 </script>
 <script>
-/* Old PDF vouchers: loaded only for the admin. */
+/* Old PDF vouchers: only for the admin, read from the private cloud (they are not a public file). */
 (function(){
   if(!(window.ITIN_SESSION&&ITIN_SESSION.admin))return;
-  /* loaded after the page is ready, so the itinerary maker opens without waiting for this big file */
   function add(){
-    var sc=document.createElement('script');sc.src='assets/itinerary-old-vouchers.js';
-    sc.onload=function(){try{mergeData();renderList();}catch(e){console.error('Old vouchers could not be shown:',e);}};
-    sc.onerror=function(){console.error('Old vouchers file could not be loaded.');};
-    document.body.appendChild(sc);
+    var P=null;try{P=window.parent!==window&&window.parent.cloudOldVouchers?window.parent:null;}catch(e){}
+    if(!P)return;
+    P.cloudOldVouchers().then(function(a){
+      if(!Array.isArray(a)||!a.length)return;
+      window.SLIP_VOUCHERS=a;
+      try{mergeData();renderList();}catch(e){console.error('Old vouchers could not be shown:',e);}
+    },function(){/* no cloud login or no internet: the old vouchers are not shown */});
   }
+  window.tvOldVouchersReload=add;
   if(document.readyState==='complete')setTimeout(add,0);else window.addEventListener('load',function(){setTimeout(add,0);});
 })();
 /* Dark / light theme and log-out follow the website (same browser). */

@@ -33,7 +33,8 @@
    is what avoids the earlier 404-in-preview issue. */
 /* logged in: no login screen from the first moment (the website decides after it has loaded) */
 try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
-window.SITE_BUILD='2026-11-20-2';   /* change with every new version */
+try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
+window.SITE_BUILD='2026-11-21-1';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -4942,11 +4943,16 @@ function importBackup(event){
     try{
       let d=JSON.parse(reader.result);
       if(!d||typeof d!=='object'||Array.isArray(d)){throw new Error('not a valid backup object');}
+      /* nothing on this computer is lost: costings already here stay, only new ones from the backup are added */
+      let have=new Set((savedCostings||[]).map(c=>c&&c.id));
+      let fromFile=Array.isArray(d.costings)?d.costings.filter(c=>c&&typeof c==='object'&&c.id&&Array.isArray(c.services)):[];
+      let addC=fromFile.filter(c=>!have.has(c.id));
+      d.costings=(savedCostings||[]).concat(addC);
       if(Array.isArray(d.transfers)){transfers=d.transfers;saveJSON('travelTransfers',transfers);}
       if(d.tickets)saveJSON('travelTickets',d.tickets);
       if(d.otherTransfers)saveJSON('travelOtherTransfers',d.otherTransfers);
       if(Array.isArray(d.costings)){
-        let valid=d.costings.filter(c=>c&&typeof c==='object'&&c.id&&Array.isArray(c.services));
+        let valid=d.costings;
         savedCostings=valid;saveJSON('travelSavedCostings',savedCostings);
       }
       if(d.appState)saveJSON('travelAppState',d.appState);
@@ -8799,7 +8805,35 @@ function googleTranslateElementInit(){
   new google.translate.TranslateElement({pageLanguage:'en',autoDisplay:false},'google_translate_element');
 }
 </script>
-<script async src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+<script>
+/* Google Translate is loaded only when someone chooses a language (or a language was chosen before):
+   until then no Google script runs on the page. */
+(function(){
+  var SRC='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit',loaded=false;
+  function load(focus){
+    if(loaded)return;loaded=true;
+    var el=document.getElementById('google_translate_element');var b=el&&el.querySelector('.gt-load');if(b)b.remove();
+    if(focus)window.__gtFocus=true;
+    var sc=document.createElement('script');sc.async=true;sc.src=SRC;document.body.appendChild(sc);
+  }
+  var prevInit=window.googleTranslateElementInit;
+  window.googleTranslateElementInit=function(){
+    var r=prevInit&&prevInit.apply(this,arguments);
+    if(window.__gtFocus){var n=0,t=setInterval(function(){var c=document.querySelector('#google_translate_element .goog-te-combo');if(c||++n>40){clearInterval(t);if(c)c.focus();}},100);}
+    return r;
+  };
+  var el=document.getElementById('google_translate_element');
+  if(/(^|;\s*)googtrans=/.test(document.cookie)){load(false);return;}
+  if(el){var b=document.createElement('button');b.type='button';b.className='gt-load';b.textContent='Select Language';b.setAttribute('aria-label','Translate this page — choose a language');
+    b.addEventListener('click',function(){load(true);});el.appendChild(b);}
+  window.loadTranslate=load;
+})();
+</script>
+<style>
+html body #google_translate_element button.gt-load{white-space:nowrap!important;width:auto!important;display:inline-flex!important;align-items:center;justify-content:flex-start;text-align:left;border:1px solid #d7dde6!important;border-radius:10px!important;box-shadow:none!important;margin:0!important;line-height:1.2!important}
+#google_translate_element .gt-load{color:#0f172a;font-size:12.5px;font-weight:700;padding:7px 28px 7px 10px;border-radius:10px;border:1px solid #d7dde6;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23475569'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;font-family:inherit;min-height:34px}
+body.dark #google_translate_element .gt-load{background-color:#13243b;color:#e8eef7;border-color:#2b3f5f}
+</style>
 <script>document.querySelectorAll("img[data-same-logo]").forEach(function(i){var s=document.querySelector(".brand-logo img");if(s)i.src=s.src;});</script>
 <script>
 /* Assistant button in the header (the floating bubble covered page content).
@@ -10170,7 +10204,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 20 Nov 2026 (2)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 21 Nov 2026 (1)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -12915,7 +12949,7 @@ try{(function(){
   var gh=document.createElement('div');gh.id='ghTokenBox';gh.style.cssText='margin-top:14px';
   gh.innerHTML='<label for="ghTokenInput">GitHub token <span class="opt-tag">to change it for every computer and phone</span></label>'
     +'<input id="ghTokenInput" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">'
-    +'<label class="switch-row" style="margin-top:6px;font-weight:600"><input type="checkbox" id="ghTokenRemember"> Remember the token on this browser</label>'
+    +'<label class="switch-row" style="margin-top:6px;font-weight:600"><input type="checkbox" id="ghTokenRemember"> Keep the token until this browser is closed</label>'
     +'<details style="margin-top:6px"><summary style="cursor:pointer;font-weight:700;color:#7a5f2c">How do I get a GitHub token?</summary><ol style="margin:6px 0 0;padding-left:20px;line-height:1.7;color:var(--muted)">'
     +'<li>On github.com open <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens</b> → <b>Generate new token</b>.</li>'
     +'<li>Repository access: <b>Only select repositories</b> → <b>Travel-Costing-Pro</b>.</li>'
@@ -12923,8 +12957,10 @@ try{(function(){
     +'<li>Press <b>Generate token</b>, copy it (it starts with <b>github_pat_</b>) and paste it here. Never send it to anyone.</li></ol></details>';
   pwBox.parentNode.insertBefore(gh,rules.nextSibling);
   var tokEl=document.getElementById('ghTokenInput'),remEl=document.getElementById('ghTokenRemember');
-  try{var savedTok=localStorage.getItem(TOK);if(savedTok){tokEl.value=savedTok;remEl.checked=true;}}catch(e){}
-  function token(){var t=(tokEl.value||'').trim();try{if(remEl.checked&&t)localStorage.setItem(TOK,t);else localStorage.removeItem(TOK);}catch(e){}return t;}
+  /* the token is kept only until the browser is closed (sessionStorage) — never stored for good on the computer */
+  try{localStorage.removeItem(TOK);}catch(e){}
+  try{var savedTok=sessionStorage.getItem(TOK);if(savedTok){tokEl.value=savedTok;remEl.checked=true;}}catch(e){}
+  function token(){var t=(tokEl.value||'').trim();try{if(remEl.checked&&t)sessionStorage.setItem(TOK,t);else sessionStorage.removeItem(TOK);}catch(e){}return t;}
   window.__adminToken=token;
   function say(t,ok){msg.textContent=t;msg.hidden=!t;msg.style.color=ok?'#166534':'#b42318';}
   function stamp(){try{return (JSON.parse(localStorage.getItem('travelAdminCreds')||'null')||{}).updatedAt||'';}catch(e){return '';}}
@@ -13094,7 +13130,7 @@ try{(function(){
     }).then(function(id){
       try{sessionStorage.removeItem(OTP_KEY);}catch(e){}
       /* a remembered GitHub token → the new password is saved for every computer and phone too */
-      var tk='';try{tk=localStorage.getItem('travelGhToken')||'';}catch(e){}
+      var tk='';try{tk=sessionStorage.getItem('travelGhToken')||'';}catch(e){}
       if(tk&&window.adminPublishLogin)window.adminPublishLogin(tk,null).catch(function(err){console.error('Could not save the new password for every device:',err);});
       ['fpCode','fpNew','fpNew2'].forEach(function(x){$(x).value='';});
       show('loginPanel-admin');
@@ -13802,7 +13838,8 @@ try{(function(){
 
   function token(){
     var t='';try{t=(window.__adminToken&&window.__adminToken())||'';}catch(e){}
-    return t||get('travelGhToken')||'';
+    var s='';try{s=sessionStorage.getItem('travelGhToken')||'';}catch(e){}
+    return t||s||'';
   }
   function b64(s){return btoa(unescape(encodeURIComponent(s)));}
   function why(r){
@@ -14175,7 +14212,7 @@ try{(function(){
         var live=0;
         docs.forEach(function(d){
           var f=d.fields||{},doc=d.name.split('/').pop(),kind=val(f,'kind'),del=val(f,'deleted')===true,owner=val(f,'owner')||'';
-          if(kind==='test')return;
+          if(kind==='test'||kind==='oldvouchers')return;   /* old vouchers: read only when the itinerary needs them */
           /* a user's profile (name, login time): for the admin's list of website users — not a record */
           if(kind==='profile'){if(!del){var pr=parse(val(f,'data'),null);if(pr&&pr.key&&pr.key!=='admin:main'){pr.seenAt=val(f,'updatedAt');prof[pr.key+'|'+(function(d){d=d.replace(/^0+/,'');return d.length>9?d.slice(-9):d;})(String(pr.phone||'').replace(/\D/g,''))]=pr;}}return;}
           var e=m[col][doc];
@@ -14259,6 +14296,27 @@ try{(function(){
   window.cloudSync=run;
   window.cloudToken=function(){return identity();};
   window.cloudAdminReady=function(){return admin()&&!!parse(get(K_ADMIN),null);};
+  /* Old PDF vouchers (customer names, hotels, confirmation numbers): kept only in the private cloud.
+     Only the admin's cloud login can read or write them (Firestore rules) — they are not a public file. */
+  var OLDV_DOC='/drafts/admin_oldvouchers';
+  function adminTok(){return identity0().then(function(me){if(me.which!=='admin')throw new Error('Only the admin (logged in with the admin e-mail) can do this.');return me;});}
+  var oldvCache=null;
+  window.cloudOldVouchers=function(){
+    if(oldvCache)return oldvCache;
+    oldvCache=adminTok().then(function(me){return api(OLDV_DOC,{method:'GET'},me.token);}).then(function(d){
+      var f=d&&d.fields||{};if(val(f,'deleted')===true)return [];
+      var a=parse(val(f,'data'),[]);return Array.isArray(a)?a:[];
+    },function(e){oldvCache=null;if(e&&e.status===404)return [];throw e;});
+    return oldvCache;
+  };
+  window.cloudSaveOldVouchers=function(list){
+    var txt=JSON.stringify(list);
+    if(txt.length>890000)return Promise.reject(new Error('This file is too big for the cloud (max about 850 KB).'));
+    return adminTok().then(function(me){
+      var body={fields:{owner:{stringValue:me.uid},ownerKey:{stringValue:'admin:main'},ownerName:{stringValue:'Admin'},data:{stringValue:txt},updatedAt:{timestampValue:new Date().toISOString()},deleted:{booleanValue:false},kind:{stringValue:'oldvouchers'}}};
+      return api(OLDV_DOC,{method:'PATCH',body:JSON.stringify(body)},me.token);
+    }).then(function(){oldvCache=Promise.resolve(list);return list.length;});
+  };
 
   /* ---------- Settings card ---------- */
   var card=null;
@@ -15913,6 +15971,76 @@ try{(function(){
   var prev=window.showPage;if(typeof prev==='function')window.showPage=function(id){var r=prev.apply(this,arguments);if(id==='home')setTimeout(show,0);return r;};
   show();
 })();}catch(e){console.error('Phone question could not start:',e);}
+</script>
+<script>
+/* Restore backup: asks first and says what will happen; Cancel changes nothing. Saved costings and itineraries
+   already on this computer always stay — only new ones from the backup are added. */
+try{(function(){
+  var prev=window.importBackup;if(typeof prev!=='function')return;
+  window.importBackup=function(event){
+    var self=this,args=arguments,inp=event&&event.target,file=inp&&inp.files&&inp.files[0];
+    if(!file||typeof isAdminSession!=='function'||!isAdminSession()||!/\.json$/i.test(file.name)||file.size>10*1024*1024)return prev.apply(self,args);
+    var rd=new FileReader();
+    rd.onload=function(){
+      var d=null;try{d=JSON.parse(rd.result);}catch(e){}
+      if(!d||typeof d!=='object'||Array.isArray(d))return prev.apply(self,args);   /* the normal message: not a valid backup */
+      var have={},cur=[];try{cur=(typeof savedCostings!=='undefined'&&savedCostings)||JSON.parse(localStorage.getItem('travelSavedCostings')||'[]')||[];}catch(e){}cur.forEach(function(c){if(c&&c.id)have[c.id]=1;});
+      var newC=(Array.isArray(d.costings)?d.costings:[]).filter(function(c){return c&&typeof c==='object'&&c.id&&Array.isArray(c.services)&&!have[c.id];}).length;
+      var vh={};try{(JSON.parse(localStorage.getItem('tv.saved.v1')||'[]')||[]).forEach(function(v){if(v&&v.id)vh[v.id]=1;});}catch(e){}
+      var newV=(Array.isArray(d.itineraries)?d.itineraries:[]).filter(function(v){return v&&typeof v==='object'&&v.id&&!vh[v.id];}).length;
+      var rates=Array.isArray(d.transfers)||!!d.tickets||!!d.otherTransfers||Array.isArray(d.tourList)||!!d.closedDays;
+      var msg='Restore this backup?\n\n• '+newC+' new costing(s) and '+newV+' new itinerary(ies) will be added.\n• Everything already saved on this computer stays.'
+        +(rates?'\n• Saved Rates (transfers, tickets, tours and closed days) will be replaced by the ones in the backup.':'')
+        +'\n\nPress OK to restore, or Cancel to keep everything as it is.';
+      if(!confirm(msg)){try{inp.value='';}catch(e){}return;}
+      prev.apply(self,args);
+    };
+    rd.onerror=function(){prev.apply(self,args);};
+    rd.readAsText(file);
+  };
+})();}catch(err){console.error('Restore check failed to start:',err);}
+</script>
+<script>
+/* Settings → Backup: old PDF vouchers are put in the private cloud once (admin only).
+   They were a public file before; now only the admin's cloud login can read them. */
+try{(function(){
+  function $(id){return document.getElementById(id);}
+  var card=$('backupSettingsCard');if(!card||$('oldvBox'))return;
+  var box=document.createElement('div');box.id='oldvBox';box.style.cssText='margin-top:16px;padding-top:14px;border-top:1px solid var(--line)';
+  box.innerHTML='<h4 style="margin:0 0 4px">🔒 Old vouchers (private)</h4>'
+    +'<p class="field-hint" style="margin:0 0 8px">Old PDF vouchers are kept in the private cloud. Only the admin can see them, on every computer and phone.</p>'
+    +'<p id="oldvState" role="status" aria-live="polite" style="margin:0 0 8px;font-weight:700"></p>'
+    +'<label class="blue file-btn" id="oldvPick">⬆️ Upload old vouchers file<input type="file" class="visually-hidden" id="oldvFile" accept=".json,application/json"></label>';
+  card.appendChild(box);
+  var st=$('oldvState');
+  function say(t,ok){var dk=document.body.classList.contains('dark');st.textContent=t;st.style.color=ok===true?(dk?'#86efac':'#166534'):ok===false?(dk?'#fca5a5':'#b42318'):'';}
+  function admin(){return typeof isAdminSession==='function'&&isAdminSession();}
+  function refresh(){
+    if(!admin()||typeof window.cloudOldVouchers!=='function'){say('');return;}
+    say('Checking…');
+    window.cloudOldVouchers().then(function(a){say(a.length?'✅ '+a.length+' old vouchers are in the private cloud.':'No old vouchers in the cloud yet. Upload the file once.',a.length?true:null);},
+      function(e){say('Could not check the cloud: '+(e&&e.message||e),false);});
+  }
+  function okList(a){return Array.isArray(a)&&a.length&&a.every(function(v){return v&&typeof v==='object'&&!Array.isArray(v)&&typeof v.file==='string'&&Array.isArray(v.days);});}
+  $('oldvFile').addEventListener('change',function(e){
+    var f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+    if(!admin()){say('Only the admin can do this.',false);return;}
+    if(!/\.json$/i.test(f.name)||f.size>900000){say('Please choose the old vouchers .json file (up to 850 KB).',false);return;}
+    var rd=new FileReader();
+    rd.onload=function(){
+      var a=null;try{a=JSON.parse(rd.result,function(k,v){return (k==='__proto__'||k==='constructor'||k==='prototype')?undefined:v;});}catch(x){}
+      if(!okList(a)){say('This is not the old vouchers file.',false);return;}
+      if(!confirm('Put '+a.length+' old vouchers in the private cloud?\nOnly the admin will be able to see them.'))return;
+      say('Uploading…');
+      window.cloudSaveOldVouchers(a).then(function(n){say('✅ '+n+' old vouchers are in the private cloud. You can delete the file from this computer now.',true);
+        try{var fr=$('itinFrame');if(fr&&fr.contentWindow&&fr.contentWindow.tvOldVouchersReload)fr.contentWindow.tvOldVouchersReload();}catch(x){}},
+        function(x){say('Could not upload: '+(x&&x.message||x),false);});
+    };
+    rd.readAsText(f);
+  });
+  var prevShow=window.showPage;
+  if(typeof prevShow==='function')window.showPage=function(id){var r=prevShow.apply(this,arguments);if(id==='settings')setTimeout(refresh,50);return r;};
+})();}catch(err){console.error('Old vouchers box failed to start:',err);}
 </script>
 </body>
 </html>
