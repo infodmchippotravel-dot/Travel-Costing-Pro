@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://translate.googleapis.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com https://api.emailjs.com https://api.github.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src 'self' https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://translate.googleapis.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com https://api.emailjs.com https://api.github.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src 'self' https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <script>
 /* ===== Guaranteed stale-cache buster (safe version) =====
@@ -34,7 +34,7 @@
 /* logged in: no login screen from the first moment (the website decides after it has loaded) */
 try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-21-5';   /* change with every new version */
+window.SITE_BUILD='2026-11-22-1';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2591,6 +2591,8 @@ html body #pdf .pdf-page .pdf-terms li::marker{color:#876830}
    whenever a card stuck out a little (the slide-in animation, Saved Rates) a second thick gold scrollbar showed and the
    mouse wheel got stuck in it. overflow-x:clip still stops sideways scrolling but never makes a scroll box. */
 @supports (overflow-x:clip){html body main{overflow-x:clip!important;overflow-y:visible!important}}
+/* Older browsers without overflow:clip: same result, no extra scroll box (the page itself still never scrolls sideways) */
+@supports not (overflow-x:clip){html body main{overflow:visible!important}html body{overflow-x:hidden}}
 </style>
 <style id="cssEnd"></style>
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -8731,7 +8733,10 @@ function toggleChatbot(){
   };
   // Close the menu when tapping outside it or when the screen becomes wide.
   document.addEventListener('click',function(e){
-    if(topbar.classList.contains('menu-open')&&!topbar.contains(e.target))closeMenu();
+    /* composedPath is taken when the tap happens, so a button that removes itself on tap
+       (like "Select Language", which turns into the language list) still counts as inside the menu */
+    var path=e.composedPath?e.composedPath():[];
+    if(topbar.classList.contains('menu-open')&&path.indexOf(topbar)===-1&&!topbar.contains(e.target))closeMenu();
   });
   var wide=window.matchMedia('(min-width:1501px)');
   var onWide=function(m){if(m.matches)closeMenu();};
@@ -10258,7 +10263,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 21 Nov 2026 (5)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 22 Nov 2026 (1)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
