@@ -34,7 +34,7 @@
 /* logged in: no login screen from the first moment (the website decides after it has loaded) */
 try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-22-1';   /* change with every new version */
+window.SITE_BUILD='2026-11-22-2';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -2593,6 +2593,14 @@ html body #pdf .pdf-page .pdf-terms li::marker{color:#876830}
 @supports (overflow-x:clip){html body main{overflow-x:clip!important;overflow-y:visible!important}}
 /* Older browsers without overflow:clip: same result, no extra scroll box (the page itself still never scrolls sideways) */
 @supports not (overflow-x:clip){html body main{overflow:visible!important}html body{overflow-x:hidden}}
+</style>
+<style id="listMoreCss">
+/* Show all / Show less — one look everywhere (All Vouchers, My Costings, Saved Rates), always ABOVE the list */
+html body .list-more{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;margin:0 0 12px}
+html body .list-more[hidden]{display:none!important}
+html body .list-more button{min-height:44px;font-weight:700}
+html body .list-more .lm-hint{font-size:13px;color:var(--muted)}
+html body tr.lm-hide{display:none!important}
 </style>
 <style id="cssEnd"></style>
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -7730,7 +7738,7 @@ try{(function(){
    ===================================================================== */
 try{(function(){
   'use strict';
-  var PAGE_SIZE=10;
+  var PAGE_SIZE=12;   /* how many costings show before "Show all" (same as All Vouchers) */
   var state={sort:'number',dir:'desc',page:1};
 
   function money(n){return (Math.round((+n||0)*100)/100).toLocaleString('en-IN',{maximumFractionDigits:2});}
@@ -7869,7 +7877,14 @@ try{(function(){
       return;
     }
     var admin=isAdminSession();
-    var rows=list.slice((state.page-1)*PAGE_SIZE,state.page*PAGE_SIZE).map(function(r){
+    /* Show all / Show less (like All Vouchers): the first few, and both buttons sit ABOVE the list.
+       While searching, every match is shown. */
+    var searching=!!((($('savedSearch')||{}).value)||'').trim();
+    var lim=(state.all||searching)?list.length:PAGE_SIZE;
+    var more=list.length<=PAGE_SIZE||searching?''
+      :state.all?'<div class="list-more no-print"><button type="button" class="btn-ghost" data-saved-more="less">▲ Show less</button><span class="lm-hint">Showing all '+list.length+' costings</span></div>'
+      :'<div class="list-more no-print"><button type="button" class="btn-ghost" data-saved-more="all">▼ Show all '+list.length+' costings</button><span class="lm-hint">or type a name / COST no. above</span></div>';
+    var rows=list.slice(0,lim).map(function(r){
       var id=jsAttr(r.id),name=escapeHtml(r.name||'—');
       var phone=r.taglineNumber?escapeHtml((r.phoneCode||'+91')+' '+r.taglineNumber):'';
       var items=(r.services||[]).filter(function(s){return !(s.type==='Ticket'&&s.linked);}).length;
@@ -7889,18 +7904,9 @@ try{(function(){
         +'<button class="itin-make" type="button" onclick="itinFromCosting(\''+id+'\')" aria-label="Create itinerary for '+name+'">🗺️ Create Itinerary</button>'
         +'</div></td></tr>';
     }).join('');
-    box.innerHTML='<div class="card table-card"><table class="data-table records-table"><caption class="visually-hidden">Saved costings. Use the column buttons to sort.</caption>'
+    box.innerHTML=more+'<div class="card table-card"><table class="data-table records-table"><caption class="visually-hidden">Saved costings. Use the column buttons to sort.</caption>'
       +'<thead>'+header()+'</thead><tbody>'+rows+'</tbody></table></div>';
-    var pager=$('savedPager');
-    if(pager){
-      if(pages<=1){pager.innerHTML='';}
-      else{
-        var html='<button type="button" class="btn-ghost" data-page="'+(state.page-1)+'"'+(state.page===1?' disabled':'')+' aria-label="Previous page">← Previous</button>';
-        html+='<span class="pager-info">Page '+state.page+' of '+pages+'</span>';
-        html+='<button type="button" class="btn-ghost" data-page="'+(state.page+1)+'"'+(state.page===pages?' disabled':'')+' aria-label="Next page">Next →</button>';
-        pager.innerHTML=html;
-      }
-    }
+    var pager=$('savedPager');if(pager)pager.innerHTML='';   /* pages replaced by Show all / Show less above the list */
     renderHome();
   };
   document.addEventListener('click',function(e){
@@ -7913,6 +7919,9 @@ try{(function(){
       var again=document.querySelector('#savedCostings [data-sort="'+k+'"]');if(again)again.focus();
       return;
     }
+    var sm=e.target.closest('#savedCostings [data-saved-more]');
+    if(sm){state.all=sm.dataset.savedMore==='all';renderSavedCostings();
+      var nb=document.querySelector('#savedCostings [data-saved-more]');if(nb)nb.focus();return;}
     var p=e.target.closest('#savedPager [data-page]');
     if(p&&!p.disabled){state.page=+p.dataset.page;renderSavedCostings();$('savedCostings').scrollIntoView({block:'start'});return;}
     if(e.target.closest('[data-clear-filters]')){
@@ -10263,7 +10272,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 22 Nov 2026 (1)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 22 Nov 2026 (2)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -12869,7 +12878,7 @@ try{(function(){
       var t=x.t;if(!t||!t.t)return false;if(city&&t.c!==city)return false;
       return !q||(t.t+' '+(t.c||'')+' '+(t.it||[]).join(' ')).toLowerCase().indexOf(q)!==-1;
     });
-    var max=showAll||q?rows.length:60,body=el('tourList');
+    var max=rows.length,body=el('tourList');   /* Show all / Show less above the list (see listMore) */
     body.innerHTML=rows.length?rows.slice(0,max).map(function(x){
       var t=x.t,first=(t.it||[]).map(function(l){return String(l).replace(/^[⁢⁣•\s]+/,'').replace(/\[\[|\]\]/g,'');}).slice(0,2).join(' · ');
       return '<tr><td class="cell-name" data-label="Tour"><b>'+esc(t.t)+'</b><div class="tour-lines">'+esc(first)+'</div></td>'
@@ -16102,6 +16111,37 @@ try{(function(){
   var prevShow=window.showPage;
   if(typeof prevShow==='function')window.showPage=function(id){var r=prevShow.apply(this,arguments);if(id==='settings')setTimeout(refresh,50);return r;};
 })();}catch(err){console.error('Old vouchers box failed to start:',err);}
+</script>
+<script>
+/* Saved Rates lists: show the first 12, with "Show all" / "Show less" ABOVE the list (like All Vouchers).
+   While a search is typed, every match shows. Rows are only hidden on screen, nothing is removed. */
+(function(){
+  var LIMIT=12,LISTS={rateTrList:'transfers',rateScList:'SIC transfers',ratePvList:'private transfers',rateTkList:'entry tickets',rateMlList:'meals',tourList:'tours'},open={};
+  function searching(){var a=document.getElementById('ratesSearch'),b=document.getElementById('rateSearchTr'),c=document.getElementById('rateSearchSv');
+    return [a,b,c].some(function(x){return x&&String(x.value||'').trim();});}
+  function apply(id){
+    var tb=document.getElementById(id);if(!tb)return;var tbl=tb.closest('table');if(!tbl||!tbl.parentNode)return;
+    var bar=document.getElementById('lm-'+id);
+    if(!bar){bar=document.createElement('div');bar.id='lm-'+id;bar.className='list-more no-print';bar.hidden=true;tbl.parentNode.insertBefore(bar,tbl);
+      bar.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;open[id]=b.dataset.lm==='all';apply(id);var nb=bar.querySelector('button');if(nb)nb.focus();});}
+    var rows=[].filter.call(tb.rows,function(r){return !r.querySelector('td.empty')&&r.style.display!=='none'&&!r.hidden;});
+    var n=rows.length,all=open[id]||searching(),lim=all?n:LIMIT;
+    rows.forEach(function(r,i){r.classList.toggle('lm-hide',i>=lim);});
+    if(n<=LIMIT||searching()){bar.hidden=true;bar.innerHTML='';return;}
+    bar.hidden=false;
+    bar.innerHTML=open[id]
+      ?'<button type="button" class="btn-ghost" data-lm="less">▲ Show less</button><span class="lm-hint">Showing all '+n+' '+LISTS[id]+'</span>'
+      :'<button type="button" class="btn-ghost" data-lm="all">▼ Show all '+n+' '+LISTS[id]+'</button><span class="lm-hint">or type a name in the search box</span>';
+  }
+  function watch(id){
+    var tb=document.getElementById(id);if(!tb||tb.__lm)return !!tb;tb.__lm=1;
+    new MutationObserver(function(){apply(id);}).observe(tb,{childList:true});apply(id);return true;
+  }
+  function all(){var done=true;Object.keys(LISTS).forEach(function(id){if(!watch(id))done=false;});return done;}
+  if(!all()){var n=0,t=setInterval(function(){if(all()||++n>60)clearInterval(t);},500);}
+  document.addEventListener('click',function(){setTimeout(all,0);},true);   /* lists built later (e.g. Tours tab) */
+  document.addEventListener('input',function(e){if(e.target&&/^(ratesSearch|rateSearchTr|rateSearchSv)$/.test(e.target.id))setTimeout(function(){Object.keys(LISTS).forEach(apply);},0);});
+})();
 </script>
 </body>
 </html>
