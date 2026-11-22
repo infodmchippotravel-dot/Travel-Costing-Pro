@@ -1757,11 +1757,12 @@ function renderList() {
       <td data-l="Travel dates">${esc(dmShort(a.date) || a.date || '')} – ${esc(dmShort(z.date) || z.date || '')}</td><td data-l="Days">${pad2(Math.max(d.length - 1, 0))}N / ${pad2(d.length)}D</td>
       <td class="acts"><div class="btn-row"><button class="btn green sm" type="button" data-act="useOld" data-a="${i}">Open →</button><button class="btn ghost sm" type="button" data-act="printOld" data-a="${i}" title="Print / PDF">🖨️</button></div></td></tr>` };
   })).sort((x, y) => y.key.localeCompare(x.key));
-  const max = q.length ? 150 : showAllOld ? 2000 : 12;
+  const SHORT = 5;   // how many vouchers show before "Show all"
+  const max = q.length ? 150 : showAllOld ? 2000 : SHORT;
   // Show all / Show less sit together ABOVE the list (no hunting for the button at the bottom of a long list)
   const more = items.length > max
     ? `<div class="btn-row list-more" style="justify-content:center;margin:0 0 10px"><button class="btn ghost" type="button" data-act="showOld">▼ Show all ${items.length} vouchers</button><span class="hint" style="margin:0">or type a name / place above</span></div>`
-    : (!q.length && showAllOld && items.length > 12)
+    : (!q.length && showAllOld && items.length > SHORT)
       ? `<div class="btn-row list-more" style="justify-content:center;margin:0 0 10px"><button class="btn ghost" type="button" data-act="showLess">▲ Show less</button><span class="hint" style="margin:0">Showing all ${items.length} vouchers</span></div>`
       : '';
   $('list').innerHTML = items.length

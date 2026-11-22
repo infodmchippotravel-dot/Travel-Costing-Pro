@@ -34,7 +34,7 @@
 /* logged in: no login screen from the first moment (the website decides after it has loaded) */
 try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-22-2';   /* change with every new version */
+window.SITE_BUILD='2026-11-22-3';   /* change with every new version */
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -7738,7 +7738,7 @@ try{(function(){
    ===================================================================== */
 try{(function(){
   'use strict';
-  var PAGE_SIZE=12;   /* how many costings show before "Show all" (same as All Vouchers) */
+  var PAGE_SIZE=5;   /* how many costings show before "Show all" (same as All Vouchers) */
   var state={sort:'number',dir:'desc',page:1};
 
   function money(n){return (Math.round((+n||0)*100)/100).toLocaleString('en-IN',{maximumFractionDigits:2});}
@@ -10272,7 +10272,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 22 Nov 2026 (2)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 22 Nov 2026 (3)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -16113,10 +16113,10 @@ try{(function(){
 })();}catch(err){console.error('Old vouchers box failed to start:',err);}
 </script>
 <script>
-/* Saved Rates lists: show the first 12, with "Show all" / "Show less" ABOVE the list (like All Vouchers).
+/* Saved Rates lists: show the first 5, with "Show all" / "Show less" ABOVE the list (like All Vouchers).
    While a search is typed, every match shows. Rows are only hidden on screen, nothing is removed. */
 (function(){
-  var LIMIT=12,LISTS={rateTrList:'transfers',rateScList:'SIC transfers',ratePvList:'private transfers',rateTkList:'entry tickets',rateMlList:'meals',tourList:'tours'},open={};
+  var LIMIT=5,LISTS={rateTrList:'transfers',rateScList:'SIC transfers',ratePvList:'private transfers',rateTkList:'entry tickets',rateMlList:'meals',tourList:'tours'},open={};
   function searching(){var a=document.getElementById('ratesSearch'),b=document.getElementById('rateSearchTr'),c=document.getElementById('rateSearchSv');
     return [a,b,c].some(function(x){return x&&String(x.value||'').trim();});}
   function apply(id){
