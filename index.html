@@ -8905,8 +8905,14 @@ function toggleChatbot(){
   function clearLang(){var h=location.hostname,ex='=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
     document.cookie='googtrans'+ex;document.cookie='googtrans'+ex+';domain='+h;document.cookie='googtrans'+ex+';domain=.'+h;}
   function combo(){return document.querySelector('#gtHost select.goog-te-combo');}
+  /* back to English with no refresh: press Google's own (hidden) "Show original" button */
+  function restore(){var f=document.querySelectorAll('iframe.skiptranslate');
+    for(var i=0;i<f.length;i++){try{var d=f[i].contentDocument,r=d&&d.querySelector('[id$=".restore"]');if(r){r.click();setTimeout(clearLang,300);return true;}}catch(e){}}
+    return false;}
   function choose(l){
-    if(l==='en'){if(current()!=='en'||/translated-(ltr|rtl)/.test(document.documentElement.className)){clearLang();location.reload();}return;}
+    if(l==='en'){clearLang();if(restore())return;
+      /* only if Google's own "Show original" could not be reached: open the page again in English */
+      if(/translated-(ltr|rtl)/.test(document.documentElement.className))location.reload();return;}
     document.cookie='googtrans=/en/'+l+';path=/';
     var c=combo();
     if(c&&c.options.length>1){c.value=l;c.dispatchEvent(new Event('change'));return;}
