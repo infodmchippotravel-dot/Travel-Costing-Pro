@@ -25,7 +25,16 @@
 <meta name="theme-color" content="#0B1F3A">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
+<meta name="google" content="notranslate">
+<script>
+/* A language other than English is chosen: keep this page hidden for a moment (max 2.5 s) until its words are
+   in that language, so English does not flash first (HIPPO-LANG-CORE at the end of the page does it). */
+try{if(/(^|;\s*)googtrans=\/(en|auto)\/(?!en(;|$))[a-zA-Z-]+/.test(document.cookie)){var H=document.documentElement;H.classList.add('gt-wait');
+  var st=document.createElement('style');st.textContent='html.gt-wait body{visibility:hidden}';document.head.appendChild(st);
+  var show=function(){H.classList.remove('gt-wait');};setTimeout(show,2500);
+}}catch(e){}
+</script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://www.gstatic.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com https://translate.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com https://inputtools.google.com; frame-src 'self' https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
 <script>
 /* Only the Hippo Travel website itself may show this page inside it. */
 (function(){
@@ -2585,6 +2594,210 @@ window.addEventListener('storage',function(e){
   var prev=showDirty;showDirty=function(){var r=prev.apply(this,arguments);tell();return r;};
   try{new MutationObserver(tell).observe(document.body,{attributes:true,attributeFilter:['class']});}catch(e){}
   tell();
+})();
+</script>
+<script>
+/* HIPPO-LANG-CORE (the same block is in index.html and itinerary.html; change both together)
+   - The website shows itself in the language the person chose. The website changes its own words:
+     words translated once are kept on this computer (IndexedDB "hippoLang"), so the next time they show at once.
+     Only words not seen before are sent to Google Translate, which works out of sight: it only translates
+     a see-through box (#hxWork) and never touches the page itself; nothing of Google is shown.
+   - The chosen language is kept in the cookie googtrans=/auto/<language> (Google reads the same cookie).
+   - "auto": text typed in another language is shown in the reader's language
+     (a costing typed in Hindi shows in English to someone who uses English, and the other way round).
+   - Typing: in a language with its own letters (Hindi, Tamil, ...) a word typed with English letters becomes
+     that language's letters when Space / a full stop / leaving the box is pressed (no list to choose from).
+     Only the typed word is sent to Google's typing service. Not in: e-mail, phone, password, numbers, prices,
+     dates, codes, search boxes, login and the help chat. */
+(function(){
+  if(window.HippoLang)return;
+  var SRC='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+  /* letters of other writing systems (the Thai baht sign is left out: it is a price sign) */
+  var FOREIGN=/[Ͱ-ϿЀ-ӿ֐-ۿऀ-෿ก-ฺเ-๿຀-໿က-႟぀-ヿ㐀-鿿가-힯]/;
+  var LETTER=/[A-Za-zÀ-ɏ]/;
+  function target(){var m=/(?:^|;\s*)googtrans=\/(?:en|auto)\/([^;]+)/.exec(document.cookie);return m?(decodeURIComponent(m[1])||'en'):'en';}
+  function clearCookie(){var h=location.hostname,ex='=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+    document.cookie='googtrans'+ex;document.cookie='googtrans'+ex+';domain='+h;document.cookie='googtrans'+ex+';domain=.'+h;}
+  function setCookie(l){clearCookie();if(l&&l!=='en')document.cookie='googtrans=/auto/'+l+';path=/';}
+  var cur=target();
+  function showPage(){var H=document.documentElement;if(H.classList.contains('gt-wait'))H.classList.remove('gt-wait');}
+
+  /* ---------- words kept on this computer ---------- */
+  var MEM={};        /* MEM[lang][text]=translation */
+  var DB=null,dbWait=[];
+  function db(cb){if(DB)return cb(DB);dbWait.push(cb);if(dbWait.length>1)return;
+    var done=function(d){DB=d;var w=dbWait;dbWait=[];w.forEach(function(f){try{f(d);}catch(e){}});};
+    try{var r=indexedDB.open('hippoLang',1);r.onupgradeneeded=function(){r.result.createObjectStore('tx');};
+      r.onsuccess=function(){done(r.result);};r.onerror=function(){done(false);};}catch(e){done(false);}}
+  var loadedLang={};
+  function loadLang(l,cb){if(loadedLang[l]||l==='en'){loadedLang[l]=1;MEM[l]=MEM[l]||{};return cb();}
+    MEM[l]=MEM[l]||{};var fin=false,end=function(){if(fin)return;fin=true;loadedLang[l]=1;cb();};
+    setTimeout(end,1500);   /* never wait long for the stored words */
+    db(function(d){if(!d)return end();try{var st=d.transaction('tx','readonly').objectStore('tx'),k=IDBKeyRange.bound(l+'\u0001',l+'\u0001￿');
+      var rq=st.openCursor(k);rq.onsuccess=function(){var c=rq.result;if(c){MEM[l][String(c.key).slice(l.length+1)]=c.value;c.continue();}else end();};rq.onerror=end;}catch(e){end();}});}
+  var toSave=[],saveT=null;
+  function keep(l,t,v){MEM[l]=MEM[l]||{};MEM[l][t]=v;toSave.push([l+'\u0001'+t,v]);clearTimeout(saveT);saveT=setTimeout(function(){var s=toSave;toSave=[];
+    db(function(d){if(!d)return;try{var st=d.transaction('tx','readwrite').objectStore('tx');s.forEach(function(x){st.put(x[1],x[0]);});}catch(e){}});},400);}
+
+  /* ---------- which text is translated ---------- */
+  var SKIPTAG={SCRIPT:1,STYLE:1,NOSCRIPT:1,TEMPLATE:1,TEXTAREA:1,CODE:1,svg:1,SVG:1};
+  function skipEl(el){
+    for(var p=el;p&&p.nodeType===1;p=p.parentNode){
+      if(SKIPTAG[p.nodeName]||p.id==='hxWork'||p.id==='gtHost'||p.id==='siteLang')return true;
+      if(p.classList&&(p.classList.contains('notranslate')||p.classList.contains('skiptranslate')))return true;
+      if(p.getAttribute&&p.getAttribute('translate')==='no'&&!p.hasAttribute('data-hxno'))return true;}
+    return false;}
+  function needs(t,l){if(!t||t.length>3000)return false;if(!LETTER.test(t)&&!FOREIGN.test(t))return false;
+    if(/\d{1,2}:\d{2}/.test(t))return false;   /* clock / time: changes every second, stays as it is */
+    if(l==='en')return FOREIGN.test(t);return true;}
+
+  /* ---------- the page's own words: original kept, shown in the chosen language ---------- */
+  var orig=new WeakMap(),shown=new WeakMap(),attrO=new WeakMap();
+  var ATTRS=['placeholder','title'];
+  var pending={},pendN=0;
+  var pendHigh=0;
+  function want(t,vis){if(!t)return;if(pending[t]){if(vis&&pending[t]<2){pending[t]=2;pendHigh++;}return;}pending[t]=vis?2:1;if(vis)pendHigh++;pendN++;schedule();}
+  function tr(o,el){var t=o.trim();if(!needs(t,cur))return o;if(!loadedLang[cur])return o;var m=MEM[cur]&&MEM[cur][t];
+    if(m==null){want(t,!!(el&&el.offsetParent));return o;}return o.replace(t,m);}   /* words on screen are asked first */
+  function doText(n){var v=n.nodeValue;if(shown.get(n)!==v)orig.set(n,v);var o=orig.get(n);if(o==null)return;
+    var out=cur==='en'&&!FOREIGN.test(o)?o:tr(o,n.parentNode);shown.set(n,out);if(v!==out)n.nodeValue=out;}
+  function doAttrs(el){var a=attrO.get(el);if(!a){a={};attrO.set(el,a);}
+    for(var i=0;i<ATTRS.length;i++){var k=ATTRS[i];if(!el.hasAttribute(k))continue;var v=el.getAttribute(k);
+      if(!a['s'+k]||a['s'+k]!==v)a[k]=v;var out=tr(a[k],el);a['s'+k]=out;if(v!==out)el.setAttribute(k,out);}}
+  function walk(root){if(!root)return;
+    if(root.nodeType===3){if(root.parentNode&&!skipEl(root.parentNode))doText(root);return;}
+    if(root.nodeType!==1||skipEl(root))return;
+    if(root.hasAttribute('placeholder')||root.hasAttribute('title'))doAttrs(root);
+    var w=document.createTreeWalker(root,NodeFilter.SHOW_ELEMENT|NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+      if(n.nodeType===1)return skipEl(n)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;return NodeFilter.FILTER_ACCEPT;}});
+    var n;while((n=w.nextNode())){if(n.nodeType===3){if(n.nodeValue.trim())doText(n);}else if(n.hasAttribute('placeholder')||n.hasAttribute('title'))doAttrs(n);}}
+  function origAttr(el,k){var a=attrO.get(el);return a&&a[k]!=null?a[k]:el.getAttribute(k);}
+  function all(){if(document.body)walk(document.body);}
+
+  /* ---------- Google, out of sight: only the see-through box #hxWork is given to it ---------- */
+  var gState=0;   /* 0 not loaded, 1 loading, 2 ready */
+  function host(){var h=document.getElementById('gtHost');if(!h){h=document.createElement('div');h.id='gtHost';h.setAttribute('aria-hidden','true');document.body.appendChild(h);}return h;}
+  function work(){var w=document.getElementById('hxWork');if(!w){w=document.createElement('div');w.id='hxWork';w.setAttribute('aria-hidden','true');document.body.appendChild(w);}return w;}
+  /* everything else on the page is closed to Google (the website translates it itself) */
+  function closeToGoogle(){var b=document.body;if(!b)return;for(var c=b.firstElementChild;c;c=c.nextElementSibling){
+    if(c.id==='hxWork'||c.id==='gtHost')continue;if(!c.hasAttribute('translate')){c.setAttribute('translate','no');c.setAttribute('data-hxno','');}}}
+  window.googleTranslateElementInit=function(){if(window.__gtInitDone)return;window.__gtInitDone=true;closeToGoogle();host();work();
+    new google.translate.TranslateElement({pageLanguage:'auto',autoDisplay:false},'gtHost');
+    var n=0,t=setInterval(function(){var c=combo();if((c&&c.options.length>1)||++n>100){clearInterval(t);gState=2;toCombo(cur);schedule();}},100);};
+  function load(){if(gState)return;gState=1;closeToGoogle();host();work();setCookie(cur==='en'?'en':cur);if(cur==='en')document.cookie='googtrans=/auto/en;path=/';
+    var sc=document.createElement('script');sc.async=true;sc.src=SRC;sc.onerror=function(){gState=0;showPage();};document.body.appendChild(sc);}
+  function combo(){return document.querySelector('#gtHost select.goog-te-combo');}
+  function toCombo(l){var c=combo();if(!c)return;if(!c.querySelector('option[value="'+l+'"]')){var o=document.createElement('option');o.value=l;o.textContent=l;c.appendChild(o);}
+    if(c.value!==l){c.value=l;c.dispatchEvent(new Event('change'));}}
+  var schedT=null,batch=null;
+  function schedule(){clearTimeout(schedT);schedT=setTimeout(send,30);}
+  function hiddenFrame(){try{var f=window.frameElement;return !!(f&&!f.getClientRects().length);}catch(e){return false;}}
+  function send(){if(!pendN||batch)return;
+    if(hiddenFrame()){clearTimeout(schedT);schedT=setTimeout(send,700);return;}   /* Create Itinerary not open yet: wait (Google skips hidden pages) */if(gState===0){load();return;}if(gState!==2)return;
+    var w=work(),keys=Object.keys(pending),hi=keys.filter(function(k){return pending[k]===2;}),lo=keys.filter(function(k){return pending[k]!==2;});
+    var list=hi.concat(lo).slice(0,250),lang=cur;batch={lang:lang,spans:[],t0:Date.now(),done:{},seen:{}};
+    list.forEach(function(t){if(pending[t]===2)pendHigh--;delete pending[t];pendN--;var s=document.createElement('span');s.textContent=t;s.setAttribute('data-t',t);w.appendChild(s);w.appendChild(document.createTextNode(' '));batch.spans.push(s);});
+    check();}
+  function check(){if(!batch)return;var b=batch,left=0,got=0,w=work();
+    /* Google may rebuild the spans, so the live ones in the box are read each time */
+    var live=w.querySelectorAll('span[data-t]');
+    for(var i=0;i<live.length;i++){var s=live[i],t=s.getAttribute('data-t');if(b.done[t])continue;
+      var txt=s.textContent.replace(/\s+/g,' ').trim(),f=s.querySelector('font');
+      /* Google's answer is complete when its <font> holds the words and stays the same (never keep an empty or half answer) */
+      if(f&&txt&&b.seen[t]===txt){b.done[t]=1;got++;if(b.lang===cur)keep(b.lang,t,txt);}
+      else{if(f&&txt)b.seen[t]=txt;left++;}}
+    if(got)redraw();
+    if(!pendHigh&&got)setTimeout(function(){if(!pendHigh)showPage();},40);
+    if(!left||Date.now()-b.t0>8000||b.lang!==cur){while(w.firstChild)w.removeChild(w.firstChild);batch=null;if(!pendN)showPage();schedule();return;}
+    setTimeout(check,120);}
+  var drawT=null;function redraw(){clearTimeout(drawT);drawT=setTimeout(function(){mute(all);if(obs)obs.takeRecords();if(!pendN&&!batch)showPage();},16);}
+
+  /* ---------- follow the page while it changes ---------- */
+  var muted=0;function mute(f){muted++;try{f();}finally{muted--;}}
+  var obs=null;
+  function observe(){if(obs||!document.body||!window.MutationObserver)return;
+    obs=new MutationObserver(function(recs){if(muted)return;var body=document.body;
+      if(gState)closeToGoogle();
+      mute(function(){for(var i=0;i<recs.length;i++){var r=recs[i];
+        if(r.type==='characterData'){var n=r.target;if(shown.get(n)!==n.nodeValue&&n.parentNode&&!skipEl(n.parentNode))doText(n);}
+        else if(r.type==='attributes'){var el=r.target;if(!skipEl(el))doAttrs(el);}
+        else{for(var j=0;j<r.addedNodes.length;j++){var a=r.addedNodes[j];if(a.isConnected&&body.contains(a))walk(a);}}}});
+      if(obs)obs.takeRecords();});
+    obs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','title']});}
+  function start(){observe();loadLang(cur,function(){mute(all);if(!pendHigh)showPage();});}
+
+  /* show this page in language l */
+  function apply(l){l=l||'en';if(l===cur&&loadedLang[l])return;cur=l;setCookie(l);
+    loadLang(l,function(){if(cur!==l)return;mute(all);if(gState===2)toCombo(l);if(!pendN&&!batch)showPage();schedule();});}
+  /* Google's own parts never show */
+  function css(){if(document.getElementById('hippoLangCss'))return;var st=document.createElement('style');st.id='hippoLangCss';
+    st.textContent='html body>.skiptranslate:not(#google_translate_element),iframe.skiptranslate,iframe.VIpgJd-ZVi9od-ORHb-OEVmcd,.goog-te-banner-frame,'
+      +'.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,.VIpgJd-ZVi9od-aZ2wEe-OiiCO,.goog-te-spinner-pos,#goog-gt-tt,.VIpgJd-yAWNEb-L7lbkb,#goog-gt-vt{display:none!important;visibility:hidden!important}'
+      +'html body{top:0!important}#gtHost{position:absolute!important;left:-10000px!important;top:0!important;width:1px!important;height:1px!important;overflow:hidden!important}'
+      +'#hxWork{position:fixed!important;left:0!important;top:0!important;width:100%!important;max-height:100vh!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important;z-index:-1!important;font-size:2px!important;line-height:2px!important;height:100vh}';
+    (document.head||document.documentElement).appendChild(st);}
+  css();
+
+  /* ---------- typing in the chosen language ---------- */
+  var ITC={hi:'hi',mr:'mr',bn:'bn',gu:'gu',pa:'pa',ta:'ta',te:'te',kn:'kn',ml:'ml',or:'or',ur:'ur',ne:'ne',sa:'sa',si:'si',
+    th:'th',ar:'ar',fa:'fa',ru:'ru',uk:'uk',el:'el',iw:'he',he:'he',am:'am',ti:'ti',sr:'sr',bg:'bg',be:'be',mk:'mk',
+    'zh-CN':'zh-t-i0-pinyin','zh-TW':'zh-hant-t-i0-und',ja:'ja-t-ja-hira-i0-und',ko:'ko-t-i0-und',
+    sd:'sd',ps:'ps',ug:'ug',my:'my',km:'km',lo:'lo',dv:'dv',ka:'ka',hy:'hy',kk:'kk',ky:'ky',tg:'tg',mn:'mn'};
+  function itc(){var l=cur,c=ITC[l];if(!c)return null;return c.indexOf('-')>0?c:c+'-t-i0-und';}
+  var NOWORDS=/(^|[^a-z])(e?mail|phone|mobile|tel|whatsapp|pass|password|pwd|search|find|filter|code|otp|pin|cost|no|num|number|price|amount|qty|pax|adult|child|kids|date|time|url|link|gst|pan|login|user|admin|key|token|id|zip|postal|flight|pnr|conf|confirmation|departs?|arrives?|voucher|currency|cur|web|website|insta|instagram|prefix|next|prev)([^a-z]|$)/i;
+  function words(s){return String(s||'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/([A-Z])([A-Z][a-z])/g,'$1 $2').replace(/[_\-.]+/g,' ');}
+  function eligible(el){
+    if(!el||el.readOnly||el.disabled)return false;
+    var tag=el.tagName;
+    if(tag==='INPUT'){if(!/^(text)$/i.test(el.type||'text'))return false;}else if(tag!=='TEXTAREA')return false;
+    if(/numeric|decimal|email|tel|url|search/i.test(el.inputMode||''))return false;
+    if(/email|tel|username|password|one-time-code|postal|cc-|url/i.test(el.getAttribute('autocomplete')||''))return false;
+    if(el.closest('.notranslate,[translate="no"]:not([data-hxno]),[data-no-translit],#chatbotPanel,#loginGate,.login-gate,form[action*="login"]'))return false;
+    if(NOWORDS.test(words(el.id)+' '+words(el.name)+' '+words(el.getAttribute('aria-label'))))return false;
+    /* pickers that search the saved lists, and company / voucher-number settings (the business's own details) */
+    if(el.classList.contains('cb-input')||el.getAttribute('role')==='combobox'||el.hasAttribute('list')||el.getAttribute('aria-autocomplete'))return false;
+    if(/^is[CG][A-Z]/.test(el.id||'')||el.id==='companyName'||/^(company\.|partner\.|prefix)/.test(el.getAttribute('data-s')||''))return false;
+    if(/search|find|e-?mail|phone|mobile|password/i.test((origAttr(el,'placeholder')||'')+' '+(el.getAttribute('aria-label')||'')))return false;
+    return true;}
+  var cache={},busy=0;
+  function fire(el,type){busy++;try{el.dispatchEvent(new Event(type,{bubbles:true}));}finally{busy--;}}
+  function swap(el,start,word,out,done){
+    if(!out||out===word)return;var v=el.value;if(v.substr(start,word.length)!==word)return;
+    var focused=document.activeElement===el,a=el.selectionStart,b=el.selectionEnd,d=out.length-word.length;
+    el.value=v.slice(0,start)+out+v.slice(start+word.length);
+    if(focused){try{el.setSelectionRange(a>start?a+d:a,b>start?b+d:b);}catch(e){}}
+    fire(el,'input');if(!focused||done)fire(el,'change');}
+  function convert(el,start,word,done){
+    var code=itc();if(!code||!/^[A-Za-z]+$/.test(word))return;
+    if(word.length>1&&word===word.toUpperCase())return;   /* codes like DEL, HKT, SIC stay as they are */
+    var key=code+'|'+word.toLowerCase();
+    if(cache[key]){swap(el,start,word,cache[key],done);return;}
+    fetch('https://inputtools.google.com/request?text='+encodeURIComponent(word)+'&itc='+encodeURIComponent(code)+'&num=1&cp=0&cs=1&ie=utf-8&oe=utf-8&app=hippo',{credentials:'omit',referrerPolicy:'no-referrer'})
+      .then(function(r){return r.json();})
+      .then(function(j){var out=j&&j[0]==='SUCCESS'&&j[1]&&j[1][0]&&j[1][0][1]&&j[1][0][1][0];if(out){cache[key]=out;swap(el,start,word,out,done);}})
+      .catch(function(){});}
+  /* the last word before position pos */
+  function lastWord(v,pos){var m=/(^|[^A-Za-z0-9@#_\/.:\-&+=%])([A-Za-z]+)$/.exec(v.slice(0,pos));return m?{start:pos-m[2].length,word:m[2]}:null;}   /* not part of 6E, e-mail, web address */
+  document.addEventListener('input',function(e){
+    if(busy||!itc())return;var el=e.target;if(!eligible(el))return;
+    if(e.inputType&&e.inputType!=='insertText'&&e.inputType!=='insertLineBreak')return;
+    var ch=e.inputType==='insertLineBreak'?'\n':(e.data||'');if(!/^[\s.,;:!?)\]}"'\/-]$/.test(ch))return;
+    var pos=el.selectionStart;if(pos==null)return;var w=lastWord(el.value,pos-1);if(w)convert(el,w.start,w.word,false);
+  },true);
+  document.addEventListener('focusout',function(e){
+    if(busy||!itc())return;var el=e.target;if(!eligible(el))return;
+    var w=lastWord(el.value,el.value.length);if(w)convert(el,w.start,w.word,true);
+  },true);
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Enter'||busy||!itc())return;var el=e.target;if(!eligible(el)||el.tagName==='TEXTAREA')return;
+    var pos=el.selectionStart;if(pos==null)return;var w=lastWord(el.value,pos);if(!w)return;
+    var key=itc()+'|'+w.word.toLowerCase();if(cache[key])swap(el,w.start,w.word,cache[key],true);else convert(el,w.start,w.word,true);
+  },true);
+
+  /* same language in the website's frames (Create Itinerary) */
+  function frames(l){var f=document.querySelectorAll('iframe');for(var i=0;i<f.length;i++){try{var H=f[i].contentWindow&&f[i].contentWindow.HippoLang;if(H)H.apply(l);}catch(e){}}}
+  window.HippoLang={_st:function(){return {cur:cur,g:gState,pend:pendN,batch:batch?batch.spans.length:0,mem:Object.keys(MEM[cur]||{}).length,loaded:!!loadedLang[cur],some:Object.keys(pending).slice(0,8)};},target:function(){return cur;},apply:function(l){apply(l);frames(l);},load:load,itc:itc,typesIn:eligible,origAttr:origAttr};
+  if(document.body)start();else document.addEventListener('DOMContentLoaded',start);
 })();
 </script>
 </body>

@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://translate.googleapis.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com https://api.emailjs.com https://api.github.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src 'self' https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com https://translate.googleapis.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://translate.googleapis.com https://translate-pa.googleapis.com https://inputtools.google.com https://api.emailjs.com https://api.github.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src 'self' https://translate.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests;">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="google" content="notranslate">
 <script>
@@ -35,7 +35,7 @@
 /* logged in: no login screen from the first moment (the website decides after it has loaded) */
 try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-23-2';   /* change with every new version */
+window.SITE_BUILD='2026-11-23-3';   /* change with every new version */
 /* A language was chosen before: start Google Translate at once (not after the whole page has loaded),
    and keep the page hidden for a moment (max 2.5 s) so English does not flash before the chosen language. */
 /* Language belongs to the person: each user's (and the admin's) own choice is kept on this computer
@@ -48,28 +48,13 @@ try{(function(){
   var want=pref[id]||'en';
   var h=location.hostname,ex='=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
   document.cookie='googtrans'+ex;document.cookie='googtrans'+ex+';domain='+h;document.cookie='googtrans'+ex+';domain=.'+h;
-  if(want!=='en')document.cookie='googtrans=/en/'+want+';path=/';
+  if(want!=='en')document.cookie='googtrans=/auto/'+want+';path=/';
 })();}catch(e){}
-/* (skipped when the line below sends the browser to a fresh address anyway: same test as there) */
-try{var gtRedirect=(function(){try{if(window.self!==window.top||!/^https?:$/.test(location.protocol))return false;var m=/([?&])_v=(\d+)/.exec(location.search);return !m||Date.now()-(+m[2])>30000;}catch(e){return false;}})();
-if(!gtRedirect&&/(^|;\s*)googtrans=\/en\/(?!en(;|$))[a-zA-Z-]+/.test(document.cookie)){
-  window.__gtEarly=true;var H=document.documentElement;H.classList.add('gt-wait');
+/* A language other than English is chosen: the page stays hidden for a moment (max 2.5 s) until the website
+   has put its words in that language (HIPPO-LANG-CORE below; words seen before show at once). */
+try{if(/(^|;\s*)googtrans=\/(en|auto)\/(?!en(;|$))[a-zA-Z-]+/.test(document.cookie)){var H=document.documentElement;H.classList.add('gt-wait');
   var st=document.createElement('style');st.textContent='html.gt-wait body{visibility:hidden}';document.head.appendChild(st);
-  var show=function(){H.classList.remove('gt-wait');};setTimeout(show,2500);
-  /* show the page once the menu words have really changed language (Google marks the page first, then swaps the words) */
-  var first=null,n=0,poll=setInterval(function(){var nav=document.getElementById('primaryNav');if(!nav)return;
-    var t=nav.textContent.replace(/\s+/g,' ').trim(),on=/translated-(ltr|rtl)/.test(H.className);
-    if(on&&first===null)first=t;   /* the words at the moment Google starts */
-    if((on&&t&&t!==first)||++n>60){clearInterval(poll);show();}},40);
-  ['https://translate.googleapis.com','https://translate-pa.googleapis.com','https://www.gstatic.com'].forEach(function(u){var l=document.createElement('link');l.rel='preconnect';l.href=u;l.crossOrigin='';document.head.appendChild(l);});
-  /* Google's own box goes in a hidden holder (#gtHost); the website shows its own Language list */
-  window.googleTranslateElementInit=function(){var go=function(){if(window.__gtInitDone)return;window.__gtInitDone=true;
-    var h=document.getElementById('gtHost');if(!h){h=document.createElement('div');h.id='gtHost';h.setAttribute('aria-hidden','true');document.body.appendChild(h);}
-    new google.translate.TranslateElement({pageLanguage:'en',autoDisplay:false},'gtHost');};
-    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();};
-  var gs=document.createElement('script');gs.async=true;gs.src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-  gs.onerror=show;document.head.appendChild(gs);
-}}catch(e){try{document.documentElement.classList.remove('gt-wait');}catch(_){}}
+  setTimeout(function(){H.classList.remove('gt-wait');},2500);}}catch(e){}
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -6835,12 +6820,12 @@ try{(function(){
   }
   window.currentSession=sessionInfo;
 
-  /* A real person's name: letters (English or Hindi), spaces, . ' - ; 2–60 characters; no "abc"/"test". */
+  /* A real person's name: letters (English, Hindi or another language's letters), spaces, . ' - ; 2–60 characters; no "abc"/"test". */
   function nameProblem(name){
     if(!name)return 'Please enter your name.';
     if(name.length<2)return 'Please enter your full name.';
     if(name.length>60)return 'Name is too long (60 letters max).';
-    if(!/^[A-Za-zऀ-ॿ][A-Za-zऀ-ॿ\s.'-]*$/.test(name))return 'Please use letters only in the name (no numbers or symbols).';
+    if(!/^[A-Za-z\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF\u0590-\u06FF\u0900-\u0DFF\u0E01-\u0E3A\u0E40-\u0E7F\u0E80-\u0EFF\u1000-\u109F\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF][A-Za-z\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF\u0590-\u06FF\u0900-\u0DFF\u0E01-\u0E3A\u0E40-\u0E7F\u0E80-\u0EFF\u1000-\u109F\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF\s.'-]*$/.test(name))return 'Please use letters only in the name (no numbers or symbols).';
     var parts=name.split(' ');
     if(parts.some(function(p){return /^[A-Za-z]+$/.test(p)&&p.length>=3&&isJunkName(p);})||isJunkName(name.replace(/\s/g,'')))
       return 'Please enter your real name (not placeholder text like "abc" or "test").';
@@ -8904,53 +8889,232 @@ function toggleChatbot(){
 
 </script>
 <script>
-/* Language list of the website itself: shown at once (no waiting for Google, no Google logo).
-   Google Translate is loaded only when someone chooses a language (or a language was chosen before);
-   its own box sits hidden in #gtHost and does the translating. English = back to the original page. */
+/* HIPPO-LANG-CORE (the same block is in index.html and itinerary.html; change both together)
+   - The website shows itself in the language the person chose. The website changes its own words:
+     words translated once are kept on this computer (IndexedDB "hippoLang"), so the next time they show at once.
+     Only words not seen before are sent to Google Translate, which works out of sight: it only translates
+     a see-through box (#hxWork) and never touches the page itself; nothing of Google is shown.
+   - The chosen language is kept in the cookie googtrans=/auto/<language> (Google reads the same cookie).
+   - "auto": text typed in another language is shown in the reader's language
+     (a costing typed in Hindi shows in English to someone who uses English, and the other way round).
+   - Typing: in a language with its own letters (Hindi, Tamil, ...) a word typed with English letters becomes
+     that language's letters when Space / a full stop / leaving the box is pressed (no list to choose from).
+     Only the typed word is sent to Google's typing service. Not in: e-mail, phone, password, numbers, prices,
+     dates, codes, search boxes, login and the help chat. */
 (function(){
-  var SRC='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit',loaded=!!window.__gtEarly;
-  var LANGS=[["ab","Abkhaz"],["ace","Acehnese"],["ach","Acholi"],["aa","Afar"],["af","Afrikaans"],["sq","Albanian"],["alz","Alur"],["am","Amharic"],["ar","Arabic"],["hy","Armenian"],["as","Assamese"],["av","Avar"],["awa","Awadhi"],["ay","Aymara"],["az","Azerbaijani"],["ban","Balinese"],["bal","Baluchi"],["bm","Bambara"],["bci","Baoulé"],["ba","Bashkir"],["eu","Basque"],["btx","Batak Karo"],["bts","Batak Simalungun"],["bbc","Batak Toba"],["be","Belarusian"],["bem","Bemba"],["bn","Bengali"],["bew","Betawi"],["bho","Bhojpuri"],["bik","Bikol"],["bs","Bosnian"],["br","Breton"],["bg","Bulgarian"],["bua","Buryat"],["yue","Cantonese"],["ca","Catalan"],["ceb","Cebuano"],["ch","Chamorro"],["ce","Chechen"],["ny","Chichewa"],["zh-CN","Chinese (Simplified)"],["zh-TW","Chinese (Traditional)"],["chk","Chuukese"],["cv","Chuvash"],["co","Corsican"],["crh","Crimean Tatar (Cyrillic)"],["crh-Latn","Crimean Tatar (Latin)"],["hr","Croatian"],["cs","Czech"],["da","Danish"],["fa-AF","Dari"],["dv","Dhivehi"],["din","Dinka"],["doi","Dogri"],["dov","Dombe"],["nl","Dutch"],["dyu","Dyula"],["dz","Dzongkha"],["eo","Esperanto"],["et","Estonian"],["ee","Ewe"],["fo","Faroese"],["fj","Fijian"],["tl","Filipino"],["fi","Finnish"],["fon","Fon"],["fr","French"],["fr-CA","French (Canada)"],["fy","Frisian"],["fur","Friulian"],["ff","Fulani"],["gaa","Ga"],["gl","Galician"],["ka","Georgian"],["de","German"],["el","Greek"],["gn","Guarani"],["gu","Gujarati"],["ht","Haitian Creole"],["cnh","Hakha Chin"],["ha","Hausa"],["haw","Hawaiian"],["iw","Hebrew"],["hil","Hiligaynon"],["hi","Hindi"],["hmn","Hmong"],["hu","Hungarian"],["hrx","Hunsrik"],["iba","Iban"],["is","Icelandic"],["ig","Igbo"],["ilo","Ilocano"],["id","Indonesian"],["iu-Latn","Inuktut (Latin)"],["iu","Inuktut (Syllabics)"],["ga","Irish"],["it","Italian"],["jam","Jamaican Patois"],["ja","Japanese"],["jw","Javanese"],["kac","Jingpo"],["kl","Kalaallisut"],["kn","Kannada"],["kr","Kanuri"],["pam","Kapampangan"],["kk","Kazakh"],["kha","Khasi"],["km","Khmer"],["cgg","Kiga"],["kg","Kikongo"],["rw","Kinyarwanda"],["ktu","Kituba"],["trp","Kokborok"],["kv","Komi"],["gom","Konkani"],["ko","Korean"],["kri","Krio"],["ku","Kurdish (Kurmanji)"],["ckb","Kurdish (Sorani)"],["ky","Kyrgyz"],["lo","Lao"],["ltg","Latgalian"],["la","Latin"],["lv","Latvian"],["lij","Ligurian"],["li","Limburgish"],["ln","Lingala"],["lt","Lithuanian"],["lmo","Lombard"],["lg","Luganda"],["luo","Luo"],["lb","Luxembourgish"],["mk","Macedonian"],["mad","Madurese"],["mai","Maithili"],["mak","Makassar"],["mg","Malagasy"],["ms","Malay"],["ms-Arab","Malay (Jawi)"],["ml","Malayalam"],["mt","Maltese"],["mam","Mam"],["gv","Manx"],["mi","Maori"],["mr","Marathi"],["mh","Marshallese"],["mwr","Marwadi"],["mfe","Mauritian Creole"],["chm","Meadow Mari"],["mni-Mtei","Meiteilon (Manipuri)"],["min","Minang"],["lus","Mizo"],["mn","Mongolian"],["my","Myanmar (Burmese)"],["nhe","Nahuatl (Eastern Huasteca)"],["ndc-ZW","Ndau"],["nr","Ndebele (South)"],["new","Nepalbhasa (Newari)"],["ne","Nepali"],["bm-Nkoo","NKo"],["no","Norwegian"],["nus","Nuer"],["oc","Occitan"],["or","Odia (Oriya)"],["om","Oromo"],["os","Ossetian"],["pag","Pangasinan"],["pap","Papiamento"],["ps","Pashto"],["fa","Persian"],["pl","Polish"],["pt","Portuguese (Brazil)"],["pt-PT","Portuguese (Portugal)"],["pa","Punjabi (Gurmukhi)"],["pa-Arab","Punjabi (Shahmukhi)"],["qu","Quechua"],["kek","Qʼeqchiʼ"],["rom","Romani"],["ro","Romanian"],["rn","Rundi"],["ru","Russian"],["se","Sami (North)"],["sm","Samoan"],["sg","Sango"],["sa","Sanskrit"],["sat-Latn","Santali (Latin)"],["sat","Santali (Ol Chiki)"],["gd","Scots Gaelic"],["nso","Sepedi"],["sr","Serbian"],["st","Sesotho"],["crs","Seychellois Creole"],["shn","Shan"],["sn","Shona"],["scn","Sicilian"],["szl","Silesian"],["sd","Sindhi"],["si","Sinhala"],["sk","Slovak"],["sl","Slovenian"],["so","Somali"],["es","Spanish"],["su","Sundanese"],["sus","Susu"],["sw","Swahili"],["ss","Swati"],["sv","Swedish"],["ty","Tahitian"],["tg","Tajik"],["ber-Latn","Tamazight"],["ber","Tamazight (Tifinagh)"],["ta","Tamil"],["tt","Tatar"],["te","Telugu"],["tet","Tetum"],["th","Thai"],["bo","Tibetan"],["ti","Tigrinya"],["tiv","Tiv"],["tpi","Tok Pisin"],["to","Tongan"],["lua","Tshiluba"],["ts","Tsonga"],["tn","Tswana"],["tcy","Tulu"],["tum","Tumbuka"],["tr","Turkish"],["tk","Turkmen"],["tyv","Tuvan"],["ak","Twi"],["udm","Udmurt"],["uk","Ukrainian"],["ur","Urdu"],["ug","Uyghur"],["uz","Uzbek"],["ve","Venda"],["vec","Venetian"],["vi","Vietnamese"],["war","Waray"],["cy","Welsh"],["wo","Wolof"],["xh","Xhosa"],["sah","Yakut"],["yi","Yiddish"],["yo","Yoruba"],["yua","Yucatec Maya"],["zap","Zapotec"],["zu","Zulu"]];
-  function host(){var h=document.getElementById('gtHost');if(!h){h=document.createElement('div');h.id='gtHost';h.setAttribute('aria-hidden','true');document.body.appendChild(h);}return h;}
-  if(!window.__gtEarly)window.googleTranslateElementInit=function(){host();
-    new google.translate.TranslateElement({pageLanguage:'en',autoDisplay:false},'gtHost');};
-  function load(){if(loaded)return;loaded=true;host();var sc=document.createElement('script');sc.async=true;sc.src=SRC;document.body.appendChild(sc);}
-  function current(){var m=/(?:^|;\s*)googtrans=\/en\/([^;]+)/.exec(document.cookie);var l=m?decodeURIComponent(m[1]):'en';return l||'en';}
-  function clearLang(){var h=location.hostname,ex='=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+  if(window.HippoLang)return;
+  var SRC='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+  /* letters of other writing systems (the Thai baht sign is left out: it is a price sign) */
+  var FOREIGN=/[Ͱ-ϿЀ-ӿ֐-ۿऀ-෿ก-ฺเ-๿຀-໿က-႟぀-ヿ㐀-鿿가-힯]/;
+  var LETTER=/[A-Za-zÀ-ɏ]/;
+  function target(){var m=/(?:^|;\s*)googtrans=\/(?:en|auto)\/([^;]+)/.exec(document.cookie);return m?(decodeURIComponent(m[1])||'en'):'en';}
+  function clearCookie(){var h=location.hostname,ex='=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
     document.cookie='googtrans'+ex;document.cookie='googtrans'+ex+';domain='+h;document.cookie='googtrans'+ex+';domain=.'+h;}
-  function combo(){return document.querySelector('#gtHost select.goog-te-combo');}
-  /* back to English with no refresh: press Google's own (hidden) "Show original" button */
-  function restore(){var f=document.querySelectorAll('iframe.skiptranslate');
-    for(var i=0;i<f.length;i++){try{var d=f[i].contentDocument,r=d&&d.querySelector('[id$=".restore"]');if(r){r.click();setTimeout(clearLang,300);return true;}}catch(e){}}
+  function setCookie(l){clearCookie();if(l&&l!=='en')document.cookie='googtrans=/auto/'+l+';path=/';}
+  var cur=target();
+  function showPage(){var H=document.documentElement;if(H.classList.contains('gt-wait'))H.classList.remove('gt-wait');}
+
+  /* ---------- words kept on this computer ---------- */
+  var MEM={};        /* MEM[lang][text]=translation */
+  var DB=null,dbWait=[];
+  function db(cb){if(DB)return cb(DB);dbWait.push(cb);if(dbWait.length>1)return;
+    var done=function(d){DB=d;var w=dbWait;dbWait=[];w.forEach(function(f){try{f(d);}catch(e){}});};
+    try{var r=indexedDB.open('hippoLang',1);r.onupgradeneeded=function(){r.result.createObjectStore('tx');};
+      r.onsuccess=function(){done(r.result);};r.onerror=function(){done(false);};}catch(e){done(false);}}
+  var loadedLang={};
+  function loadLang(l,cb){if(loadedLang[l]||l==='en'){loadedLang[l]=1;MEM[l]=MEM[l]||{};return cb();}
+    MEM[l]=MEM[l]||{};var fin=false,end=function(){if(fin)return;fin=true;loadedLang[l]=1;cb();};
+    setTimeout(end,1500);   /* never wait long for the stored words */
+    db(function(d){if(!d)return end();try{var st=d.transaction('tx','readonly').objectStore('tx'),k=IDBKeyRange.bound(l+'\u0001',l+'\u0001￿');
+      var rq=st.openCursor(k);rq.onsuccess=function(){var c=rq.result;if(c){MEM[l][String(c.key).slice(l.length+1)]=c.value;c.continue();}else end();};rq.onerror=end;}catch(e){end();}});}
+  var toSave=[],saveT=null;
+  function keep(l,t,v){MEM[l]=MEM[l]||{};MEM[l][t]=v;toSave.push([l+'\u0001'+t,v]);clearTimeout(saveT);saveT=setTimeout(function(){var s=toSave;toSave=[];
+    db(function(d){if(!d)return;try{var st=d.transaction('tx','readwrite').objectStore('tx');s.forEach(function(x){st.put(x[1],x[0]);});}catch(e){}});},400);}
+
+  /* ---------- which text is translated ---------- */
+  var SKIPTAG={SCRIPT:1,STYLE:1,NOSCRIPT:1,TEMPLATE:1,TEXTAREA:1,CODE:1,svg:1,SVG:1};
+  function skipEl(el){
+    for(var p=el;p&&p.nodeType===1;p=p.parentNode){
+      if(SKIPTAG[p.nodeName]||p.id==='hxWork'||p.id==='gtHost'||p.id==='siteLang')return true;
+      if(p.classList&&(p.classList.contains('notranslate')||p.classList.contains('skiptranslate')))return true;
+      if(p.getAttribute&&p.getAttribute('translate')==='no'&&!p.hasAttribute('data-hxno'))return true;}
     return false;}
+  function needs(t,l){if(!t||t.length>3000)return false;if(!LETTER.test(t)&&!FOREIGN.test(t))return false;
+    if(/\d{1,2}:\d{2}/.test(t))return false;   /* clock / time: changes every second, stays as it is */
+    if(l==='en')return FOREIGN.test(t);return true;}
+
+  /* ---------- the page's own words: original kept, shown in the chosen language ---------- */
+  var orig=new WeakMap(),shown=new WeakMap(),attrO=new WeakMap();
+  var ATTRS=['placeholder','title'];
+  var pending={},pendN=0;
+  var pendHigh=0;
+  function want(t,vis){if(!t)return;if(pending[t]){if(vis&&pending[t]<2){pending[t]=2;pendHigh++;}return;}pending[t]=vis?2:1;if(vis)pendHigh++;pendN++;schedule();}
+  function tr(o,el){var t=o.trim();if(!needs(t,cur))return o;if(!loadedLang[cur])return o;var m=MEM[cur]&&MEM[cur][t];
+    if(m==null){want(t,!!(el&&el.offsetParent));return o;}return o.replace(t,m);}   /* words on screen are asked first */
+  function doText(n){var v=n.nodeValue;if(shown.get(n)!==v)orig.set(n,v);var o=orig.get(n);if(o==null)return;
+    var out=cur==='en'&&!FOREIGN.test(o)?o:tr(o,n.parentNode);shown.set(n,out);if(v!==out)n.nodeValue=out;}
+  function doAttrs(el){var a=attrO.get(el);if(!a){a={};attrO.set(el,a);}
+    for(var i=0;i<ATTRS.length;i++){var k=ATTRS[i];if(!el.hasAttribute(k))continue;var v=el.getAttribute(k);
+      if(!a['s'+k]||a['s'+k]!==v)a[k]=v;var out=tr(a[k],el);a['s'+k]=out;if(v!==out)el.setAttribute(k,out);}}
+  function walk(root){if(!root)return;
+    if(root.nodeType===3){if(root.parentNode&&!skipEl(root.parentNode))doText(root);return;}
+    if(root.nodeType!==1||skipEl(root))return;
+    if(root.hasAttribute('placeholder')||root.hasAttribute('title'))doAttrs(root);
+    var w=document.createTreeWalker(root,NodeFilter.SHOW_ELEMENT|NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+      if(n.nodeType===1)return skipEl(n)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;return NodeFilter.FILTER_ACCEPT;}});
+    var n;while((n=w.nextNode())){if(n.nodeType===3){if(n.nodeValue.trim())doText(n);}else if(n.hasAttribute('placeholder')||n.hasAttribute('title'))doAttrs(n);}}
+  function origAttr(el,k){var a=attrO.get(el);return a&&a[k]!=null?a[k]:el.getAttribute(k);}
+  function all(){if(document.body)walk(document.body);}
+
+  /* ---------- Google, out of sight: only the see-through box #hxWork is given to it ---------- */
+  var gState=0;   /* 0 not loaded, 1 loading, 2 ready */
+  function host(){var h=document.getElementById('gtHost');if(!h){h=document.createElement('div');h.id='gtHost';h.setAttribute('aria-hidden','true');document.body.appendChild(h);}return h;}
+  function work(){var w=document.getElementById('hxWork');if(!w){w=document.createElement('div');w.id='hxWork';w.setAttribute('aria-hidden','true');document.body.appendChild(w);}return w;}
+  /* everything else on the page is closed to Google (the website translates it itself) */
+  function closeToGoogle(){var b=document.body;if(!b)return;for(var c=b.firstElementChild;c;c=c.nextElementSibling){
+    if(c.id==='hxWork'||c.id==='gtHost')continue;if(!c.hasAttribute('translate')){c.setAttribute('translate','no');c.setAttribute('data-hxno','');}}}
+  window.googleTranslateElementInit=function(){if(window.__gtInitDone)return;window.__gtInitDone=true;closeToGoogle();host();work();
+    new google.translate.TranslateElement({pageLanguage:'auto',autoDisplay:false},'gtHost');
+    var n=0,t=setInterval(function(){var c=combo();if((c&&c.options.length>1)||++n>100){clearInterval(t);gState=2;toCombo(cur);schedule();}},100);};
+  function load(){if(gState)return;gState=1;closeToGoogle();host();work();setCookie(cur==='en'?'en':cur);if(cur==='en')document.cookie='googtrans=/auto/en;path=/';
+    var sc=document.createElement('script');sc.async=true;sc.src=SRC;sc.onerror=function(){gState=0;showPage();};document.body.appendChild(sc);}
+  function combo(){return document.querySelector('#gtHost select.goog-te-combo');}
+  function toCombo(l){var c=combo();if(!c)return;if(!c.querySelector('option[value="'+l+'"]')){var o=document.createElement('option');o.value=l;o.textContent=l;c.appendChild(o);}
+    if(c.value!==l){c.value=l;c.dispatchEvent(new Event('change'));}}
+  var schedT=null,batch=null;
+  function schedule(){clearTimeout(schedT);schedT=setTimeout(send,30);}
+  function hiddenFrame(){try{var f=window.frameElement;return !!(f&&!f.getClientRects().length);}catch(e){return false;}}
+  function send(){if(!pendN||batch)return;
+    if(hiddenFrame()){clearTimeout(schedT);schedT=setTimeout(send,700);return;}   /* Create Itinerary not open yet: wait (Google skips hidden pages) */if(gState===0){load();return;}if(gState!==2)return;
+    var w=work(),keys=Object.keys(pending),hi=keys.filter(function(k){return pending[k]===2;}),lo=keys.filter(function(k){return pending[k]!==2;});
+    var list=hi.concat(lo).slice(0,250),lang=cur;batch={lang:lang,spans:[],t0:Date.now(),done:{},seen:{}};
+    list.forEach(function(t){if(pending[t]===2)pendHigh--;delete pending[t];pendN--;var s=document.createElement('span');s.textContent=t;s.setAttribute('data-t',t);w.appendChild(s);w.appendChild(document.createTextNode(' '));batch.spans.push(s);});
+    check();}
+  function check(){if(!batch)return;var b=batch,left=0,got=0,w=work();
+    /* Google may rebuild the spans, so the live ones in the box are read each time */
+    var live=w.querySelectorAll('span[data-t]');
+    for(var i=0;i<live.length;i++){var s=live[i],t=s.getAttribute('data-t');if(b.done[t])continue;
+      var txt=s.textContent.replace(/\s+/g,' ').trim(),f=s.querySelector('font');
+      /* Google's answer is complete when its <font> holds the words and stays the same (never keep an empty or half answer) */
+      if(f&&txt&&b.seen[t]===txt){b.done[t]=1;got++;if(b.lang===cur)keep(b.lang,t,txt);}
+      else{if(f&&txt)b.seen[t]=txt;left++;}}
+    if(got)redraw();
+    if(!pendHigh&&got)setTimeout(function(){if(!pendHigh)showPage();},40);
+    if(!left||Date.now()-b.t0>8000||b.lang!==cur){while(w.firstChild)w.removeChild(w.firstChild);batch=null;if(!pendN)showPage();schedule();return;}
+    setTimeout(check,120);}
+  var drawT=null;function redraw(){clearTimeout(drawT);drawT=setTimeout(function(){mute(all);if(obs)obs.takeRecords();if(!pendN&&!batch)showPage();},16);}
+
+  /* ---------- follow the page while it changes ---------- */
+  var muted=0;function mute(f){muted++;try{f();}finally{muted--;}}
+  var obs=null;
+  function observe(){if(obs||!document.body||!window.MutationObserver)return;
+    obs=new MutationObserver(function(recs){if(muted)return;var body=document.body;
+      if(gState)closeToGoogle();
+      mute(function(){for(var i=0;i<recs.length;i++){var r=recs[i];
+        if(r.type==='characterData'){var n=r.target;if(shown.get(n)!==n.nodeValue&&n.parentNode&&!skipEl(n.parentNode))doText(n);}
+        else if(r.type==='attributes'){var el=r.target;if(!skipEl(el))doAttrs(el);}
+        else{for(var j=0;j<r.addedNodes.length;j++){var a=r.addedNodes[j];if(a.isConnected&&body.contains(a))walk(a);}}}});
+      if(obs)obs.takeRecords();});
+    obs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','title']});}
+  function start(){observe();loadLang(cur,function(){mute(all);if(!pendHigh)showPage();});}
+
+  /* show this page in language l */
+  function apply(l){l=l||'en';if(l===cur&&loadedLang[l])return;cur=l;setCookie(l);
+    loadLang(l,function(){if(cur!==l)return;mute(all);if(gState===2)toCombo(l);if(!pendN&&!batch)showPage();schedule();});}
+  /* Google's own parts never show */
+  function css(){if(document.getElementById('hippoLangCss'))return;var st=document.createElement('style');st.id='hippoLangCss';
+    st.textContent='html body>.skiptranslate:not(#google_translate_element),iframe.skiptranslate,iframe.VIpgJd-ZVi9od-ORHb-OEVmcd,.goog-te-banner-frame,'
+      +'.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,.VIpgJd-ZVi9od-aZ2wEe-OiiCO,.goog-te-spinner-pos,#goog-gt-tt,.VIpgJd-yAWNEb-L7lbkb,#goog-gt-vt{display:none!important;visibility:hidden!important}'
+      +'html body{top:0!important}#gtHost{position:absolute!important;left:-10000px!important;top:0!important;width:1px!important;height:1px!important;overflow:hidden!important}'
+      +'#hxWork{position:fixed!important;left:0!important;top:0!important;width:100%!important;max-height:100vh!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important;z-index:-1!important;font-size:2px!important;line-height:2px!important;height:100vh}';
+    (document.head||document.documentElement).appendChild(st);}
+  css();
+
+  /* ---------- typing in the chosen language ---------- */
+  var ITC={hi:'hi',mr:'mr',bn:'bn',gu:'gu',pa:'pa',ta:'ta',te:'te',kn:'kn',ml:'ml',or:'or',ur:'ur',ne:'ne',sa:'sa',si:'si',
+    th:'th',ar:'ar',fa:'fa',ru:'ru',uk:'uk',el:'el',iw:'he',he:'he',am:'am',ti:'ti',sr:'sr',bg:'bg',be:'be',mk:'mk',
+    'zh-CN':'zh-t-i0-pinyin','zh-TW':'zh-hant-t-i0-und',ja:'ja-t-ja-hira-i0-und',ko:'ko-t-i0-und',
+    sd:'sd',ps:'ps',ug:'ug',my:'my',km:'km',lo:'lo',dv:'dv',ka:'ka',hy:'hy',kk:'kk',ky:'ky',tg:'tg',mn:'mn'};
+  function itc(){var l=cur,c=ITC[l];if(!c)return null;return c.indexOf('-')>0?c:c+'-t-i0-und';}
+  var NOWORDS=/(^|[^a-z])(e?mail|phone|mobile|tel|whatsapp|pass|password|pwd|search|find|filter|code|otp|pin|cost|no|num|number|price|amount|qty|pax|adult|child|kids|date|time|url|link|gst|pan|login|user|admin|key|token|id|zip|postal|flight|pnr|conf|confirmation|departs?|arrives?|voucher|currency|cur|web|website|insta|instagram|prefix|next|prev)([^a-z]|$)/i;
+  function words(s){return String(s||'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/([A-Z])([A-Z][a-z])/g,'$1 $2').replace(/[_\-.]+/g,' ');}
+  function eligible(el){
+    if(!el||el.readOnly||el.disabled)return false;
+    var tag=el.tagName;
+    if(tag==='INPUT'){if(!/^(text)$/i.test(el.type||'text'))return false;}else if(tag!=='TEXTAREA')return false;
+    if(/numeric|decimal|email|tel|url|search/i.test(el.inputMode||''))return false;
+    if(/email|tel|username|password|one-time-code|postal|cc-|url/i.test(el.getAttribute('autocomplete')||''))return false;
+    if(el.closest('.notranslate,[translate="no"]:not([data-hxno]),[data-no-translit],#chatbotPanel,#loginGate,.login-gate,form[action*="login"]'))return false;
+    if(NOWORDS.test(words(el.id)+' '+words(el.name)+' '+words(el.getAttribute('aria-label'))))return false;
+    /* pickers that search the saved lists, and company / voucher-number settings (the business's own details) */
+    if(el.classList.contains('cb-input')||el.getAttribute('role')==='combobox'||el.hasAttribute('list')||el.getAttribute('aria-autocomplete'))return false;
+    if(/^is[CG][A-Z]/.test(el.id||'')||el.id==='companyName'||/^(company\.|partner\.|prefix)/.test(el.getAttribute('data-s')||''))return false;
+    if(/search|find|e-?mail|phone|mobile|password/i.test((origAttr(el,'placeholder')||'')+' '+(el.getAttribute('aria-label')||'')))return false;
+    return true;}
+  var cache={},busy=0;
+  function fire(el,type){busy++;try{el.dispatchEvent(new Event(type,{bubbles:true}));}finally{busy--;}}
+  function swap(el,start,word,out,done){
+    if(!out||out===word)return;var v=el.value;if(v.substr(start,word.length)!==word)return;
+    var focused=document.activeElement===el,a=el.selectionStart,b=el.selectionEnd,d=out.length-word.length;
+    el.value=v.slice(0,start)+out+v.slice(start+word.length);
+    if(focused){try{el.setSelectionRange(a>start?a+d:a,b>start?b+d:b);}catch(e){}}
+    fire(el,'input');if(!focused||done)fire(el,'change');}
+  function convert(el,start,word,done){
+    var code=itc();if(!code||!/^[A-Za-z]+$/.test(word))return;
+    if(word.length>1&&word===word.toUpperCase())return;   /* codes like DEL, HKT, SIC stay as they are */
+    var key=code+'|'+word.toLowerCase();
+    if(cache[key]){swap(el,start,word,cache[key],done);return;}
+    fetch('https://inputtools.google.com/request?text='+encodeURIComponent(word)+'&itc='+encodeURIComponent(code)+'&num=1&cp=0&cs=1&ie=utf-8&oe=utf-8&app=hippo',{credentials:'omit',referrerPolicy:'no-referrer'})
+      .then(function(r){return r.json();})
+      .then(function(j){var out=j&&j[0]==='SUCCESS'&&j[1]&&j[1][0]&&j[1][0][1]&&j[1][0][1][0];if(out){cache[key]=out;swap(el,start,word,out,done);}})
+      .catch(function(){});}
+  /* the last word before position pos */
+  function lastWord(v,pos){var m=/(^|[^A-Za-z0-9@#_\/.:\-&+=%])([A-Za-z]+)$/.exec(v.slice(0,pos));return m?{start:pos-m[2].length,word:m[2]}:null;}   /* not part of 6E, e-mail, web address */
+  document.addEventListener('input',function(e){
+    if(busy||!itc())return;var el=e.target;if(!eligible(el))return;
+    if(e.inputType&&e.inputType!=='insertText'&&e.inputType!=='insertLineBreak')return;
+    var ch=e.inputType==='insertLineBreak'?'\n':(e.data||'');if(!/^[\s.,;:!?)\]}"'\/-]$/.test(ch))return;
+    var pos=el.selectionStart;if(pos==null)return;var w=lastWord(el.value,pos-1);if(w)convert(el,w.start,w.word,false);
+  },true);
+  document.addEventListener('focusout',function(e){
+    if(busy||!itc())return;var el=e.target;if(!eligible(el))return;
+    var w=lastWord(el.value,el.value.length);if(w)convert(el,w.start,w.word,true);
+  },true);
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Enter'||busy||!itc())return;var el=e.target;if(!eligible(el)||el.tagName==='TEXTAREA')return;
+    var pos=el.selectionStart;if(pos==null)return;var w=lastWord(el.value,pos);if(!w)return;
+    var key=itc()+'|'+w.word.toLowerCase();if(cache[key])swap(el,w.start,w.word,cache[key],true);else convert(el,w.start,w.word,true);
+  },true);
+
+  /* same language in the website's frames (Create Itinerary) */
+  function frames(l){var f=document.querySelectorAll('iframe');for(var i=0;i<f.length;i++){try{var H=f[i].contentWindow&&f[i].contentWindow.HippoLang;if(H)H.apply(l);}catch(e){}}}
+  window.HippoLang={_st:function(){return {cur:cur,g:gState,pend:pendN,batch:batch?batch.spans.length:0,mem:Object.keys(MEM[cur]||{}).length,loaded:!!loadedLang[cur],some:Object.keys(pending).slice(0,8)};},target:function(){return cur;},apply:function(l){apply(l);frames(l);},load:load,itc:itc,typesIn:eligible,origAttr:origAttr};
+  if(document.body)start();else document.addEventListener('DOMContentLoaded',start);
+})();
+</script>
+<script>
+/* Language list of the website itself: shown at once (no waiting for Google, no Google logo).
+   Each person's (user / admin) own choice is kept on this computer; HippoLang (above) does the translating. */
+(function(){
+  var LANGS=[["ab","Abkhaz"],["ace","Acehnese"],["ach","Acholi"],["aa","Afar"],["af","Afrikaans"],["sq","Albanian"],["alz","Alur"],["am","Amharic"],["ar","Arabic"],["hy","Armenian"],["as","Assamese"],["av","Avar"],["awa","Awadhi"],["ay","Aymara"],["az","Azerbaijani"],["ban","Balinese"],["bal","Baluchi"],["bm","Bambara"],["bci","Baoulé"],["ba","Bashkir"],["eu","Basque"],["btx","Batak Karo"],["bts","Batak Simalungun"],["bbc","Batak Toba"],["be","Belarusian"],["bem","Bemba"],["bn","Bengali"],["bew","Betawi"],["bho","Bhojpuri"],["bik","Bikol"],["bs","Bosnian"],["br","Breton"],["bg","Bulgarian"],["bua","Buryat"],["yue","Cantonese"],["ca","Catalan"],["ceb","Cebuano"],["ch","Chamorro"],["ce","Chechen"],["ny","Chichewa"],["zh-CN","Chinese (Simplified)"],["zh-TW","Chinese (Traditional)"],["chk","Chuukese"],["cv","Chuvash"],["co","Corsican"],["crh","Crimean Tatar (Cyrillic)"],["crh-Latn","Crimean Tatar (Latin)"],["hr","Croatian"],["cs","Czech"],["da","Danish"],["fa-AF","Dari"],["dv","Dhivehi"],["din","Dinka"],["doi","Dogri"],["dov","Dombe"],["nl","Dutch"],["dyu","Dyula"],["dz","Dzongkha"],["eo","Esperanto"],["et","Estonian"],["ee","Ewe"],["fo","Faroese"],["fj","Fijian"],["tl","Filipino"],["fi","Finnish"],["fon","Fon"],["fr","French"],["fr-CA","French (Canada)"],["fy","Frisian"],["fur","Friulian"],["ff","Fulani"],["gaa","Ga"],["gl","Galician"],["ka","Georgian"],["de","German"],["el","Greek"],["gn","Guarani"],["gu","Gujarati"],["ht","Haitian Creole"],["cnh","Hakha Chin"],["ha","Hausa"],["haw","Hawaiian"],["iw","Hebrew"],["hil","Hiligaynon"],["hi","Hindi"],["hmn","Hmong"],["hu","Hungarian"],["hrx","Hunsrik"],["iba","Iban"],["is","Icelandic"],["ig","Igbo"],["ilo","Ilocano"],["id","Indonesian"],["iu-Latn","Inuktut (Latin)"],["iu","Inuktut (Syllabics)"],["ga","Irish"],["it","Italian"],["jam","Jamaican Patois"],["ja","Japanese"],["jw","Javanese"],["kac","Jingpo"],["kl","Kalaallisut"],["kn","Kannada"],["kr","Kanuri"],["pam","Kapampangan"],["kk","Kazakh"],["kha","Khasi"],["km","Khmer"],["cgg","Kiga"],["kg","Kikongo"],["rw","Kinyarwanda"],["ktu","Kituba"],["trp","Kokborok"],["kv","Komi"],["gom","Konkani"],["ko","Korean"],["kri","Krio"],["ku","Kurdish (Kurmanji)"],["ckb","Kurdish (Sorani)"],["ky","Kyrgyz"],["lo","Lao"],["ltg","Latgalian"],["la","Latin"],["lv","Latvian"],["lij","Ligurian"],["li","Limburgish"],["ln","Lingala"],["lt","Lithuanian"],["lmo","Lombard"],["lg","Luganda"],["luo","Luo"],["lb","Luxembourgish"],["mk","Macedonian"],["mad","Madurese"],["mai","Maithili"],["mak","Makassar"],["mg","Malagasy"],["ms","Malay"],["ms-Arab","Malay (Jawi)"],["ml","Malayalam"],["mt","Maltese"],["mam","Mam"],["gv","Manx"],["mi","Maori"],["mr","Marathi"],["mh","Marshallese"],["mwr","Marwadi"],["mfe","Mauritian Creole"],["chm","Meadow Mari"],["mni-Mtei","Meiteilon (Manipuri)"],["min","Minang"],["lus","Mizo"],["mn","Mongolian"],["my","Myanmar (Burmese)"],["nhe","Nahuatl (Eastern Huasteca)"],["ndc-ZW","Ndau"],["nr","Ndebele (South)"],["new","Nepalbhasa (Newari)"],["ne","Nepali"],["bm-Nkoo","NKo"],["no","Norwegian"],["nus","Nuer"],["oc","Occitan"],["or","Odia (Oriya)"],["om","Oromo"],["os","Ossetian"],["pag","Pangasinan"],["pap","Papiamento"],["ps","Pashto"],["fa","Persian"],["pl","Polish"],["pt","Portuguese (Brazil)"],["pt-PT","Portuguese (Portugal)"],["pa","Punjabi (Gurmukhi)"],["pa-Arab","Punjabi (Shahmukhi)"],["qu","Quechua"],["kek","Qʼeqchiʼ"],["rom","Romani"],["ro","Romanian"],["rn","Rundi"],["ru","Russian"],["se","Sami (North)"],["sm","Samoan"],["sg","Sango"],["sa","Sanskrit"],["sat-Latn","Santali (Latin)"],["sat","Santali (Ol Chiki)"],["gd","Scots Gaelic"],["nso","Sepedi"],["sr","Serbian"],["st","Sesotho"],["crs","Seychellois Creole"],["shn","Shan"],["sn","Shona"],["scn","Sicilian"],["szl","Silesian"],["sd","Sindhi"],["si","Sinhala"],["sk","Slovak"],["sl","Slovenian"],["so","Somali"],["es","Spanish"],["su","Sundanese"],["sus","Susu"],["sw","Swahili"],["ss","Swati"],["sv","Swedish"],["ty","Tahitian"],["tg","Tajik"],["ber-Latn","Tamazight"],["ber","Tamazight (Tifinagh)"],["ta","Tamil"],["tt","Tatar"],["te","Telugu"],["tet","Tetum"],["th","Thai"],["bo","Tibetan"],["ti","Tigrinya"],["tiv","Tiv"],["tpi","Tok Pisin"],["to","Tongan"],["lua","Tshiluba"],["ts","Tsonga"],["tn","Tswana"],["tcy","Tulu"],["tum","Tumbuka"],["tr","Turkish"],["tk","Turkmen"],["tyv","Tuvan"],["ak","Twi"],["udm","Udmurt"],["uk","Ukrainian"],["ur","Urdu"],["ug","Uyghur"],["uz","Uzbek"],["ve","Venda"],["vec","Venetian"],["vi","Vietnamese"],["war","Waray"],["cy","Welsh"],["wo","Wolof"],["xh","Xhosa"],["sah","Yakut"],["yi","Yiddish"],["yo","Yoruba"],["yua","Yucatec Maya"],["zap","Zapotec"],["zu","Zulu"]];
   function who(){try{return localStorage.getItem('travelCurrentUserKey')||'';}catch(e){return '';}}
   function prefs(){try{return JSON.parse(localStorage.getItem('hippoLangPref')||'{}')||{};}catch(e){return {};}}
   function remember(l){var p=prefs();p[who()||'_guest']=l;try{localStorage.setItem('hippoLangPref',JSON.stringify(p));}catch(e){}}
-  function choose(l,keep){
-    if(!keep)remember(l);
-    if(l==='en'){clearLang();if(restore())return;
-      /* only if Google's own "Show original" could not be reached: open the page again in English */
-      if(/translated-(ltr|rtl)/.test(document.documentElement.className))location.reload();return;}
-    document.cookie='googtrans=/en/'+l+';path=/';
-    var c=combo();
-    if(c&&c.options.length>1){c.value=l;c.dispatchEvent(new Event('change'));return;}
-    if(!loaded){load();return;}   /* Google reads the saved language when it starts */
-    var n=0,t=setInterval(function(){var c=combo();if(c&&c.options.length>1){clearInterval(t);if(c.value!==l){c.value=l;c.dispatchEvent(new Event('change'));}}else if(++n>80)clearInterval(t);},150);
-  }
-  var box=document.getElementById('google_translate_element');if(!box)return;
+  function choose(l,keep){if(!keep)remember(l);window.HippoLang.apply(l);}
+  var box=document.getElementById('google_translate_element');if(!box||!window.HippoLang)return;
   var sel=document.createElement('select');sel.id='siteLang';sel.className='gt-load gt-sel notranslate';sel.setAttribute('translate','no');
   sel.setAttribute('aria-label','Language: translate this website');
   var html='<option value="en">English</option>';
   LANGS.forEach(function(x){html+='<option value="'+x[0]+'">'+x[1]+'</option>';});
   sel.innerHTML=html;
-  var cur=current();if(!sel.querySelector('option[value="'+cur.replace(/"/g,'')+'"]'))cur='en';sel.value=cur;
+  var cur=HippoLang.target();if(!sel.querySelector('option[value="'+cur.replace(/"/g,'')+'"]'))cur='en';sel.value=cur;
   sel.addEventListener('change',function(){choose(sel.value);});
   box.appendChild(sel);
-  window.loadTranslate=load;window.chooseLanguage=choose;
+  window.loadTranslate=HippoLang.load;window.chooseLanguage=choose;
   /* someone else logs in (or logs out) without the page opening again: show that person's own language */
   var lastWho=who();
   setInterval(function(){var w=who();if(w===lastWho)return;lastWho=w;
-    var want=prefs()[w||'_guest']||'en',now=/translated-(ltr|rtl)/.test(document.documentElement.className)?current():'en';
-    if(want!==now){sel.value=sel.querySelector('option[value="'+want+'"]')?want:'en';choose(sel.value,true);}},800);
+    var want=prefs()[w||'_guest']||'en';if(want!==HippoLang.target()||want!=='en'){sel.value=sel.querySelector('option[value="'+want+'"]')?want:'en';choose(sel.value,true);}},800);
 })();
 </script>
 <style>
@@ -10338,7 +10502,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 23 Nov 2026 (2)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 23 Nov 2026 (3)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
