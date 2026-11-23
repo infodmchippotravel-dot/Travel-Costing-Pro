@@ -629,6 +629,24 @@ html.autoh .tp-box{max-height:calc(var(--vh,100vh) * .92)!important}
 html.autoh #dlg{padding:calc(var(--vh,100vh) * .18) 16px 0!important}
 @media (max-width:640px){html.autoh #tp{padding:0!important}html.autoh .tp-box{max-height:var(--vh,100vh)!important;height:var(--vh,100vh)!important}}
 </style>
+<style id="listMoreCss">
+/* Show all / Show less — same slim look as the website */
+.list-more{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 8px}
+.list-more::before,.list-more::after{content:"";flex:1 1 20px;height:1px;background:linear-gradient(90deg,transparent,#C6A76B 70%);opacity:.55}
+.list-more::after{background:linear-gradient(270deg,transparent,#C6A76B 70%)}
+.list-more button{position:relative;display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;height:32px;min-height:32px;padding:0 14px 0 12px;border-radius:999px;
+  font-family:inherit;font-size:13px;font-weight:600;line-height:1;letter-spacing:.01em;background:#F3ECDD;color:#14213A;border:1px solid #C6A76B;box-shadow:0 1px 2px rgba(11,31,58,.06);
+  cursor:pointer;transition:background .18s,color .18s,box-shadow .18s,transform .18s;white-space:nowrap}
+.list-more button::after{content:"";position:absolute;inset:-6px -2px}
+.list-more button:hover{background:#0B1F3A;color:#fff;box-shadow:0 4px 12px rgba(11,31,58,.18);transform:translateY(-1px)}
+.list-more .lm-ic{width:7px;height:7px;border:solid currentColor;border-width:0 2px 2px 0;transform:translateY(-2px) rotate(45deg)}
+.list-more .lm-ic.up{transform:translateY(2px) rotate(-135deg)}
+.list-more .lm-hint{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:var(--muted);white-space:nowrap}
+html.theme-dark .list-more button{background:#2A2618;color:#EEE9DF;border-color:#9C7C43}
+html.theme-dark .list-more button:hover{background:#C6A76B;color:#0B1F3A}
+@media (max-width:600px){.list-more .lm-hint{display:none}}
+@media print{.list-more{display:none}}
+</style>
 </head>
 <body>
 
@@ -1770,9 +1788,9 @@ function renderList() {
   const max = q.length ? 150 : showAllOld ? 2000 : SHORT;
   // Show all / Show less sit together ABOVE the list (no hunting for the button at the bottom of a long list)
   const more = items.length > max
-    ? `<div class="btn-row list-more" style="justify-content:center;margin:0 0 10px"><button class="btn ghost" type="button" data-act="showOld">▼ Show all ${items.length} vouchers</button><span class="hint" style="margin:0">or type a name / place above</span></div>`
+    ? `<div class="list-more"><button type="button" data-act="showOld"><span class="lm-ic" aria-hidden="true"></span>Show all ${items.length} vouchers</button><span class="lm-hint">or type a name / place above</span></div>`
     : (!q.length && showAllOld && items.length > SHORT)
-      ? `<div class="btn-row list-more" style="justify-content:center;margin:0 0 10px"><button class="btn ghost" type="button" data-act="showLess">▲ Show less</button><span class="hint" style="margin:0">Showing all ${items.length} vouchers</span></div>`
+      ? `<div class="list-more"><button type="button" data-act="showLess"><span class="lm-ic up" aria-hidden="true"></span>Show less</button><span class="lm-hint">Showing all ${items.length} vouchers</span></div>`
       : '';
   $('list').innerHTML = items.length
     ? more + `<table class="list"><thead><tr><th style="width:110px">Month</th><th>Client</th><th style="width:180px">Travel dates</th><th style="width:100px">Days</th><th style="width:230px"></th></tr></thead><tbody>${items.slice(0, max).map(x => x.html).join('')}</tbody></table>`

@@ -35,7 +35,7 @@
 /* logged in: no login screen from the first moment (the website decides after it has loaded) */
 try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-23-3';   /* change with every new version */
+window.SITE_BUILD='2026-11-23-4';   /* change with every new version */
 /* A language was chosen before: start Google Translate at once (not after the whole page has loaded),
    and keep the page hidden for a moment (max 2.5 s) so English does not flash before the chosen language. */
 /* Language belongs to the person: each user's (and the admin's) own choice is kept on this computer
@@ -2616,10 +2616,23 @@ html body #pdf .pdf-page .pdf-terms li::marker{color:#876830}
 </style>
 <style id="listMoreCss">
 /* Show all / Show less — one look everywhere (All Vouchers, My Costings, Saved Rates), always ABOVE the list */
-html body .list-more{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;margin:0 0 12px}
+/* slim row: thin gold line — small pill button — thin gold line */
+html body .list-more{display:flex;flex-wrap:nowrap;align-items:center;justify-content:center;gap:10px;margin:0 0 8px;min-height:0}
+html body .list-more::before,html body .list-more::after{content:"";flex:1 1 20px;height:1px;background:linear-gradient(90deg,transparent,var(--gold,#C6A76B) 70%);opacity:.55}
+html body .list-more::after{background:linear-gradient(270deg,transparent,var(--gold,#C6A76B) 70%)}
 html body .list-more[hidden]{display:none!important}
-html body .list-more button{min-height:44px;font-weight:700}
-html body .list-more .lm-hint{font-size:13px;color:var(--muted)}
+html body .list-more button,html body .list-more button.btn-ghost{position:relative;display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;
+  min-height:32px!important;height:32px;padding:0 14px 0 12px!important;border-radius:999px!important;font-size:13px!important;font-weight:600;letter-spacing:.01em;
+  background:var(--gold-soft,#F3ECDD)!important;color:var(--text,#14213A)!important;border:1px solid var(--gold,#C6A76B)!important;box-shadow:0 1px 2px rgba(11,31,58,.06);
+  cursor:pointer;transition:background .18s,color .18s,box-shadow .18s,transform .18s;white-space:nowrap}
+html body .list-more button::after{content:"";position:absolute;inset:-6px -2px}   /* bigger finger target without taking space */
+html body .list-more button:hover{background:var(--navy,#0B1F3A)!important;color:#fff!important;box-shadow:0 4px 12px rgba(11,31,58,.18);transform:translateY(-1px)}
+html body .list-more button:active{transform:none}
+html body.dark .list-more button:hover{background:var(--gold,#C6A76B)!important;color:#0B1F3A!important}
+html body .list-more .lm-ic{width:7px;height:7px;border:solid currentColor;border-width:0 2px 2px 0;transform:translateY(-2px) rotate(45deg);transition:transform .18s}
+html body .list-more .lm-ic.up{transform:translateY(2px) rotate(-135deg)}
+html body .list-more .lm-hint{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:var(--muted);white-space:nowrap}
+@media (max-width:600px){html body .list-more .lm-hint{display:none}}   /* the search box above already says this */
 html body tr.lm-hide{display:none!important}
 </style>
 <style id="cssEnd"></style>
@@ -7902,8 +7915,8 @@ try{(function(){
     var searching=!!((($('savedSearch')||{}).value)||'').trim();
     var lim=(state.all||searching)?list.length:PAGE_SIZE;
     var more=list.length<=PAGE_SIZE||searching?''
-      :state.all?'<div class="list-more no-print"><button type="button" class="btn-ghost" data-saved-more="less">▲ Show less</button><span class="lm-hint">Showing all '+list.length+' costings</span></div>'
-      :'<div class="list-more no-print"><button type="button" class="btn-ghost" data-saved-more="all">▼ Show all '+list.length+' costings</button><span class="lm-hint">or type a name / COST no. above</span></div>';
+      :state.all?'<div class="list-more no-print"><button type="button" class="btn-ghost" data-saved-more="less"><span class="lm-ic up" aria-hidden="true"></span>Show less</button><span class="lm-hint">Showing all '+list.length+' costings</span></div>'
+      :'<div class="list-more no-print"><button type="button" class="btn-ghost" data-saved-more="all"><span class="lm-ic" aria-hidden="true"></span>Show all '+list.length+' costings</button><span class="lm-hint">or type a name / COST no. above</span></div>';
     var rows=list.slice(0,lim).map(function(r){
       var id=jsAttr(r.id),name=escapeHtml(r.name||'—');
       var phone=r.taglineNumber?escapeHtml((r.phoneCode||'+91')+' '+r.taglineNumber):'';
@@ -10502,7 +10515,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 23 Nov 2026 (3)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 23 Nov 2026 (4)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -16360,8 +16373,8 @@ try{(function(){
     if(n<=LIMIT||searching()){bar.hidden=true;bar.innerHTML='';return;}
     bar.hidden=false;
     bar.innerHTML=open[id]
-      ?'<button type="button" class="btn-ghost" data-lm="less">▲ Show less</button><span class="lm-hint">Showing all '+n+' '+LISTS[id]+'</span>'
-      :'<button type="button" class="btn-ghost" data-lm="all">▼ Show all '+n+' '+LISTS[id]+'</button><span class="lm-hint">or type a name in the search box</span>';
+      ?'<button type="button" class="btn-ghost" data-lm="less"><span class="lm-ic up" aria-hidden="true"></span>Show less</button><span class="lm-hint">Showing all '+n+' '+LISTS[id]+'</span>'
+      :'<button type="button" class="btn-ghost" data-lm="all"><span class="lm-ic" aria-hidden="true"></span>Show all '+n+' '+LISTS[id]+'</button><span class="lm-hint">or type a name in the search box</span>';
   }
   function watch(id){
     var tb=document.getElementById(id);if(!tb||tb.__lm)return !!tb;tb.__lm=1;
