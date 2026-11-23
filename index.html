@@ -34,7 +34,25 @@
 /* logged in: no login screen from the first moment (the website decides after it has loaded) */
 try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-22-3';   /* change with every new version */
+window.SITE_BUILD='2026-11-23-1';   /* change with every new version */
+/* A language was chosen before: start Google Translate at once (not after the whole page has loaded),
+   and keep the page hidden for a moment (max 2.5 s) so English does not flash before the chosen language. */
+try{if(/(^|;\s*)googtrans=\/en\/(?!en(;|$))[a-zA-Z-]+/.test(document.cookie)){
+  window.__gtEarly=true;var H=document.documentElement;H.classList.add('gt-wait');
+  var st=document.createElement('style');st.textContent='html.gt-wait body{visibility:hidden}';document.head.appendChild(st);
+  var show=function(){H.classList.remove('gt-wait');};setTimeout(show,2500);
+  /* show the page once the menu words have really changed language (Google marks the page first, then swaps the words) */
+  var first=null,n=0,poll=setInterval(function(){var nav=document.getElementById('primaryNav');if(!nav)return;
+    var t=nav.textContent.replace(/\s+/g,' ').trim(),on=/translated-(ltr|rtl)/.test(H.className);
+    if(on&&first===null)first=t;   /* the words at the moment Google starts */
+    if((on&&t&&t!==first)||++n>60){clearInterval(poll);show();}},40);
+  ['https://translate.googleapis.com','https://translate-pa.googleapis.com','https://www.gstatic.com'].forEach(function(u){var l=document.createElement('link');l.rel='preconnect';l.href=u;l.crossOrigin='';document.head.appendChild(l);});
+  window.googleTranslateElementInit=function(){var go=function(){if(window.__gtInitDone)return;window.__gtInitDone=true;
+    new google.translate.TranslateElement({pageLanguage:'en',autoDisplay:false},'google_translate_element');};
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();};
+  var gs=document.createElement('script');gs.async=true;gs.src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+  gs.onerror=show;document.head.appendChild(gs);
+}}catch(e){try{document.documentElement.classList.remove('gt-wait');}catch(_){}}
 (function(){
   try{
     if(window.self!==window.top)return; // never run inside a preview/iframe
@@ -8869,9 +8887,9 @@ function toggleChatbot(){
 
 </script>
 <script>
-function googleTranslateElementInit(){
+if(!window.__gtEarly)window.googleTranslateElementInit=function(){
   new google.translate.TranslateElement({pageLanguage:'en',autoDisplay:false},'google_translate_element');
-}
+};
 </script>
 <script>
 /* Google Translate is loaded only when someone chooses a language (or a language was chosen before):
@@ -8884,6 +8902,7 @@ function googleTranslateElementInit(){
     if(focus)window.__gtFocus=true;
     var sc=document.createElement('script');sc.async=true;sc.src=SRC;document.body.appendChild(sc);
   }
+  if(window.__gtEarly){loaded=true;window.loadTranslate=load;return;}   /* already started in <head> */
   var prevInit=window.googleTranslateElementInit;
   window.googleTranslateElementInit=function(){
     var r=prevInit&&prevInit.apply(this,arguments);
@@ -8897,6 +8916,32 @@ function googleTranslateElementInit(){
   window.loadTranslate=load;
 })();
 </script>
+<script>
+/* "English (original)" in the language list: Google's own "Show original" bar is hidden, so going back
+   to English is done here: the saved language is removed and the page opens again in English. */
+(function(){
+  function clear(){var h=location.hostname,ex='=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+    document.cookie='googtrans'+ex;document.cookie='googtrans'+ex+';domain='+h;document.cookie='googtrans'+ex+';domain=.'+h;}
+  function add(){var c=document.querySelector('#google_translate_element select.goog-te-combo');if(!c)return false;
+    var put=function(){var o=c.querySelector('option[value="en"]');if(o&&o===c.options[0])return;
+      if(!o){o=document.createElement('option');o.value='en';o.textContent='English (original)';o.className='notranslate';o.setAttribute('translate','no');}
+      var sel=c.value,on=/translated-(ltr|rtl)/.test(document.documentElement.className);c.insertBefore(o,c.firstChild);
+      c.value=(on&&sel&&sel!=='en')?sel:'en';};   /* page in English: the list shows English */
+    put();
+    if(!c.__en){c.__en=1;new MutationObserver(put).observe(c,{childList:true});   /* Google fills the list later: keep English first */
+c.addEventListener('change',function(){if(c.value==='en'&&(/googtrans=/.test(document.cookie)||/translated-(ltr|rtl)/.test(document.documentElement.className))){setTimeout(function(){clear();location.reload();},0);}});}
+    return true;}
+  var n=0,t=setInterval(function(){if(add()||++n>600)clearInterval(t);},250);
+  document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('#google_translate_element'))setTimeout(function(){if(add()){}},300);},true);
+})();
+</script>
+<style>
+/* Google Translate: no top bar ("Translated into … / Show original"), no loading circle, no hover pop-ups or highlight */
+html body>.skiptranslate:not(#google_translate_element),iframe.skiptranslate,iframe.VIpgJd-ZVi9od-ORHb-OEVmcd,.goog-te-banner-frame,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,.VIpgJd-ZVi9od-aZ2wEe-OiiCO,.goog-te-spinner-pos,#goog-gt-tt,.VIpgJd-yAWNEb-L7lbkb,#goog-gt-vt{display:none!important;visibility:hidden!important}
+html body{top:0!important}
+font.VIpgJd-yAWNEb-VIpgJd-fmcmS-sn54Q,.VIpgJd-yAWNEb-VIpgJd-fmcmS-sn54Q,.goog-text-highlight{background:none!important;box-shadow:none!important}
+</style>
 <style>
 html body #google_translate_element button.gt-load{white-space:nowrap!important;width:auto!important;display:inline-flex!important;align-items:center;justify-content:flex-start;text-align:left;border:1px solid #d7dde6!important;border-radius:10px!important;box-shadow:none!important;margin:0!important;line-height:1.2!important}
 #google_translate_element .gt-load{color:#0f172a;font-size:12.5px;font-weight:700;padding:7px 28px 7px 10px;border-radius:10px;border:1px solid #d7dde6;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23475569'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;font-family:inherit;min-height:34px}
@@ -10272,7 +10317,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 22 Nov 2026 (3)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 23 Nov 2026 (1)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
