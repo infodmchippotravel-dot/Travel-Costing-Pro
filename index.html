@@ -4085,23 +4085,16 @@ function showWelcomeScreen(isNew){
   }
   if('speechSynthesis' in window&&(typeof soundEnabled!=='function'||soundEnabled())){
     try{
-      window.speechSynthesis.cancel();
+      let synth=window.speechSynthesis;
+      if(synth.speaking||synth.pending)synth.cancel();
       let utter=new SpeechSynthesisUtterance(greeting+', '+name+'!');
       utter.rate=0.95;utter.pitch=1;utter.volume=1;
       utter.lang='en-US';
-      setTimeout(function(){
-        if(typeof chatbotGetVoicesAsync==='function'){
-          chatbotGetVoicesAsync().then(function(){
-            if(typeof chatbotPickFemaleVoice==='function'){
-              let v=chatbotPickFemaleVoice('en-US');
-              if(v)utter.voice=v;
-            }
-            window.speechSynthesis.speak(utter);
-          });
-        }else{
-          window.speechSynthesis.speak(utter);
-        }
-      },350);
+      /* spoken at once, while the Start/Login press still counts (phones only allow speech right after a tap).
+         The voices are loaded when the page opens; if this phone has not loaded them yet, its own English voice speaks
+         instead of waiting for them (waiting made the welcome come 2–3 seconds late on phones). */
+      if(typeof chatbotPickFemaleVoice==='function'){let v=chatbotPickFemaleVoice('en-US');if(v)utter.voice=v;}
+      synth.speak(utter);
     }catch(e){}
   }
 }
@@ -8549,7 +8542,7 @@ function chatbotGetVoicesAsync(){
     let iv=setInterval(function(){
       let v=window.speechSynthesis.getVoices();
       tries++;
-      if((v&&v.length)||tries>20){clearInterval(iv);resolve(v||[]);}
+      if((v&&v.length)||tries>8){clearInterval(iv);resolve(v||[]);}
     },100);
   });
 }
@@ -8689,6 +8682,12 @@ function toggleChatbot(){
     osc.stop(c.currentTime+startAt+dur+0.02);
   }
   window.hippoTone=tone;
+  /* phones: switch the sound on with the first touch, so the first click / welcome sound is not late */
+  var UNLOCK=['pointerdown','pointerup','touchend','keydown'];
+  function unlock(){try{if(typeof soundEnabled==='function'&&!soundEnabled())return;var c=getCtx();if(c&&c.state==='running')UNLOCK.forEach(function(t){document.removeEventListener(t,unlock,true);});}catch(e){}}
+  UNLOCK.forEach(function(t){document.addEventListener(t,unlock,{capture:true,passive:true});});
+  /* load the voices as soon as the page opens, so "Welcome" and the chat can speak at once */
+  try{if(window.speechSynthesis){window.speechSynthesis.getVoices();if(window.speechSynthesis.addEventListener)window.speechSynthesis.addEventListener('voiceschanged',function(){try{window.speechSynthesis.getVoices();}catch(e){}});}}catch(e){}
   let sounds={
     nav:function(){tone(660,0,0.09,'sine',0.1)},
     navDashboard:function(){tone(523,0,0.1,'sine',0.12)},
@@ -15496,7 +15495,7 @@ try{(function(){
   function ready(){
     return new Promise(function(res){
       var v=voices();if(v.length)return res(v);
-      var n=0,iv=setInterval(function(){v=voices();if(v.length||++n>25){clearInterval(iv);res(v);}},100);
+      var n=0,iv=setInterval(function(){v=voices();if(v.length||++n>8){clearInterval(iv);res(v);}},100);   /* the voices are loaded when the page opens; do not keep the reader waiting long */
       try{synth.addEventListener('voiceschanged',function f(){synth.removeEventListener('voiceschanged',f);clearInterval(iv);res(voices());});}catch(e){}
     });
   }
