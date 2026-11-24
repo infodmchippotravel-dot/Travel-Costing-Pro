@@ -14614,12 +14614,14 @@ try{(function(){
         var p=moved&&moved!==j.localId?moveRecords(me.token,moved):Promise.resolve();
         return p.then(function(){return Object.assign({which:'user'},idt.user);});
       }
+      /* records move only from this browser's own temporary account — never from another person who used this computer before */
+      var from=cur.linked?null:me.uid;
       return post('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+CFG.apiKey,{email:c.email,password:c.password,returnSecureToken:true})
-        .then(function(j){return use(j,me.uid);},function(e){
+        .then(function(j){return use(j,from);},function(e){
           if(!/INVALID_LOGIN_CREDENTIALS|EMAIL_NOT_FOUND|INVALID_PASSWORD|INVALID_EMAIL/.test(e.code||'')){throw e;}
           /* no account yet: make the user's account; this browser's records move to it */
           return post('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+CFG.apiKey,{email:c.email,password:c.password,returnSecureToken:true})
-            .then(function(j){return use(j,me.uid);},function(e2){
+            .then(function(j){return use(j,from);},function(e2){
               set('travelCloudLinkTried:'+key,c.sig+'|'+me.uid);   /* e.g. the details do not match the account made on the other computer */
               return me;
             });
@@ -14664,11 +14666,16 @@ try{(function(){
     return chain.then(function(){return out;});
   }
   function writeProfile(j,key,pr){
-    pr=Object.assign({},pr,{key:key});var sg=JSON.stringify(pr);
-    var body={fields:{owner:{stringValue:j.localId},ownerKey:{stringValue:key},ownerName:{stringValue:pr.name||''},data:{stringValue:sg},updatedAt:{timestampValue:new Date().toISOString()},deleted:{booleanValue:false},kind:{stringValue:'profile'}}};
-    return api(profPath(j.localId,key),{method:'PATCH',body:JSON.stringify(body)},j.idToken).then(function(){set('travelCloudProfSig:'+key,sg);});
+    pr=Object.assign({key:key},pr);var sg=JSON.stringify(pr);
+    var body={fields:{owner:{stringValue:j.localId},ownerKey:{stringValue:pr.key},ownerName:{stringValue:pr.name||''},data:{stringValue:sg},updatedAt:{timestampValue:new Date().toISOString()},deleted:{booleanValue:false},kind:{stringValue:'profile'}}};
+    return api(profPath(j.localId,key),{method:'PATCH',body:JSON.stringify(body)},j.idToken).then(function(){if(pr.key===key)set('travelCloudProfSig:'+key,sg);});
   }
+  /* one account per phone number: its record is found from the phone number alone */
+  function regKey(phone){var d=String(phone||'').replace(/\D/g,'').replace(/^0+/,'');if(d.length>9)d=d.slice(-9);return 'phone:'+d;}
   window.cloudAccount={
+    regKey:regKey,
+    /* the account of this phone number → {exists, deleted, profile} */
+    lookup:function(phone){var k=regKey(phone);return this.check(k,phone);},
     /* → {exists, deleted, profile} ; rejects when the internet / cloud cannot be reached */
     check:function(key,phone){
       return credsFor(key,phone).then(function(c){
@@ -14704,7 +14711,13 @@ try{(function(){
               /* this computer forgets the account's records (they stay in the cloud) */
               var mm=map();Object.keys(COLS).forEach(function(col){Object.keys(mm[col]).forEach(function(d){if(mm[col][d].owner===j.localId)delete mm[col][d];});});saveMap(mm);
               var cu=parse(get(K_USER),null);if(cu&&cu.uid===j.localId)set(K_USER,null);idt.user=null;set('travelCloudProfSig:'+key,null);
-              return n;});
+              var rk=regKey(phone);if(rk===key)return n;
+              /* an older account (made with name + phone): the phone number's record is deleted too */
+              return credsFor(rk,phone).then(function(c2){return post(SIGNIN+CFG.apiKey,{email:c2.email,password:c2.password,returnSecureToken:true});}).then(function(j2){
+                var b2={fields:{owner:{stringValue:j2.localId},ownerKey:{stringValue:key},ownerName:{stringValue:(pr&&pr.name)||''},data:{stringValue:JSON.stringify(data)},updatedAt:{timestampValue:new Date().toISOString()},deleted:{booleanValue:true},kind:{stringValue:'profile'}}};
+                return api(profPath(j2.localId,rk),{method:'PATCH',body:JSON.stringify(b2)},j2.idToken);
+              }).catch(function(){}).then(function(){return n;});
+              });
           });
         });
       });
@@ -14735,11 +14748,15 @@ try{(function(){
         return identity().then(function(me){
           if(me.which!=='admin')return 0;
           var n=0,chain=Promise.resolve();
-          list.forEach(function(t){var u=t[1];if(!u.doc||!u.owner)return;
-            chain=chain.then(function(){
-              var body={fields:{owner:{stringValue:u.owner},ownerKey:{stringValue:k},ownerName:{stringValue:u.name||''},data:{stringValue:'{}'},updatedAt:{timestampValue:new Date().toISOString()},deleted:{booleanValue:true},kind:{stringValue:'profile'}}};
-              return api('/drafts/'+encodeURIComponent(u.doc),{method:'PATCH',body:JSON.stringify(body)},me.token).then(function(){n++;var all=parse(get('travelCloudPeople'),{})||{};delete all[t[0]];set('travelCloudPeople',JSON.stringify(all));});
-            });});
+          list.forEach(function(t){var u=t[1];var docs=(u.docs&&u.docs.length)?u.docs:(u.doc&&u.owner?[[u.doc,u.owner]]:[]);if(!docs.length)return;
+            docs.forEach(function(x){
+              chain=chain.then(function(){
+                var body={fields:{owner:{stringValue:x[1]},ownerKey:{stringValue:k},ownerName:{stringValue:u.name||''},data:{stringValue:'{}'},updatedAt:{timestampValue:new Date().toISOString()},deleted:{booleanValue:true},kind:{stringValue:'profile'}}};
+                return api('/drafts/'+encodeURIComponent(x[0]),{method:'PATCH',body:JSON.stringify(body)},me.token);
+              });
+            });
+            chain=chain.then(function(){n++;var all=parse(get('travelCloudPeople'),{})||{};delete all[t[0]];set('travelCloudPeople',JSON.stringify(all));});
+          });
           return chain.then(function(){return n;});
         });
       }
@@ -14879,7 +14896,7 @@ try{(function(){
           if(kind==='profile'&&del){goneProf[doc]=1;return;}
           /* records of an account the user deleted: kept in the cloud (the admin still has them), not shown to the user */
           if(me.which!=='admin'&&val(f,'archived')===true){var ea=m[col][doc];if(ea){var la=idx[ea.id];if(la!=null){list.splice(la,1);changed=true;list.forEach(function(r,i){if(r&&r.id!=null)idx[r.id]=i;});}delete m[col][doc];}return;}
-          if(kind==='profile'){if(!del){var pr=parse(val(f,'data'),null);if(pr&&pr.key&&pr.key!=='admin:main'){pr.seenAt=val(f,'updatedAt');pr.doc=doc;pr.owner=owner;prof[pr.key+'|'+(function(d){d=d.replace(/^0+/,'');return d.length>9?d.slice(-9):d;})(String(pr.phone||'').replace(/\D/g,''))]=pr;}}return;}
+          if(kind==='profile'){if(!del){var pr=parse(val(f,'data'),null);if(pr&&pr.key&&pr.key!=='admin:main'){pr.seenAt=val(f,'updatedAt');pr.doc=doc;pr.owner=owner;pr.docs=[[doc,owner]];var pk0=pr.key+'|'+(function(d){d=d.replace(/^0+/,'');return d.length>9?d.slice(-9):d;})(String(pr.phone||'').replace(/\D/g,''));if(prof[pk0]&&prof[pk0].docs)prof[pk0].docs.forEach(function(x){if(x[0]!==doc)pr.docs.push(x);});prof[pr.key+'|'+(function(d){d=d.replace(/^0+/,'');return d.length>9?d.slice(-9):d;})(String(pr.phone||'').replace(/\D/g,''))]=pr;}}return;}
           var e=m[col][doc];
           if(del){
             if(e&&!e.del){var li=idx[e.id];if(li!=null&&sig(list[li])===e.sig){list.splice(li,1);changed=true;list.forEach(function(r,i){if(r&&r.id!=null)idx[r.id]=i;});}e.del=true;}
@@ -14915,7 +14932,7 @@ try{(function(){
       stats.people=Object.keys(people).length;
       if(me.which==='admin'&&(Object.keys(prof).length||Object.keys(goneProf).length)){
         var all=parse(get('travelCloudPeople'),{})||{};
-        Object.keys(prof).forEach(function(k){all[k]=Object.assign({},all[k]||{},prof[k]);});
+        Object.keys(prof).forEach(function(k){var old=all[k]&&all[k].docs||[],nw=prof[k].docs||[];all[k]=Object.assign({},all[k]||{},prof[k]);var seen={},d2=[];nw.concat(old).forEach(function(x){if(x&&!seen[x[0]]&&!goneProf[x[0]]){seen[x[0]]=1;d2.push(x);}});all[k].docs=d2;});
         /* people the admin deleted (on any computer) leave the list */
         Object.keys(all).forEach(function(k){if(all[k]&&all[k].doc&&goneProf[all[k].doc])delete all[k];});
         set('travelCloudPeople',JSON.stringify(all));
@@ -16914,6 +16931,10 @@ try{(function(){
   panel.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();e.stopPropagation();signup();}},true);
   function ageOn(dob){var b=new Date(dob+'T00:00:00'),t=new Date();var a=t.getFullYear()-b.getFullYear();if(t.getMonth()<b.getMonth()||(t.getMonth()===b.getMonth()&&t.getDate()<b.getDate()))a--;return a;}
   var working=false;
+  function sameName(a,b){return String(a||'').replace(/\s+/g,' ').trim().toLowerCase()===String(b||'').replace(/\s+/g,' ').trim().toLowerCase();}
+  function d9(p){return window.samePhone?samePhone(p):String(p||'').replace(/\D/g,'').slice(-9);}
+  /* an older person on this computer (made before, with name + phone) */
+  function localOld(name,digits){var us=typeof getLoginUsers==='function'?getLoginUsers():{};return Object.keys(us).filter(function(k){var u=us[k]||{};return k!=='admin:main'&&k.indexOf('phone:')!==0&&u.phone&&d9(u.phone)===d9(digits)&&sameName(u.name||((u.firstName||'')+' '+(u.lastName||'')),name);})[0]||'';}
   function signup(){
     if(working)return;
     var nm=$('suName'),ph=$('suPhone'),cc=$('suCc'),db=$('suDob'),gd=$('suGender');
@@ -16930,43 +16951,45 @@ try{(function(){
     if(age>100)return err('Please check the year of your date of birth.',db);
     var gender=gd.value;
     if(['Male','Female','Other'].indexOf(gender)<0)return err('Please choose your gender.',gd);
-    var name=n.name,key='name:'+name.toLowerCase(),digits=pc.digits;
-    var users=typeof getLoginUsers==='function'?getLoginUsers():{},old=users[key];
-    if(old&&old.phone&&window.samePhone&&samePhone(old.phone)!==samePhone(digits))return err('This name is already used on this computer with another phone number. Type your full name (e.g. Ram Sharma) or check the phone number.',nm);
     if(!window.cloudAccount)return err('Sign up is not possible right now. Please refresh the page and try again.');
+    var name=n.name,digits=pc.digits,regK=cloudAccount.regKey(digits),oldKey='name:'+name.toLowerCase();
     err('');working=true;var btn=$('suBtn'),restored=0;busy(btn,true,'⏳ Checking…');
     var country=(cc&&cc.value.split('|')[1])||'';
+    var now=Date.now(),parts=name.split(' ');
+    var pr={name:name,method:'Phone',phone:digits,country:country,gender:gender,dob:dob,createdAt:now,lastLoginAt:now,signedUpAt:now};
+    var key=localOld(name,digits)||regK;   /* someone who already used this computer before keeps their work */
     var blockedP=typeof window.isPhoneBlocked==='function'?window.isPhoneBlocked(digits):Promise.resolve(false);
-    blockedP.then(function(b){if(b)throw {shown:window.BLOCK_MSG||'You have been blocked by the admin.'};return cloudAccount.check(key,digits);}).then(function(r){
-      if(r.exists&&!r.deleted&&r.profile){
-        throw {shown:'An account with this name and phone number is already there. Please log in.',login:true};
-      }
-      if(r.exists&&!r.deleted&&!r.profile&&old){
-        throw {shown:'You already have an account on this computer. Please log in.',login:true};
-      }
-      busy(btn,false);busy(btn,true,'⏳ Making your account…');
-      var now=Date.now(),parts=name.split(' ');
-      var pr={name:name,method:'Name',phone:digits,country:country,gender:gender,dob:dob,createdAt:now,lastLoginAt:now,signedUpAt:now};
-      /* the same person signing up again after deleting their account (same name, phone, date of birth, gender), with a backup kept */
-      var back=r.exists&&r.deleted&&r.profile&&r.profile.deletedBy==='user'&&r.profile.backup&&r.profile.dob===dob&&r.profile.gender===gender;
-      return cloudAccount.create(key,digits,pr).then(function(){
-        if(!back)return;
-        return cloudAccount.archivedCount(key,digits).then(function(n){
-          if(!n)return;
-          busy(btn,false);
-          return askChoice('Welcome back!','We found a backup of your old account ('+n+(n===1?' saved item':' saved items')+').\nDo you want to bring your old backup into this account?','Yes, bring it back','No, start new').then(function(yes){
-            if(!yes)return;busy(btn,true,'⏳ Bringing your backup…');
-            return cloudAccount.restore(key,digits).then(function(k){restored=k;});
-          });
-        }).catch(function(){});
-      }).then(function(){
-        var us=getLoginUsers(),u=Object.assign({},us[key]||{},{method:'Name',name:name,firstName:parts[0],lastName:parts.slice(1).join(' '),phone:digits,country:country,dob:dob,gender:gender,createdAt:(us[key]&&us[key].createdAt)||now,lastLoginAt:now,signedUpAt:now});
-        us[key]=u;saveLoginUsers(us);
-        try{localStorage.setItem('travelLoginCc',cc?cc.value:'');localStorage.removeItem('travelAccountDeleted');}catch(e){}
-        nm.value='';ph.value='';db.value='';gd.value='';
-        completeLogin(key,u,true);
-        if(restored){setTimeout(function(){if(typeof window.cloudSync==='function')window.cloudSync();if(typeof showToast==='function')showToast('✅ Your backup is back: '+restored+(restored===1?' item':' items')+'.');},400);}
+    blockedP.then(function(b){if(b)throw {shown:window.BLOCK_MSG||'You have been blocked by the admin.'};return cloudAccount.lookup(digits);}).then(function(r){
+      /* one account per phone number */
+      if(r.exists&&!r.deleted&&r.profile)throw {shown:'An account with this phone number already exists. Please log in.',login:true};
+      var older=(r.exists&&r.profile)?Promise.resolve({exists:false}):cloudAccount.check(oldKey,digits).catch(function(){return {exists:false};});
+      return older.then(function(lg){
+        if(lg.exists&&!lg.deleted)throw {shown:'An account with this phone number already exists. Please log in.',login:true};
+        /* the same person again, after deleting their account with a backup (same name, phone, date of birth, gender) */
+        var pp=r.deleted&&r.profile&&r.profile.deletedBy==='user'?r.profile:(lg.deleted&&lg.profile&&lg.profile.deletedBy==='user'?lg.profile:null);
+        var back=pp&&pp.backup&&sameName(pp.name,name)&&pp.dob===dob&&pp.gender===gender;
+        var prevKey=back?(pp.key||(pp===lg.profile?oldKey:regK)):'';
+        var ask=back?cloudAccount.archivedCount(prevKey,digits).then(function(cnt){
+          if(!cnt)return false;busy(btn,false);
+          return askChoice('Welcome back!','We found a backup of your old account ('+cnt+(cnt===1?' saved item':' saved items')+').\nDo you want to bring your old backup into this account?','Yes, bring it back','No, start new');
+        }).catch(function(){return false;}):Promise.resolve(false);
+        return ask.then(function(yes){
+          if(yes)key=prevKey;
+          busy(btn,false);busy(btn,true,yes?'⏳ Bringing your backup…':'⏳ Making your account…');
+          /* the phone number's record (this is the account for new people) */
+          var mk=cloudAccount.create(regK,digits,Object.assign({},pr,{key:key}));
+          if(key!==regK)mk=mk.then(function(){return cloudAccount.create(key,digits,Object.assign({},pr,{key:key}));});
+          if(yes)mk=mk.then(function(){return cloudAccount.restore(key,digits).then(function(k){restored=k;});});
+          return mk;
+        });
       });
+    }).then(function(){
+      var us=getLoginUsers(),u=Object.assign({},us[key]||{},{method:'Phone',name:name,firstName:parts[0],lastName:parts.slice(1).join(' '),phone:digits,country:country,dob:dob,gender:gender,createdAt:(us[key]&&us[key].createdAt)||now,lastLoginAt:now,signedUpAt:now});
+      us[key]=u;saveLoginUsers(us);
+      try{localStorage.setItem('travelLoginCc',cc?cc.value:'');localStorage.removeItem('travelAccountDeleted');}catch(e){}
+      nm.value='';ph.value='';db.value='';gd.value='';
+      completeLogin(key,u,true);
+      if(restored){setTimeout(function(){if(typeof window.cloudSync==='function')window.cloudSync();if(typeof showToast==='function')showToast('✅ Your backup is back: '+restored+(restored===1?' item':' items')+'.');},400);}
     }).catch(function(e){
       if(e&&e.shown){err(e.shown);if(e.login){var b=$('toLogin');if(b)setTimeout(function(){b.focus();},30);}return;}
       err(netMsg(e));
@@ -16975,34 +16998,52 @@ try{(function(){
   $('suBtn')&&$('suBtn').addEventListener('click',signup);
   window.signupWithDetails=signup;
 
-  /* ---- Log in: only when the account is there ---- */
-  var realComplete=window.completeLogin,inLogin=null;
-  window.completeLogin=function(key,u,isNew){
-    if(!inLogin||key==='admin:main')return realComplete.apply(this,arguments);
-    var ctx=inLogin;inLogin=null;
-    var args=arguments,self=this;
-    var digits=String(u&&u.phone||'').replace(/\D/g,'');
-    var btn=document.querySelector('#loginPanel-email .login-main-btn');
-    function undo(){try{saveLoginUsers(JSON.parse(ctx.before));}catch(e){}var n=$('loginUserName');if(n&&!n.value)n.value=ctx.name;}
-    if(!window.cloudAccount){undo();return err('Log in is not possible right now. Please refresh the page and try again.');}
-    busy(btn,true,'⏳ Checking…');working=true;
-    var blockedL=typeof window.isPhoneBlocked==='function'?window.isPhoneBlocked(digits):Promise.resolve(false);
-    blockedL.then(function(b){if(b)return {blocked:true};return cloudAccount.check(key,digits);}).then(function(r){
-      if(r.blocked){undo();err(window.BLOCK_MSG||'You have been blocked by the admin.');return;}
-      if(!r.exists){undo();err('No account found with this name and phone number. Please check them, or press Sign up to make a new account.',$('loginUserName'));return;}
-      if(r.deleted){undo();err('This account was deleted. Please sign up again.');var b=$('toSignup');if(b)setTimeout(function(){b.focus();},30);return;}
-      if(r.profile){var us=getLoginUsers(),x=us[key]||u;['dob','gender','country','signedUpAt'].forEach(function(k){if(r.profile[k])x[k]=r.profile[k];});if(!x.createdAt||(r.profile.createdAt&&r.profile.createdAt<x.createdAt))x.createdAt=r.profile.createdAt||x.createdAt;us[key]=x;saveLoginUsers(us);u=x;}
-      try{localStorage.removeItem('travelAccountDeleted');}catch(e){}
-      realComplete.call(self,key,u,false);
-    },function(e){undo();err(netMsg(e));}).then(function(){working=false;busy(btn,false);});
-  };
-  var prevLogin=window.loginWithName;
-  if(typeof prevLogin==='function')window.loginWithName=function(){
+  /* ---- Log in: name + phone; the account is found from the phone number ---- */
+  var fails=[];
+  function login(){
     if(working)return;
-    var n=$('loginUserName');
-    inLogin={before:JSON.stringify(typeof getLoginUsers==='function'?getLoginUsers():{}),name:n?n.value:''};
-    try{return prevLogin.apply(this,arguments);}finally{if(inLogin&&!working)inLogin=null;}
-  };
+    fails=fails.filter(function(t){return Date.now()-t<60000;});
+    if(fails.length>=6)return err('Too many tries. Please wait a minute and try again.');
+    var nm=$('loginUserName'),ph=$('loginUserPhone'),cc=$('loginUserCc');
+    var n=window.userNameProblem?window.userNameProblem(nm.value):{name:String(nm.value||'').trim(),problem:''};
+    if(n.problem)return err(n.problem,nm);
+    var pc=typeof phoneCheck==='function'?phoneCheck(ph.value,cc&&cc.value):{problem:'',digits:String(ph.value||'').replace(/\D/g,'')};
+    if(pc.problem)return err(pc.problem,ph);
+    if(cc&&pc.code&&cc.value.split('|')[0]!==pc.code){var m=[].filter.call(cc.options,function(o){return o.value.split('|')[0]===pc.code;})[0];if(m)cc.value=m.value;}
+    if(!window.cloudAccount)return err('Log in is not possible right now. Please refresh the page and try again.');
+    var name=n.name,digits=pc.digits,regK=cloudAccount.regKey(digits),oldKey='name:'+name.toLowerCase();
+    var btn=document.querySelector('#loginPanel-email .login-main-btn');
+    err('');busy(btn,true,'⏳ Checking…');working=true;
+    function fail(msg,f){fails.push(Date.now());err(msg,f);}
+    var blockedL=typeof window.isPhoneBlocked==='function'?window.isPhoneBlocked(digits):Promise.resolve(false);
+    blockedL.then(function(b){if(b)return {blocked:true};return cloudAccount.lookup(digits);}).then(function(r){
+      if(r.blocked)return fail(window.BLOCK_MSG||'You have been blocked by the admin.');
+      if(r.exists&&r.profile){
+        if(r.deleted){fail('This account was deleted. Please sign up again.');var b=$('toSignup');if(b)setTimeout(function(){b.focus();},30);return;}
+        if(!sameName(r.profile.name,name))return fail('The name does not match the account of this phone number. Please type the name you signed up with.',nm);
+        return done(r.profile.key||regK,r.profile);
+      }
+      /* an older account, made with name + phone before: it now also belongs to the phone number */
+      return cloudAccount.check(oldKey,digits).then(function(lg){
+        if(!lg.exists)return fail('No account found with this phone number. Please check it, or press Sign up to make a new account.',ph);
+        if(lg.deleted){fail('This account was deleted. Please sign up again.');return;}
+        var p0=lg.profile||{};
+        var pr={name:p0.name||name,method:p0.method||'Name',phone:digits,country:p0.country||'',gender:p0.gender||'',dob:p0.dob||'',createdAt:p0.createdAt||Date.now(),key:oldKey};
+        return cloudAccount.create(regK,digits,pr).then(function(){return done(oldKey,pr);});
+      });
+    }).catch(function(e){err(netMsg(e));}).then(function(){working=false;busy(btn,false);});
+    function done(key,p){
+      var us=getLoginUsers(),x=Object.assign({},us[key]||{}),parts=(p.name||name).split(' ');
+      x.method=x.method||p.method||'Phone';x.name=p.name||name;x.firstName=parts[0];x.lastName=parts.slice(1).join(' ');x.phone=digits;
+      ['dob','gender','country','signedUpAt'].forEach(function(k){if(p[k])x[k]=p[k];});
+      if(!x.createdAt||(p.createdAt&&p.createdAt<x.createdAt))x.createdAt=p.createdAt||x.createdAt||Date.now();
+      x.lastLoginAt=Date.now();us[key]=x;saveLoginUsers(us);
+      try{localStorage.setItem('travelLoginCc',cc?cc.value:'');localStorage.removeItem('travelAccountDeleted');}catch(e){}
+      nm.value='';ph.value='';
+      completeLogin(key,x,false);
+    }
+  }
+  window.loginWithName=login;
   window.loginWithEmail=window.loginWithName;
 
   /* ---- the admin deleted this account while it is logged in here ---- */
