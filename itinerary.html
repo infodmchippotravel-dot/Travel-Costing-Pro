@@ -620,6 +620,14 @@ html.theme-dark section.sec{background:#13284a!important;border-color:#22385c!im
 html.theme-dark section.sec:not(#s-list)>.sec-h{color:#fff!important;border-bottom-color:#22385c!important}
 html.theme-dark section.sec>.sec-h .hint{color:#cbd5e1!important}
 html.theme-dark section.sec>.sec-h .btn.ghost{background:#13284a!important;color:#f5ecd6!important;border-color:#6b5a33!important}
+/* voucher number on the right of the Client heading — same as "Costing No." on the costing page */
+section.sec>.sec-h .vno{margin-left:auto;display:flex;align-items:center;gap:8px}
+section.sec>.sec-h .vno label{font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:13px;font-weight:500;color:#5e6a7d}
+section.sec>.sec-h .vno input{width:124px;height:44px;min-height:44px;text-align:center;padding:0 8px;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:16px;font-weight:700;letter-spacing:.5px;color:#0b1f3a;background:#fbf6ea;border:1.5px solid #e3d3b0;border-radius:12px;cursor:default;outline:0}
+html.theme-dark section.sec>.sec-h .vno label{color:#cbd5e1}
+html.theme-dark section.sec>.sec-h .vno input{background:#13284a;color:#c6a76b;border-color:#6b5a33}
+@media (max-width:720px){section.sec>.sec-h .vno input{width:112px;height:48px;min-height:48px}section.sec>.sec-h .vno label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}#c-client>.sec-h #editTag{flex-basis:100%;order:3}}
+@media print{section.sec>.sec-h .vno{display:none}}
 @media (max-width:640px){section.sec:not(#s-list)>.sec-h{padding:16px 16px 10px!important;font-size:19px!important}section.sec:not(#s-list)>.sec-h::after{left:16px}}
 /* the page scrolls as one: pop-ups and messages are placed in the part of the page that is on screen */
 html.autoh #dlg,html.autoh #tp,html.autoh #lb{position:absolute!important;inset:auto!important;left:0!important;right:0!important;top:var(--vy,0px)!important;height:var(--vh,100vh)!important}
@@ -663,7 +671,7 @@ html.theme-dark .list-more button:hover{background:#C6A76B;color:#0B1F3A}
 <div id="warnbar" class="warnbar">⚠️ Saving is OFF in this browser (private window or blocked storage). Your vouchers cannot be kept.</div>
 
 <main class="no-print">
-  <section class="sec" id="c-client"><div class="sec-h"><span class="n">1</span>Client <span class="hint" id="editTag"></span></div>
+  <section class="sec" id="c-client"><div class="sec-h"><span class="n">1</span>Client <span class="hint" id="editTag"></span><span class="vno"><label for="vnoField">Voucher No.</label><input id="vnoField" readonly tabindex="-1" aria-label="Voucher number"></span></div>
     <div id="clientBox"></div></section>
 
   <section class="sec" id="c-days"><div class="sec-h"><span class="n">2</span>Day by day plan <span class="hint">Press 🔍 Choose tour — the whole row fills itself · 🖍 Yellow: select words, then press · • bullets come in the PDF by themselves</span></div>
@@ -1026,7 +1034,7 @@ settings.partner = Object.assign(settingsDefault().partner, settings.partner || 
 if (typeof settings.emergency === 'string') { if (settings.emergency && !(LS.get(K.settings, {}).partner || {}).emergency) settings.partner.emergency = settings.emergency; delete settings.emergency; }
 delete settings.partner.label;
 /* a new (not saved) voucher shows the next number; it changes when the next number changes */
-const refreshNoBox = () => { try { if (!draft.id) { const el = document.querySelector('#clientBox [aria-label="Voucher number"]'); if (el) el.value = nextVoucherNo(); } } catch (e) { /* not drawn yet */ } };
+const refreshNoBox = () => { try { if (!draft.id) { const el = document.getElementById('vnoField'); if (el) el.value = nextVoucherNo(); } } catch (e) { /* not drawn yet */ } };
 const saveSettings = () => { const ok = LS.set(K.settings, settings); refreshNoBox(); return ok; };
 
 /* =========================================================
@@ -1384,11 +1392,11 @@ let startWas = ''; // travel start date as shown, so hotel dates can move with i
 function renderClient() {
   const v = draft; startWas = v.start;
   $('editTag').textContent = v.id ? `· Editing ${v.no}${dirty ? ' (not saved yet)' : ''}` : '· New voucher';
-  $('clientBox').innerHTML = `<table class="st"><colgroup><col><col style="width:13%"><col style="width:9%"><col style="width:9%"><col style="width:16%"><col style="width:22%"></colgroup>
-    <thead><tr><th>Client Name <span class="star">*</span></th><th>Voucher No. <span class="auto-tag">auto</span></th><th>Adults</th><th>Kids</th><th>Start date <span class="star">*</span></th><th>Trip</th></tr></thead>
+  { const no = $('vnoField'); if (no) { no.value = v.no || nextVoucherNo(); no.title = v.no ? 'Voucher number' : 'Next number. It is given automatically when you save.'; } }
+  $('clientBox').innerHTML = `<table class="st"><colgroup><col><col style="width:10%"><col style="width:10%"><col style="width:17%"><col style="width:24%"></colgroup>
+    <thead><tr><th>Client Name <span class="star">*</span></th><th>Adults</th><th>Kids</th><th>Start date <span class="star">*</span></th><th>Trip</th></tr></thead>
     <tbody><tr>
       <td data-l="Client Name"><input id="cn" ${f('client', v.client, 'placeholder="Type client name (e.g. Rahul Sharma)" autocomplete="off" aria-label="Client name"')}></td>
-      <td data-l="Voucher No."><input value="${esc(v.no || nextVoucherNo())}" readonly tabindex="-1" aria-label="Voucher number" title="${v.no ? 'Voucher number' : 'Next number. It is given automatically when you save.'}"></td>
       <td data-l="Adults"><input id="ad" type="number" min="0" ${f('adults', v.adults, 'aria-label="Adults"')}></td>
       <td data-l="Kids"><input id="kd" type="number" min="0" ${f('kids', v.kids, 'aria-label="Kids"')}></td>
       <td data-l="Travel start date"><input id="st" type="date" ${f('start', v.start, 'aria-label="Travel start date"')}></td>
