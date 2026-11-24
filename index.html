@@ -117,7 +117,45 @@ body.dark #loginGate:not(.lg-landing){
     radial-gradient(circle at 1px 1px,rgba(255,255,255,.06) 1px,transparent 1.7px) 0 0/26px 26px,
     linear-gradient(160deg,#040b19 0%,#071a33 50%,#0a2a44 100%)!important;
 }
+/* ===== First page: a lively top part (soft glow, flying planes, the logo gently floating, the words rising in once) ===== */
+#landing .ld-hero{position:relative;overflow:hidden;background:
+  radial-gradient(760px 420px at 82% 10%,rgba(198,167,107,.28),transparent 62%),
+  radial-gradient(700px 480px at -6% 110%,rgba(14,147,201,.30),transparent 60%),
+  radial-gradient(circle at 1px 1px,rgba(255,255,255,.07) 1px,transparent 1.7px) 0 0/26px 26px,
+  linear-gradient(160deg,#06122a 0%,#0a2447 48%,#0d3a5c 100%)!important}
+#landing .ld-hero .ld-wrap{position:relative;z-index:1}
+#landing .ld-sky{position:absolute;inset:0;pointer-events:none;z-index:0}
+#landing .ld-arc{position:absolute;inset:0;width:100%;height:100%;opacity:.35}
+#landing .ld-plane{position:absolute;left:-12%;display:block;color:#fff;line-height:0;filter:drop-shadow(0 0 6px rgba(226,196,138,.5))}
+#landing .ld-plane svg{display:block;width:1.2em;height:1.2em;fill:currentColor}
+#landing .ld-plane::before{content:"";position:absolute;right:calc(100% - .2em);top:50%;width:6em;height:2px;margin-top:-1px;border-radius:2px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.55))}
+#landing .ld-plane.a{top:6%;font-size:24px;opacity:.5;animation:ldFly 24s linear infinite}
+#landing .ld-plane.b{top:50%;font-size:14px;opacity:.18;animation:ldFly 34s linear infinite;animation-delay:-14s}
+#landing .ld-plane.c{top:93%;font-size:19px;opacity:.38;animation:ldFly 29s linear infinite;animation-delay:-6s}
+@media (max-width:720px){#landing .ld-plane.b{display:none}#landing .ld-plane.a{top:3%;font-size:18px}#landing .ld-plane.c{top:95%;font-size:16px}#landing .ld-arc{opacity:.22}}
+@keyframes ldFly{0%{transform:translate(0,0)}50%{transform:translate(62vw,-16px)}100%{transform:translate(125vw,0)}}
+#landing .ld-logo-big{animation:ldFloat 6s ease-in-out infinite,ldGlow 6s ease-in-out infinite}
+@keyframes ldFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes ldGlow{0%,100%{box-shadow:0 24px 60px -20px rgba(0,0,0,.6),0 0 0 10px rgba(255,255,255,.06),0 0 0 0 rgba(226,196,138,0)}50%{box-shadow:0 34px 70px -22px rgba(0,0,0,.55),0 0 0 10px rgba(255,255,255,.08),0 0 60px 6px rgba(226,196,138,.28)}}
+#landing .ld-hero .ld-eyebrow,#landing .ld-hero h1,#landing .ld-hero .ld-lead,#landing .ld-hero .ld-hero-acts{animation:ldUp .8s cubic-bezier(.2,.8,.2,1) both}
+#landing .ld-hero h1{animation-delay:.08s}
+#landing .ld-hero .ld-lead{animation-delay:.18s}
+#landing .ld-hero .ld-hero-acts{animation-delay:.28s}
+@keyframes ldUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+#landing .ld-feat{transition:transform .25s ease,box-shadow .25s ease}
+@media (hover:hover){#landing .ld-feat:hover{transform:translateY(-4px);box-shadow:0 18px 40px -18px rgba(11,31,58,.35)}}
 #loginGate.lg-landing>.lg-side,.lg-side{display:none}
+/* flying planes: one clean plane shape (the emoji looked different on every phone and flew tilted), with a soft trail;
+   far planes are smaller, fainter and slower */
+#loginGate .login-plane{font-size:24px;width:1.2em;height:1.2em;line-height:0;color:#fff;filter:drop-shadow(0 0 6px rgba(226,196,138,.45))}
+#loginGate .login-plane .pl-ico{display:block;width:1.2em;height:1.2em;fill:currentColor}
+#loginGate .login-plane::before{content:"";position:absolute;right:calc(100% - .2em);top:50%;width:6.5em;height:2px;margin-top:-1px;border-radius:2px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.55))}
+#loginGate .login-plane.p1{font-size:26px;opacity:.55}
+#loginGate .login-plane.p3{font-size:30px;opacity:.6}
+#loginGate .login-plane.p2,#loginGate .login-plane.p4{font-size:15px;opacity:.28}
+#loginGate .login-plane.p5{font-size:19px;opacity:.38}
+#loginGate .login-plane.p6{font-size:17px;opacity:.32}
+#loginGate .login-route .route-plane{filter:drop-shadow(0 0 5px rgba(226,196,138,.6))}
 /* dark mode: the main button (Start / Sign up / Login as Admin) was dark blue on the dark box */
 body.dark #loginGate .login-card .login-main-btn,body.dark #loginGate .login-card #suBtn{background:linear-gradient(135deg,#ecd29b 0%,#c6a76b 100%)!important;color:#0b1f3a!important;border-color:#c6a76b!important}
 body.dark #loginGate .login-card .login-main-btn:hover,body.dark #loginGate .login-card #suBtn:hover{filter:brightness(1.06)}
@@ -2847,6 +2885,10 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
       </nav>
     </header>
     <section class="ld-hero" aria-labelledby="landTitle">
+      <div class="ld-sky" aria-hidden="true">
+        <svg class="ld-arc" viewBox="0 0 1200 400" preserveAspectRatio="none" focusable="false"><path d="M-40 360 C 300 250, 700 230, 1240 40" fill="none" stroke="#e2c48a" stroke-width="1.6" stroke-dasharray="2 12" stroke-linecap="round"/></svg>
+        <span class="ld-plane a"><svg viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span><span class="ld-plane b"><svg viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span><span class="ld-plane c"><svg viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span>
+      </div>
       <div class="ld-wrap">
         <div>
           <p class="ld-eyebrow"><span class="ld-brand-name">Hippo Travel</span> Group · Kota, Rajasthan</p>
@@ -2896,15 +2938,15 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
       <footer class="ld-foot">© <span id="ldYear"></span> <span class="ld-brand-name">Hippo Travel</span> Group · Kota, Rajasthan</footer>
     </div></section>
   </div>
-  <div aria-hidden="true" class="login-plane p1">✈️</div>
-  <div aria-hidden="true" class="login-plane p2">✈️</div>
-  <div aria-hidden="true" class="login-plane p3">✈️</div>
-  <div aria-hidden="true" class="login-plane p4">✈️</div>
-  <div aria-hidden="true" class="login-plane p5">✈️</div>
-  <div aria-hidden="true" class="login-plane p6">✈️</div>
+  <div aria-hidden="true" class="login-plane p1"><svg class="pl-ico" viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></div>
+  <div aria-hidden="true" class="login-plane p2"><svg class="pl-ico" viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></div>
+  <div aria-hidden="true" class="login-plane p3"><svg class="pl-ico" viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></div>
+  <div aria-hidden="true" class="login-plane p4"><svg class="pl-ico" viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></div>
+  <div aria-hidden="true" class="login-plane p5"><svg class="pl-ico" viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></div>
+  <div aria-hidden="true" class="login-plane p6"><svg class="pl-ico" viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></div>
   <svg class="login-route" aria-hidden="true" focusable="false" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice"><path id="loginFlightPath" d="M -50 520 C 180 420, 480 380, 850 90" stroke="#7bd4f0" stroke-width="2" stroke-dasharray="3 16" stroke-linecap="round" fill="none"/><circle class="route-dot dot1" cx="-50" cy="520" r="5" fill="#7bd4f0"/><circle class="route-dot dot2" cx="850" cy="90" r="5" fill="#ff9d4d"/>
-    <text font-size="22" opacity=".7"><animateMotion dur="6s" repeatCount="indefinite" rotate="auto" begin="0s"><mpath href="#loginFlightPath"/></animateMotion>✈️</text>
-    <text font-size="16" opacity=".45"><animateMotion dur="6s" repeatCount="indefinite" rotate="auto" begin="3s"><mpath href="#loginFlightPath"/></animateMotion>✈️</text>
+    <defs><linearGradient id="loginTrail" gradientUnits="userSpaceOnUse" x1="-70" y1="0" x2="-8" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".7"/></linearGradient></defs><g class="route-plane"><animateMotion dur="14s" repeatCount="indefinite" rotate="auto" begin="0s"><mpath href="#loginFlightPath"/></animateMotion><line x1="-70" y1="0" x2="-8" y2="0" stroke="url(#loginTrail)" stroke-width="2.4" stroke-linecap="round"/><g transform="scale(1.25) translate(-12 -12)"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#fff"/></g></g>
+    <g class="route-plane" opacity=".55"><animateMotion dur="14s" repeatCount="indefinite" rotate="auto" begin="7s"><mpath href="#loginFlightPath"/></animateMotion><line x1="-70" y1="0" x2="-8" y2="0" stroke="url(#loginTrail)" stroke-width="2.4" stroke-linecap="round"/><g transform="scale(0.9) translate(-12 -12)"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#fff"/></g></g>
   </svg>
   <aside class="lg-side" aria-label="About Hippo Travel">
     <div class="lg-side-brand"><img alt="" class="lg-side-logo"><span><b>Hippo Travel</b><small>Hippo Travel Group · Kota, Rajasthan</small></span></div>
@@ -8924,19 +8966,36 @@ function toggleChatbot(){
     if(ctx.state==='suspended')ctx.resume();
     return ctx;
   }
+  /* every sound goes through a soft filter and a limiter, so it is never sharp or too loud */
+  let master=null;
+  function out(c){
+    if(master&&master.c===c)return master.n;
+    let lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=5200;lp.Q.value=0.5;
+    let comp=c.createDynamicsCompressor();comp.threshold.value=-18;comp.knee.value=12;comp.ratio.value=4;comp.attack.value=0.003;comp.release.value=0.2;
+    lp.connect(comp);comp.connect(c.destination);master={c:c,n:lp};return lp;
+  }
+  function voice(c,type,freq,t0,dur,vol,glideTo){
+    let o=c.createOscillator(),g=c.createGain();
+    o.type=type;o.frequency.setValueAtTime(freq,t0);
+    if(glideTo)o.frequency.exponentialRampToValueAtTime(glideTo,t0+Math.min(dur,0.12));
+    g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(vol,t0+0.006);g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    o.connect(g);g.connect(out(c));o.start(t0);o.stop(t0+dur+0.03);
+  }
+  function on(){return !(typeof soundEnabled==='function'&&!soundEnabled());}
+  /* a soft bell-like note: the note itself with a gentle ring, plus a light higher overtone */
   function tone(freq,startAt,dur,type,vol){
-    if(typeof soundEnabled==='function'&&!soundEnabled())return;
-    let c=getCtx();
-    if(!c)return;
-    let osc=c.createOscillator(),gain=c.createGain();
-    osc.type=type||'sine';
-    osc.frequency.value=freq;
-    gain.gain.setValueAtTime(0,c.currentTime+startAt);
-    gain.gain.linearRampToValueAtTime(vol||0.14,c.currentTime+startAt+0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+startAt+dur);
-    osc.connect(gain);gain.connect(c.destination);
-    osc.start(c.currentTime+startAt);
-    osc.stop(c.currentTime+startAt+dur+0.02);
+    if(!on())return;
+    let c=getCtx();if(!c)return;
+    let t0=c.currentTime+(startAt||0),v=vol||0.14;
+    let soft=(type==='square'||type==='sawtooth')?'triangle':(type||'sine');   /* the harsh buzzing waves are made soft */
+    voice(c,soft,freq,t0,dur*1.35,v);
+    voice(c,'sine',freq*2,t0,dur*0.9,v*0.22);
+  }
+  /* a short sliding sound: a light "tick" for a normal click, a "pop" when something is added */
+  function blip(f1,f2,startAt,dur,vol){
+    if(!on())return;
+    let c=getCtx();if(!c)return;
+    voice(c,'sine',f1,c.currentTime+(startAt||0),dur,vol||0.08,f2);
   }
   window.hippoTone=tone;
   /* phones: switch the sound on with the first touch, so the first click / welcome sound is not late */
@@ -8946,24 +9005,24 @@ function toggleChatbot(){
   /* load the voices as soon as the page opens, so "Welcome" and the chat can speak at once */
   try{if(window.speechSynthesis){window.speechSynthesis.getVoices();if(window.speechSynthesis.addEventListener)window.speechSynthesis.addEventListener('voiceschanged',function(){try{window.speechSynthesis.getVoices();}catch(e){}});}}catch(e){}
   let sounds={
-    nav:function(){tone(660,0,0.09,'sine',0.1)},
-    navDashboard:function(){tone(523,0,0.1,'sine',0.12)},
-    navTransfers:function(){tone(587,0,0.1,'sine',0.12)},
-    navTickets:function(){tone(659,0,0.1,'sine',0.12)},
-    navServices:function(){tone(698,0,0.1,'sine',0.12)},
-    navPdf:function(){tone(784,0,0.1,'sine',0.12)},
-    navSaved:function(){tone(880,0,0.1,'sine',0.12)},
-    navHelp:function(){tone(988,0,0.1,'sine',0.12)},
-    navAbout:function(){tone(1046,0,0.1,'sine',0.12)},
-    navSettings:function(){tone(466,0,0.13,'triangle',0.11)},
-    navTheme:function(){tone(392,0,0.08,'sine',0.1);tone(523,0.08,0.12,'sine',0.1)},
-    navLogout:function(){tone(523,0,0.08,'sine',0.1);tone(392,0.08,0.14,'sine',0.1)},
-    confirm:function(){tone(523,0,0.09,'sine',0.13);tone(659,0.09,0.14,'sine',0.13)},
-    save:function(){tone(784,0,0.16,'sine',0.14)},
-    add:function(){tone(440,0,0.09,'triangle',0.13)},
-    delete:function(){tone(300,0,0.11,'sawtooth',0.11);tone(200,0.09,0.16,'sawtooth',0.11)},
-    close:function(){tone(400,0,0.07,'sine',0.09)},
-    click:function(){tone(500,0,0.06,'sine',0.09)}
+    nav:function(){tone(784,0,0.1,'sine',0.08);tone(1047,0.05,0.12,'sine',0.05)},
+    navDashboard:function(){tone(523,0,0.11,'sine',0.1);tone(784,0.06,0.14,'sine',0.06)},
+    navTransfers:function(){tone(587,0,0.11,'sine',0.1);tone(880,0.06,0.14,'sine',0.06)},
+    navTickets:function(){tone(659,0,0.11,'sine',0.1);tone(988,0.06,0.14,'sine',0.06)},
+    navServices:function(){tone(698,0,0.11,'sine',0.1);tone(1047,0.06,0.14,'sine',0.06)},
+    navPdf:function(){tone(784,0,0.11,'sine',0.1);tone(1175,0.06,0.14,'sine',0.06)},
+    navSaved:function(){tone(880,0,0.11,'sine',0.1);tone(1319,0.06,0.14,'sine',0.06)},
+    navHelp:function(){tone(988,0,0.11,'sine',0.09);tone(1480,0.06,0.14,'sine',0.05)},
+    navAbout:function(){tone(1047,0,0.11,'sine',0.09);tone(1568,0.06,0.14,'sine',0.05)},
+    navSettings:function(){tone(466,0,0.13,'triangle',0.1);tone(698,0.07,0.16,'sine',0.06)},
+    navTheme:function(){tone(587,0,0.1,'sine',0.08);tone(880,0.07,0.14,'sine',0.08);tone(1175,0.14,0.2,'sine',0.05)},
+    navLogout:function(){tone(784,0,0.1,'sine',0.09);tone(587,0.09,0.12,'sine',0.09);tone(440,0.18,0.22,'sine',0.08)},
+    confirm:function(){tone(659,0,0.1,'sine',0.11);tone(988,0.08,0.18,'sine',0.1)},
+    save:function(){tone(784,0,0.1,'sine',0.1);tone(988,0.07,0.1,'sine',0.1);tone(1175,0.14,0.24,'sine',0.1)},
+    add:function(){blip(420,840,0,0.11,0.1);tone(1047,0.07,0.1,'sine',0.05)},
+    delete:function(){tone(440,0,0.12,'triangle',0.09);tone(330,0.1,0.2,'triangle',0.09)},
+    close:function(){blip(820,480,0,0.1,0.15)},
+    click:function(){blip(1250,780,0,0.08,0.17)}
   };
   function categoryFor(btn){
     if(btn.closest('.nav')){
@@ -8981,6 +9040,7 @@ function toggleChatbot(){
       if(oc.includes('logoutUser'))return 'navLogout';
       return 'nav';
     }
+    if(btn.hasAttribute('data-ld-open'))return 'confirm';
     if(btn.classList.contains('red'))return 'delete';
     if(btn.classList.contains('green'))return 'save';
     if(btn.classList.contains('orange'))return 'add';
@@ -9003,8 +9063,8 @@ function toggleChatbot(){
     let text=String(msg||'');
     let isSuccess=text.includes('successfully')||text.includes('✅');
     if(window.hippoTone){
-      if(isSuccess){window.hippoTone(659,0,0.1,'sine',0.13);window.hippoTone(880,0.1,0.15,'sine',0.13);}
-      else{window.hippoTone(220,0,0.09,'square',0.1);window.hippoTone(180,0.08,0.16,'square',0.1);}
+      if(isSuccess){window.hippoTone(659,0,0.1,'sine',0.12);window.hippoTone(880,0.08,0.1,'sine',0.12);window.hippoTone(1319,0.16,0.24,'sine',0.09);}
+      else{window.hippoTone(392,0,0.12,'triangle',0.1);window.hippoTone(294,0.11,0.22,'triangle',0.1);}
     }
     nativeAlert(msg);
   };
