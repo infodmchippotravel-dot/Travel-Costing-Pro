@@ -2634,6 +2634,10 @@ html body .list-more .lm-ic.up{transform:translateY(2px) rotate(-135deg)}
 html body .list-more .lm-hint{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:var(--muted);white-space:nowrap}
 @media (max-width:600px){html body .list-more .lm-hint{display:none}}   /* the search box above already says this */
 html body tr.lm-hide{display:none!important}
+html body .login-card .phone-row{display:flex;gap:8px;align-items:stretch}
+html body .login-card .phone-row .field-icon{flex:1 1 auto;min-width:0}
+html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;padding:0 26px 0 10px;border-radius:12px;font-size:14px;font-weight:600;text-overflow:ellipsis;cursor:pointer}
+@media (max-width:480px){html body .login-card select.cc-sel{flex-basis:108px;width:108px;font-size:13px;padding:0 22px 0 8px}}
 </style>
 <style id="cssEnd"></style>
 <a class="skip-link" href="#main">Skip to main content</a>
@@ -2697,7 +2701,7 @@ html body tr.lm-hide{display:none!important}
       <label for="loginUserName">Your name</label>
       <div class="field-icon"><span aria-hidden="true">👤</span><input id="loginUserName" autocomplete="name" type="text" maxlength="60" placeholder="e.g. Rahul Sharma" aria-describedby="loginUserHint"></div>
       <label for="loginUserPhone" style="margin-top:12px">Phone number</label>
-      <div class="field-icon"><span aria-hidden="true">📱</span><input id="loginUserPhone" autocomplete="tel" type="tel" inputmode="tel" maxlength="20" placeholder="e.g. 98290 11111" aria-describedby="loginUserHint"></div>
+      <div class="phone-row"><select id="loginUserCc" class="cc-sel notranslate" translate="no" aria-label="Country code" autocomplete="tel-country-code"><option value="91|India" selected>+91 India</option></select><div class="field-icon"><span aria-hidden="true">📱</span><input id="loginUserPhone" autocomplete="tel-national" type="tel" inputmode="tel" maxlength="20" placeholder="98290 11111" aria-describedby="loginUserHint"></div></div>
       <p class="login-field-hint" id="loginUserHint">Type your name and phone number — no password needed. Use the same on every laptop and phone to see all your work.</p>
       <button class="blue login-main-btn" onclick="loginWithName()" type="button">Continue ➜</button>
       <div class="login-divider" role="separator"><span class="or-badge">OR</span></div>
@@ -3906,26 +3910,38 @@ function applyRoleRestrictions(){
 
 function isValidEmail(email){return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);}
 function isValidNamePart(name){return /^[A-Za-z][A-Za-z\s'.-]{1,49}$/.test(name.trim())&&!isJunkName(name);}
-/* A real phone number: Indian mobile = 10 digits starting 6–9 (+91 / 0 in front is fine);
-   another country = + and the country code, 8–15 digits. Not 0000000000, 1234567890, 9898989898 … */
-function phoneProblem(raw){
-  var t=String(raw||'').trim();
-  if(!t)return 'Please enter your phone number.';
-  if(/[^\d+\s().-]/.test(t))return 'Please use only numbers in the phone number.';
-  var c=t.replace(/[\s().-]/g,''),d=c.replace(/\D/g,'');
-  if(/\+/.test(c.slice(1)))return 'Please enter one phone number only.';
-  if(c.charAt(0)==='+'&&!/^\+91/.test(c)){
-    if(d.length<8||d.length>15)return 'Please enter the full phone number with the country code (8–15 digits).';
+/* Country codes for the login phone box (every country; India first) */
+var HIPPO_CC=[["Afghanistan","93"],["Åland Islands","358"],["Albania","355"],["Algeria","213"],["American Samoa","1"],["Andorra","376"],["Angola","244"],["Anguilla","1"],["Antigua and Barbuda","1"],["Argentina","54"],["Armenia","374"],["Aruba","297"],["Australia","61"],["Austria","43"],["Azerbaijan","994"],["Bahamas","1"],["Bahrain","973"],["Bangladesh","880"],["Barbados","1"],["Belarus","375"],["Belgium","32"],["Belize","501"],["Benin","229"],["Bermuda","1"],["Bhutan","975"],["Bolivia","591"],["Bosnia and Herzegovina","387"],["Botswana","267"],["Brazil","55"],["British Virgin Islands","1"],["Brunei","673"],["Bulgaria","359"],["Burkina Faso","226"],["Burundi","257"],["Cambodia","855"],["Cameroon","237"],["Canada","1"],["Cape Verde","238"],["Caribbean Netherlands","599"],["Cayman Islands","1"],["Central African Republic","236"],["Chad","235"],["Chile","56"],["China","86"],["Christmas Island","61"],["Cocos (Keeling) Islands","61"],["Colombia","57"],["Comoros","269"],["Congo","242"],["Congo (DR)","243"],["Cook Islands","682"],["Costa Rica","506"],["Côte d'Ivoire","225"],["Croatia","385"],["Cuba","53"],["Curaçao","599"],["Cyprus","357"],["Czechia","420"],["Denmark","45"],["Djibouti","253"],["Dominica","1"],["Dominican Republic","1"],["Ecuador","593"],["Egypt","20"],["El Salvador","503"],["Equatorial Guinea","240"],["Eritrea","291"],["Estonia","372"],["Eswatini","268"],["Ethiopia","251"],["Falkland Islands","500"],["Faroe Islands","298"],["Fiji","679"],["Finland","358"],["France","33"],["French Guiana","594"],["French Polynesia","689"],["Gabon","241"],["Gambia","220"],["Georgia","995"],["Germany","49"],["Ghana","233"],["Gibraltar","350"],["Greece","30"],["Greenland","299"],["Grenada","1"],["Guadeloupe","590"],["Guam","1"],["Guatemala","502"],["Guernsey","44"],["Guinea","224"],["Guinea-Bissau","245"],["Guyana","592"],["Haiti","509"],["Honduras","504"],["Hong Kong","852"],["Hungary","36"],["Iceland","354"],["India","91"],["Indonesia","62"],["Iran","98"],["Iraq","964"],["Ireland","353"],["Isle of Man","44"],["Israel","972"],["Italy","39"],["Jamaica","1"],["Japan","81"],["Jersey","44"],["Jordan","962"],["Kazakhstan","7"],["Kenya","254"],["Kiribati","686"],["Kosovo","383"],["Kuwait","965"],["Kyrgyzstan","996"],["Laos","856"],["Latvia","371"],["Lebanon","961"],["Lesotho","266"],["Liberia","231"],["Libya","218"],["Liechtenstein","423"],["Lithuania","370"],["Luxembourg","352"],["Macau","853"],["Madagascar","261"],["Malawi","265"],["Malaysia","60"],["Maldives","960"],["Mali","223"],["Malta","356"],["Marshall Islands","692"],["Martinique","596"],["Mauritania","222"],["Mauritius","230"],["Mayotte","262"],["Mexico","52"],["Micronesia","691"],["Moldova","373"],["Monaco","377"],["Mongolia","976"],["Montenegro","382"],["Montserrat","1"],["Morocco","212"],["Mozambique","258"],["Myanmar","95"],["Namibia","264"],["Nauru","674"],["Nepal","977"],["Netherlands","31"],["New Caledonia","687"],["New Zealand","64"],["Nicaragua","505"],["Niger","227"],["Nigeria","234"],["Niue","683"],["Norfolk Island","672"],["North Korea","850"],["North Macedonia","389"],["Northern Mariana Islands","1"],["Norway","47"],["Oman","968"],["Pakistan","92"],["Palau","680"],["Palestine","970"],["Panama","507"],["Papua New Guinea","675"],["Paraguay","595"],["Peru","51"],["Philippines","63"],["Poland","48"],["Portugal","351"],["Puerto Rico","1"],["Qatar","974"],["Réunion","262"],["Romania","40"],["Russia","7"],["Rwanda","250"],["Saint Barthélemy","590"],["Saint Helena","290"],["Saint Kitts and Nevis","1"],["Saint Lucia","1"],["Saint Martin","590"],["Saint Pierre and Miquelon","508"],["Saint Vincent and the Grenadines","1"],["Samoa","685"],["San Marino","378"],["São Tomé and Príncipe","239"],["Saudi Arabia","966"],["Senegal","221"],["Serbia","381"],["Seychelles","248"],["Sierra Leone","232"],["Singapore","65"],["Sint Maarten","1"],["Slovakia","421"],["Slovenia","386"],["Solomon Islands","677"],["Somalia","252"],["South Africa","27"],["South Korea","82"],["South Sudan","211"],["Spain","34"],["Sri Lanka","94"],["Sudan","249"],["Suriname","597"],["Sweden","46"],["Switzerland","41"],["Syria","963"],["Taiwan","886"],["Tajikistan","992"],["Tanzania","255"],["Thailand","66"],["Timor-Leste","670"],["Togo","228"],["Tokelau","690"],["Tonga","676"],["Trinidad and Tobago","1"],["Tunisia","216"],["Turkey","90"],["Turkmenistan","993"],["Turks and Caicos Islands","1"],["Tuvalu","688"],["Uganda","256"],["Ukraine","380"],["United Arab Emirates","971"],["United Kingdom","44"],["United States","1"],["Uruguay","598"],["US Virgin Islands","1"],["Uzbekistan","998"],["Vanuatu","678"],["Vatican City","39"],["Venezuela","58"],["Vietnam","84"],["Wallis and Futuna","681"],["Western Sahara","212"],["Yemen","967"],["Zambia","260"],["Zimbabwe","263"]];
+/* A real phone number for the chosen country.
+   India: 10 digits starting 6–9 (+91 / 0 in front is fine). Other countries: 4–14 digits after the code (15 at most with it).
+   Typing + and a code (e.g. +66 81 234 5678) also works and picks that country. Not 9999999999, 1234567890, 9876543210 … */
+function phoneCheck(raw,cc){
+  var t=String(raw||'').trim(),code=String(cc||'91').split('|')[0]||'91',name=String(cc||'').split('|')[1]||'';
+  if(!t)return {problem:'Please enter your phone number.'};
+  if(/[^\d+\s().-]/.test(t))return {problem:'Please use only numbers in the phone number.'};
+  var c=t.replace(/[\s().-]/g,'');
+  if(/\+/.test(c.slice(1)))return {problem:'Please enter one phone number only.'};
+  var d=c.replace(/\D/g,'');
+  if(c.charAt(0)==='+'||/^00/.test(c)){   /* the code is typed in the box: use it */
+    if(/^00/.test(c))d=d.slice(2);
+    var best='';HIPPO_CC.forEach(function(x){if(d.indexOf(x[1])===0&&x[1].length>best.length)best=x[1];});
+    if(!best)return {problem:'This country code is not known. Please choose the country in the list.'};
+    if(best!==code){code=best;name='';HIPPO_CC.some(function(x){if(x[1]===best){name=x[0];return true;}});}
+    d=d.slice(best.length);
+  }else if(code==='91'&&d.length===12&&/^91/.test(d))d=d.slice(2);
+  if(d.length>4&&d.charAt(0)==='0')d=d.replace(/^0+/,'');   /* the 0 used inside the country */
+  if(code==='91'){
+    if(d.length!==10)return {problem:'Please enter your 10-digit mobile number (e.g. 98290 11111).'};
+    if(!/^[6-9]/.test(d))return {problem:'This is not a mobile number. An Indian mobile number starts with 6, 7, 8 or 9.'};
   }else{
-    if(d.length===12&&/^91/.test(d))d=d.slice(2);else if(d.length===11&&/^0/.test(d))d=d.slice(1);
-    if(d.length!==10)return 'Please enter your 10-digit mobile number (e.g. 98290 11111).';
-    if(!/^[6-9]/.test(d))return 'This is not a mobile number. An Indian mobile number starts with 6, 7, 8 or 9.';
+    if(d.length<4||d.length+code.length>15||d.length+code.length<7)return {problem:'Please check the phone number for '+(name||('+'+code))+' — it has too few or too many digits.'};
   }
   var core=d.length>10?d.slice(-10):d;
-  if(/^(\d)\1+$/.test(core)||/^(\d\d)\1{3,}$/.test(core)||'01234567890123456789'.indexOf(core)!==-1||'98765432109876543210'.indexOf(core)!==-1)
-    return 'Please enter your real phone number.';
-  return '';
+  if(core.length>=6&&(/^(\d)\1+$/.test(core)||/^(\d\d)\1{2,}$/.test(core)||'01234567890123456789'.indexOf(core)!==-1||'98765432109876543210'.indexOf(core)!==-1))
+    return {problem:'Please enter your real phone number.'};
+  return {problem:'',digits:code==='91'?d:code+d,code:code,name:name};
 }
+function phoneProblem(raw,cc){return phoneCheck(raw,cc).problem;}
 function isJunkName(name){
   let n=name.trim().toLowerCase();
   // Common placeholder/test words people type instead of a real name
@@ -6891,8 +6907,10 @@ try{(function(){
     if(problem){input.setAttribute('aria-invalid','true');input.focus();return showLoginError(problem);}
     input.removeAttribute('aria-invalid');
     var phIn=$('loginUserPhone'),ph=String(phIn&&phIn.value||'').replace(/\D/g,'');
-    var phBad=phIn?phoneProblem(phIn.value):'';
-    if(phBad){phIn.setAttribute('aria-invalid','true');phIn.focus();return showLoginError(phBad);}
+    var ccIn=$('loginUserCc'),phChk=phIn?phoneCheck(phIn.value,ccIn&&ccIn.value):{problem:''};
+    if(phChk.problem){phIn.setAttribute('aria-invalid','true');phIn.focus();return showLoginError(phChk.problem);}
+    if(phIn){ph=phChk.digits;if(ccIn&&phChk.code&&ccIn.value.split('|')[0]!==phChk.code){var m=[].filter.call(ccIn.options,function(o){return o.value.split('|')[0]===phChk.code;})[0];if(m)ccIn.value=m.value;}
+      try{localStorage.setItem('travelLoginCc',ccIn?ccIn.value:'');}catch(e){}}
     if(phIn)phIn.removeAttribute('aria-invalid');
     var key='name:'+name.toLowerCase();
     var users=getLoginUsers();
@@ -16410,6 +16428,20 @@ try{(function(){
   if(!all()){var n=0,t=setInterval(function(){if(all()||++n>60)clearInterval(t);},500);}
   document.addEventListener('click',function(){setTimeout(all,0);},true);   /* lists built later (e.g. Tours tab) */
   document.addEventListener('input',function(e){if(e.target&&/^(ratesSearch|rateSearchTr|rateSearchSv)$/.test(e.target.id))setTimeout(function(){Object.keys(LISTS).forEach(apply);},0);});
+})();
+</script>
+<script>
+/* login phone box: country code list (every country, India first); the last choice is kept on this computer */
+(function(){
+  var sel=document.getElementById('loginUserCc');if(!sel||typeof HIPPO_CC==='undefined')return;
+  var keep='91|India';try{keep=localStorage.getItem('travelLoginCc')||keep;}catch(e){}
+  var list=HIPPO_CC.slice().sort(function(a,b){return a[0].localeCompare(b[0]);});
+  var html='<option value="91|India">+91 India</option>';
+  list.forEach(function(x){if(x[0]==='India')return;html+='<option value="'+x[1]+'|'+x[0].replace(/"/g,'&quot;')+'">+'+x[1]+' '+x[0].replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</option>';});
+  sel.innerHTML=html;sel.value=keep;if(!sel.value)sel.value='91|India';
+  var ph=document.getElementById('loginUserPhone');
+  function hint(){var c=sel.value.split('|')[0];if(ph)ph.placeholder=c==='91'?'98290 11111':'Number without +'+c;}
+  sel.addEventListener('change',function(){hint();if(ph)ph.removeAttribute('aria-invalid');});hint();
 })();
 </script>
 </body>
