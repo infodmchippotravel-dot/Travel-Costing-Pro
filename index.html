@@ -12918,6 +12918,7 @@ html body .topbar.scrolled::after{content:"";position:absolute;left:0;right:0;bo
   background:var(--card,#fff);color:var(--text,#0f172a);box-shadow:0 12px 28px -10px rgba(15,23,42,.45);
   opacity:0;transform:translateY(20px) scale(.8);pointer-events:none;transition:opacity .3s ease,transform .3s ease}
 .sfx-top.show{opacity:1;transform:none;pointer-events:auto}
+.sfx-top.show.sfx-dodge{opacity:0;transform:scale(.8);pointer-events:none}
 .sfx-top:hover{transform:translateY(-3px)}
 .sfx-top:focus-visible{outline:3px solid var(--blue,#0e93c9);outline-offset:3px}
 .sfx-top svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
@@ -13085,12 +13086,38 @@ try{(function(){
     blobs=[].slice.call(bg.children);
   }
 
+  /* the round button must never sit on top of a button, a link or a box: it stays above the bottom "Total / Save" bar,
+     and while something you can press or type in is under it, it steps aside (it comes back on an empty spot) */
+  function placeTop(){
+    var bar=document.getElementById('easyBar'),bh=0;
+    if(bar&&!bar.hidden){var cs=getComputedStyle(bar);if(cs.display!=='none'&&cs.visibility!=='hidden'){var r=bar.getBoundingClientRect();if(r.height>0&&r.top<innerHeight&&r.bottom>innerHeight-6)bh=innerHeight-r.top;}}
+    var base=innerWidth<=600?16:24;
+    btn.style.bottom=(bh?Math.round(bh+12):base)+'px';
+    if(!btn.classList.contains('show')){btn.classList.remove('sfx-dodge');return;}
+    /* its real place and size (not the smaller size it has while it fades in or out) */
+    var bcs=getComputedStyle(btn),bw=btn.offsetWidth,bhh=btn.offsetHeight,vw=document.documentElement.clientWidth,rt=parseFloat(bcs.right)||0,bt=parseFloat(bcs.bottom)||0;
+    var T={left:vw-rt-bw,right:vw-rt,top:innerHeight-bt-bhh,bottom:innerHeight-bt},over=false,pad=6;
+    var scope=document.querySelector('.page.active')||document.body;
+    var cand=[].slice.call(scope.querySelectorAll('button,a[href],input,select,textarea,[role="button"],[contenteditable="true"]'));
+    var eb=document.getElementById('easyBar');if(eb)cand=cand.concat([].slice.call(eb.querySelectorAll('button,a[href],input,select')));
+    /* the footer: its links, the version and the credit line must not be covered either */
+    cand=cand.concat([].slice.call(document.querySelectorAll('.sitefooter a[href],.sitefooter button,.sitefooter .foot-version,.sitefooter b,.sitefooter strong')));
+    for(var i=0;i<cand.length&&!over;i++){var e=cand[i];if(e===btn)continue;var r=e.getBoundingClientRect();
+      if(r.width<2||r.height<2||r.bottom<T.top-pad||r.top>T.bottom+pad||r.right<T.left-pad||r.left>T.right+pad)continue;
+      if(!e.getClientRects().length||getComputedStyle(e).visibility==='hidden')continue;
+      over=true;}
+    btn.classList.toggle('sfx-dodge',over);
+  }
+  window.addEventListener('resize',function(){placeTop();},{passive:true});
+  document.addEventListener('click',function(){setTimeout(placeTop,350);},true);
+  var placeT=0;
   var ticking=false,sweepT=0;
   function onScroll(){
     var y=window.scrollY||document.documentElement.scrollTop||0;
     var max=document.documentElement.scrollHeight-window.innerHeight;
     var pct=max>0?Math.min(1,y/max):0;
     btn.classList.toggle('show',y>400);
+    placeTop();clearTimeout(placeT);placeT=setTimeout(placeTop,650);   /* again when the cards have finished sliding in */
     if(ring)ring.style.strokeDashoffset=(150.8*(1-pct)).toFixed(1);
     if(io){clearTimeout(sweepT);sweepT=setTimeout(sweep,120);}   // smooth: the safety check waits until scrolling slows
     if(blobs.length){
@@ -15059,7 +15086,9 @@ try{(function(){
           }
           /* already here (a record of this browser that the map lost): link it, never make a copy */
           if(owner&&owner===me.uid&&rec.id!=null&&idx[rec.id]!=null&&doc.indexOf(me.uid+'_'+device()+'_')===0){m[col][doc]={id:rec.id,sig:sig(list[idx[rec.id]]),owner:owner,del:false};changed=true;return;}
-          /* new to this browser */
+          /* the very same record is already here (same id and exactly the same content, e.g. the same backup restored on two computers): link it, never make a copy */
+          if(rec.id!=null&&idx[rec.id]!=null&&sig(list[idx[rec.id]])===sig(rec)){m[col][doc]={id:rec.id,sig:sig(rec),owner:owner,del:false};changed=true;return;}
+          /* new to this browser (a record with the same id but other content is a different record made on another computer: it is kept as well) */
           if(rec.id==null||idx[rec.id]!=null)rec.id=(col==='vouchers'?'v':'R')+hash(doc).replace(':','');
           list.push(rec);idx[rec.id]=list.length-1;
           m[col][doc]={id:rec.id,sig:sig(rec),owner:owner,del:false};changed=true;

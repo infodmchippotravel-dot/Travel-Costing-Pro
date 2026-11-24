@@ -1812,7 +1812,9 @@ function renderList() {
       : '';
   $('list').innerHTML = items.length
     ? more + `<table class="list"><thead><tr><th style="width:110px">Month</th><th>Client</th><th style="width:180px">Travel dates</th><th style="width:100px">Days</th><th style="width:230px"></th></tr></thead><tbody>${items.slice(0, max).map(x => x.html).join('')}</tbody></table>`
-    : '<p class="hint" style="text-align:center;padding:14px">No voucher matches your search.</p>';
+    : (q.length
+      ? '<p class="hint" style="text-align:center;padding:14px">No voucher matches your search.</p>'
+      : '<p class="hint" style="text-align:center;padding:14px">No vouchers yet. Fill in the client and the day-by-day plan above, then press <b>💾 Save</b> — your vouchers will show here.</p>');
 }
 // travel start of an old PDF voucher as "2026-04-10" (for sorting and the month)
 function oldStartKey(v) {
