@@ -1025,7 +1025,9 @@ settings.partner = Object.assign(settingsDefault().partner, settings.partner || 
 // the emergency line used to be one shared setting → it belongs to Anup Group (their staff numbers)
 if (typeof settings.emergency === 'string') { if (settings.emergency && !(LS.get(K.settings, {}).partner || {}).emergency) settings.partner.emergency = settings.emergency; delete settings.emergency; }
 delete settings.partner.label;
-const saveSettings = () => LS.set(K.settings, settings);
+/* a new (not saved) voucher shows the next number; it changes when the next number changes */
+const refreshNoBox = () => { try { if (!draft.id) { const el = document.querySelector('#clientBox [aria-label="Voucher number"]'); if (el) el.value = nextVoucherNo(); } } catch (e) { /* not drawn yet */ } };
+const saveSettings = () => { const ok = LS.set(K.settings, settings); refreshNoBox(); return ok; };
 
 /* =========================================================
    Tours, hotels and old vouchers (built-in + added PDFs)
@@ -1199,7 +1201,7 @@ function saveVoucher(auto) {
   if (!draft.id) {
     draft.id = 'v' + Date.now(); draft.created = now;
     draft.createdBy = { key: (window.ITIN_SESSION || {}).key || '', name: (window.ITIN_SESSION || {}).name || '' };
-    draft.no = `${settings.prefix || 'TV'}-${String(settings.nextNo || 1).padStart(4, '0')}`;
+    draft.no = nextVoucherNo();
     settings.nextNo = (settings.nextNo || 1) + 1; saveSettings();
   }
   draft.updated = now;
@@ -1210,9 +1212,17 @@ function saveVoucher(auto) {
   const i = list.findIndex(x => x.id === draft.id);
   if (i >= 0) list[i] = copy; else list.unshift(copy);
   if (!LS.set(K.saved, list)) { toast('Could not save — browser storage is full'); return; }
-  dirty = false; LS.set(K.draft, draft); showDirty(); renderClient(); renderList(); refreshPreview();
-  toast(auto === true ? `💾 Saved by itself as ${draft.no}` : `💾 Saved as ${draft.no}`);
+  dirty = false; LS.set(K.draft, draft);
+  if (auto === true) { showDirty(); renderClient(); renderList(); refreshPreview(); toast(`💾 Saved by itself as ${draft.no}`); return; }
+  /* like the costing: after Save the form is empty again and the next voucher number is ready */
+  const savedNo = draft.no;
+  draft = fixVoucher(newVoucher()); LS.set(K.draft, draft);
+  if (pvOpen()) { document.body.classList.remove('pp'); document.documentElement.classList.remove('pp'); }
+  renderMake(); renderList(); window.scrollTo(0, 0);
+  toast(`💾 Saved as ${savedNo}. New voucher ${nextVoucherNo()} is ready.`);
 }
+/* the number the next saved voucher gets (shown in the Voucher No. box before saving, like the costing number) */
+function nextVoucherNo() { return `${settings.prefix || 'TV'}-${String(settings.nextNo || 1).padStart(4, '0')}`; }
 
 /* =========================================================
    Pages
@@ -1374,11 +1384,11 @@ let startWas = ''; // travel start date as shown, so hotel dates can move with i
 function renderClient() {
   const v = draft; startWas = v.start;
   $('editTag').textContent = v.id ? `· Editing ${v.no}${dirty ? ' (not saved yet)' : ''}` : '· New voucher';
-  $('clientBox').innerHTML = `<table class="st"><colgroup><col style="width:13%"><col><col style="width:9%"><col style="width:9%"><col style="width:16%"><col style="width:22%"></colgroup>
-    <thead><tr><th>Voucher No. <span class="auto-tag">auto</span></th><th>Client Name <span class="star">*</span></th><th>Adults</th><th>Kids</th><th>Start date <span class="star">*</span></th><th>Trip</th></tr></thead>
+  $('clientBox').innerHTML = `<table class="st"><colgroup><col><col style="width:13%"><col style="width:9%"><col style="width:9%"><col style="width:16%"><col style="width:22%"></colgroup>
+    <thead><tr><th>Client Name <span class="star">*</span></th><th>Voucher No. <span class="auto-tag">auto</span></th><th>Adults</th><th>Kids</th><th>Start date <span class="star">*</span></th><th>Trip</th></tr></thead>
     <tbody><tr>
-      <td data-l="Voucher No."><input value="${esc(v.no || 'Comes on save')}" readonly tabindex="-1" aria-label="Voucher number"></td>
       <td data-l="Client Name"><input id="cn" ${f('client', v.client, 'placeholder="Type client name (e.g. Rahul Sharma)" autocomplete="off" aria-label="Client name"')}></td>
+      <td data-l="Voucher No."><input value="${esc(v.no || nextVoucherNo())}" readonly tabindex="-1" aria-label="Voucher number" title="${v.no ? 'Voucher number' : 'Next number. It is given automatically when you save.'}"></td>
       <td data-l="Adults"><input id="ad" type="number" min="0" ${f('adults', v.adults, 'aria-label="Adults"')}></td>
       <td data-l="Kids"><input id="kd" type="number" min="0" ${f('kids', v.kids, 'aria-label="Kids"')}></td>
       <td data-l="Travel start date"><input id="st" type="date" ${f('start', v.start, 'aria-label="Travel start date"')}></td>
@@ -2600,7 +2610,7 @@ window.addEventListener('storage',function(e){
   /* vouchers brought from the cloud (admin) or saved in another tab: show the new list */
   if(e.key==='tv.saved.v1'){try{renderList();}catch(x){}}
   /* company / notes settings shared by the admin (from the website): use them, keep this browser's voucher number */
-  if(e.key==='tv.settings.v1'&&e.newValue){try{var n=JSON.parse(e.newValue)||{};['company','partner','prefix','currency','notes','closing','nextNo'].forEach(function(k){if(n[k]!==undefined)settings[k]=n[k];});if(typeof renderSettings==='function')renderSettings();if(typeof refreshPreview==='function')refreshPreview();}catch(x){}}
+  if(e.key==='tv.settings.v1'&&e.newValue){try{var n=JSON.parse(e.newValue)||{};['company','partner','prefix','currency','notes','closing','nextNo'].forEach(function(k){if(n[k]!==undefined)settings[k]=n[k];});if(typeof renderSettings==='function')renderSettings();if(typeof refreshPreview==='function')refreshPreview();if(typeof refreshNoBox==='function')refreshNoBox();}catch(x){}}
 });
 </script>
 <script>
