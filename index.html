@@ -1894,7 +1894,7 @@ html body span.lux-emo.lux-emo{display:none!important}
    ONE-PAGE COSTING SHEET — bank-statement style
    ===================================================================== */
 .sheet-hidden,#dashboard .flow[hidden]{display:none!important}
-#dashboard .page-header{align-items:center}
+#dashboard .page-header{align-items:center}@media (min-width:721px){#itinerary>.page-header{column-gap:24px}}
 .sheet-head-actions{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
 .sheet-head-actions button{min-height:44px}
 #dashboard .card{margin-bottom:16px}
@@ -2397,7 +2397,7 @@ body.dark .acct-panel .acct-logout{color:#F0A3A3!important}
 
 /* ---------- Costing Sheet: first useful box higher up on phones ---------- */
 @media (max-width:720px){
-  #dashboard .page-header .ph-icon,#dashboard .page-header .ph-eyebrow{display:none!important}
+  #dashboard .page-header .ph-icon,#dashboard .page-header .ph-eyebrow,#itinerary .page-header .ph-eyebrow{display:none!important}
   #dashboard .page-header{gap:6px!important;margin-bottom:10px!important;padding-top:0!important}
   #dashboard .ph-title{font-size:24px!important}
   #dashboard .page-header .ph-sub{font-size:13.5px!important}
@@ -3527,7 +3527,7 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
 </section>
 
 <section id="itinerary" class="page" aria-labelledby="itinTitle">
-<div class="page-header"><div aria-hidden="true" class="ph-icon navy"><svg class="lux-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6z"/><path d="M9 4v14M15 6v14"/></svg></div><div><h1 class="ph-title" id="itinTitle" tabindex="-1">Create Itinerary</h1><div class="ph-sub">Make the day-by-day tour voucher for your client, then print it or save it as PDF.</div></div></div>
+<div class="page-header"><div aria-hidden="true" class="ph-icon navy"><svg class="lux-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6z"/><path d="M9 4v14M15 6v14"/></svg></div><div><div class="ph-eyebrow" id="itinHello">Welcome</div><h1 class="ph-title" id="itinTitle" tabindex="-1">Create Itinerary</h1><div class="ph-sub">3 easy steps: fill client details, add the day by day plan, then press <b>Save</b>.</div></div></div>
 <div class="itin-wrap"><iframe id="itinFrame" title="Create Itinerary — tour voucher maker"></iframe><p class="itin-loading">Loading the itinerary maker…</p></div>
 </section>
 <section id="settings" class="page">
@@ -6770,6 +6770,8 @@ try{(function(){
       var who=chip&&$('userChip')&&$('userChip').style.display!=='none'?(chip.textContent||'').replace(/^[^A-Za-z0-9\u0900-\u097F]+/,'').trim():'';
       hello.textContent=who&&who!=='User'?'Welcome, '+who:'Welcome';
     }
+    /* the same welcome line on the Create Itinerary page */
+    var ih=$('itinHello');if(ih&&hello)ih.textContent=hello.textContent;
   }
   window.updateFlow=updateFlow;
   var originalCalc=window.calculate;
