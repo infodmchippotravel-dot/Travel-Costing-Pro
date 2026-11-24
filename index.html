@@ -17033,7 +17033,10 @@ try{(function(){
       });
     }).catch(function(e){err(netMsg(e));}).then(function(){working=false;busy(btn,false);});
     function done(key,p){
-      var us=getLoginUsers(),x=Object.assign({},us[key]||{}),parts=(p.name||name).split(' ');
+      var us=getLoginUsers();
+      /* an older (name based) account: another person with the same name and another phone already uses it on this computer, so their work must not mix */
+      if(key.indexOf('phone:')!==0&&us[key]&&us[key].phone&&d9(us[key].phone)!==d9(digits))return fail('Another person with this name already uses this computer with a different phone number. Please check your phone number, or use another computer.',ph);
+      var x=Object.assign({},us[key]||{}),parts=(p.name||name).split(' ');
       x.method=x.method||p.method||'Phone';x.name=p.name||name;x.firstName=parts[0];x.lastName=parts.slice(1).join(' ');x.phone=digits;
       ['dob','gender','country','signedUpAt'].forEach(function(k){if(p[k])x[k]=p[k];});
       if(!x.createdAt||(p.createdAt&&p.createdAt<x.createdAt))x.createdAt=p.createdAt||x.createdAt||Date.now();
