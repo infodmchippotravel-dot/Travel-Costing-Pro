@@ -188,6 +188,19 @@ body.dark #loginGate .login-card .login-main-btn:hover,body.dark #loginGate .log
   .lg-side-title{font-size:32px}
   .lg-side-brand{margin-bottom:18px}
 }
+/* short laptop screens (most laptops: the browser window is only 600-760px tall): the logo is already on the left,
+   so the box drops its own logo and uses a smaller title, and the Start / Sign up button is seen without scrolling */
+@media (min-width:980px) and (max-height:780px){
+  #loginGate:not(.lg-landing) .login-card #loginLogo{display:none!important}
+  #loginGate:not(.lg-landing) .login-card{padding-top:14px!important;padding-bottom:18px!important}
+  #loginGate:not(.lg-landing) .login-card #loginTitle{font-size:24px!important;line-height:1.25!important}
+}
+@media (min-width:980px) and (max-height:700px){
+  #loginGate.lg-signup .login-card #loginSub{display:none!important}
+  #loginGate:not(.lg-landing) .login-card .login-divider{margin:6px 0!important}
+  #loginGate:not(.lg-landing) .login-card{padding-top:8px!important;padding-bottom:8px!important}
+  #loginGate:not(.lg-landing) .login-card .su-switch{margin-top:10px!important;margin-bottom:0!important}
+}
 @media (prefers-reduced-motion:reduce){.lg-side-points li{backdrop-filter:none}}
 </style>
 <style id="landingCss">
@@ -14868,7 +14881,7 @@ try{(function(){
     selfDelete:function(key,phone,keep,pr){
       /* everything of this person on this computer must be in the cloud first (the admin keeps it) */
       var m0=map(),left=0;
-      Object.keys(COLS).forEach(function(col){var have={};Object.keys(m0[col]).forEach(function(d){var e=m0[col][d];if(!e.del)have[e.id]=e.sig;});
+      Object.keys(COLS).forEach(function(col){var have={};Object.keys(m0[col]).forEach(function(d){var e=m0[col][d];if(!e.del&&!e.alias)have[e.id]=e.sig;});
         listOf(col).forEach(function(r){if(r&&r.id!=null&&r.createdBy&&r.createdBy.key===key&&have[r.id]!==sig(r))left++;});});
       if(left)return Promise.reject(new Error('Some of your work is not saved online yet. Please connect to the internet, wait a minute and try again.'));
       return credsFor(key,phone).then(function(c){return post(SIGNIN+CFG.apiKey,{email:c.email,password:c.password,returnSecureToken:true});}).then(function(j){
@@ -14990,8 +15003,8 @@ try{(function(){
     var m=map(),jobs=[];
     Object.keys(COLS).forEach(function(col){
       var list=listOf(col),byId={};
-      Object.keys(m[col]).forEach(function(doc){byId[m[col][doc].id]=doc;});
-      var present={};
+      Object.keys(m[col]).forEach(function(doc){if(!m[col][doc].alias)byId[m[col][doc].id]=doc;});
+      var present={},hereIds={};list.forEach(function(r){if(r&&r.id!=null)hereIds[r.id]=r;});
       var ukey=me.which==='user'?(get('travelCurrentUserKey')||''):'';
       list.forEach(function(rec){
         if(!rec||rec.id==null)return;
@@ -15005,8 +15018,16 @@ try{(function(){
         if(slim(rec).length>880000)return;   // too big for the cloud (stays only here)
         if(e.sig!==s||e.del){jobs.push({col:col,doc:doc,owner:e.owner||me.uid,rec:rec,s:s});}
       });
+      /* a second cloud copy (alias) gets the same changes, so a new computer sees both copies as the same record (not as two) */
+      Object.keys(m[col]).forEach(function(doc){
+        var e=m[col][doc],rec=e&&e.alias&&!e.del&&hereIds[e.id];if(!rec)return;
+        var ck=rec.createdBy&&rec.createdBy.key;if(ukey&&ukey!=='admin:main'&&ck&&ck!==ukey)return;
+        var s=sig(rec);if(e.sig!==s&&slim(rec).length<=880000)jobs.push({col:col,doc:doc,owner:e.owner||me.uid,rec:rec,s:s});
+      });
       Object.keys(m[col]).forEach(function(doc){
         var e=m[col][doc];if(present[doc]||e.del)return;
+        /* alias (a second cloud copy of a record): left alone while the record is here; when the record was deleted, the copy is deleted too */
+        if(e.alias&&hereIds[e.id])return;
         /* gone from this browser: delete online only if it is this browser's own record, or the admin pressed Delete */
         var mine=e.owner===me.uid;
         if(mine||explicitDel[col][e.id])jobs.push({col:col,doc:doc,owner:e.owner,del:true,id:e.id});
@@ -15070,6 +15091,7 @@ try{(function(){
           if(me.which!=='admin'&&val(f,'archived')===true){var ea=m[col][doc];if(ea){var la=idx[ea.id];if(la!=null){list.splice(la,1);changed=true;list.forEach(function(r,i){if(r&&r.id!=null)idx[r.id]=i;});}delete m[col][doc];}return;}
           if(kind==='profile'){if(!del){var pr=parse(val(f,'data'),null);if(pr&&pr.key&&pr.key!=='admin:main'){pr.seenAt=val(f,'updatedAt');pr.doc=doc;pr.owner=owner;pr.docs=[[doc,owner]];var pk0=pr.key+'|'+(function(d){d=d.replace(/^0+/,'');return d.length>9?d.slice(-9):d;})(String(pr.phone||'').replace(/\D/g,''));if(prof[pk0]&&prof[pk0].docs)prof[pk0].docs.forEach(function(x){if(x[0]!==doc)pr.docs.push(x);});prof[pr.key+'|'+(function(d){d=d.replace(/^0+/,'');return d.length>9?d.slice(-9):d;})(String(pr.phone||'').replace(/\D/g,''))]=pr;}}return;}
           var e=m[col][doc];
+          if(e&&e.alias){if(del)e.del=true;return;}   /* a second cloud copy of a record already linked to another copy: not used */
           if(del){
             if(e&&!e.del){var li=idx[e.id];if(li!=null&&sig(list[li])===e.sig){list.splice(li,1);changed=true;list.forEach(function(r,i){if(r&&r.id!=null)idx[r.id]=i;});}e.del=true;}
             return;
@@ -15087,14 +15109,20 @@ try{(function(){
           /* already here (a record of this browser that the map lost): link it, never make a copy */
           if(owner&&owner===me.uid&&rec.id!=null&&idx[rec.id]!=null&&doc.indexOf(me.uid+'_'+device()+'_')===0){m[col][doc]={id:rec.id,sig:sig(list[idx[rec.id]]),owner:owner,del:false};changed=true;return;}
           /* the very same record is already here (same id and exactly the same content, e.g. the same backup restored on two computers): link it, never make a copy */
-          if(rec.id!=null&&idx[rec.id]!=null&&sig(list[idx[rec.id]])===sig(rec)){m[col][doc]={id:rec.id,sig:sig(rec),owner:owner,del:false};changed=true;return;}
+          if(rec.id!=null&&idx[rec.id]!=null&&sig(list[idx[rec.id]])===sig(rec)){
+            /* one record = one cloud copy. If this record is already linked to another copy, every computer keeps the same one
+               (the first by name) and the other copy is only remembered as an alias: it is never deleted, so nothing else can disappear */
+            var cur=null;Object.keys(m[col]).forEach(function(k){var x=m[col][k];if(k!==doc&&x&&!x.alias&&!x.del&&x.id===rec.id)cur=k;});
+            if(cur&&cur<doc){m[col][doc]={id:rec.id,sig:sig(rec),owner:owner,del:false,alias:true};changed=true;return;}
+            if(cur)m[col][cur]=Object.assign({},m[col][cur],{alias:true});
+            m[col][doc]={id:rec.id,sig:sig(rec),owner:owner,del:false};changed=true;return;}
           /* new to this browser (a record with the same id but other content is a different record made on another computer: it is kept as well) */
           if(rec.id==null||idx[rec.id]!=null)rec.id=(col==='vouchers'?'v':'R')+hash(doc).replace(':','');
           list.push(rec);idx[rec.id]=list.length-1;
           m[col][doc]={id:rec.id,sig:sig(rec),owner:owner,del:false};changed=true;
         });
         if(me.which==='admin')markDl(col,started);
-        stats[col]=Object.keys(m[col]).filter(function(k){return !m[col][k].del;}).length;
+        stats[col]=Object.keys(m[col]).filter(function(k){return !m[col][k].del&&!m[col][k].alias;}).length;
         if(changed){
           if(col==='costings'||col==='drafts')list.sort(function(a,b){return String(b.updatedAt||'').localeCompare(String(a.updatedAt||''));});
           if(!putList(col,list)){lastErr='This browser is full — not every record could be shown here.';}
