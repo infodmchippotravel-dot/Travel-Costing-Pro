@@ -15117,9 +15117,15 @@ try{(function(){
             if(cur)m[col][cur]=Object.assign({},m[col][cur],{alias:true});
             m[col][doc]={id:rec.id,sig:sig(rec),owner:owner,del:false};changed=true;return;}
           /* new to this browser (a record with the same id but other content is a different record made on another computer: it is kept as well) */
-          if(rec.id==null||idx[rec.id]!=null)rec.id=(col==='vouchers'?'v':'R')+hash(doc).replace(':','');
+          var o0=rec.id,s0=sig(rec),moved=false;
+          if(o0!=null&&idx[o0]!=null){
+            /* another cloud copy of a record that was already brought here under a new id: linked to it, not added again */
+            var twin=null;Object.keys(m[col]).forEach(function(k){var x=m[col][k];if(k!==doc&&x&&!x.alias&&!x.del&&x.oid===o0&&x.osig===s0&&idx[x.id]!=null)twin=k;});
+            if(twin){m[col][doc]={id:m[col][twin].id,sig:s0,owner:owner,del:false,alias:true};changed=true;return;}
+          }
+          if(rec.id==null||idx[rec.id]!=null){rec.id=(col==='vouchers'?'v':'R')+hash(doc).replace(':','');moved=true;}
           list.push(rec);idx[rec.id]=list.length-1;
-          m[col][doc]={id:rec.id,sig:sig(rec),owner:owner,del:false};changed=true;
+          m[col][doc]={id:rec.id,sig:sig(rec),owner:owner,del:false};if(moved){m[col][doc].oid=o0;m[col][doc].osig=s0;}changed=true;
         });
         if(me.which==='admin')markDl(col,started);
         stats[col]=Object.keys(m[col]).filter(function(k){return !m[col][k].del&&!m[col][k].alias;}).length;
