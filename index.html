@@ -3650,7 +3650,7 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
 
 <footer class="sitefooter no-print" aria-label="Company contact details">
 <div class="foot-brand"><div class="foot-logo"><img alt="" data-same-logo></div><b id="footBrandName">Hippo Travel</b></div>
-<address class="foot-info"><span>📍 <span id="footAddress">Shop No - 25, 6V9F+C8Q, Haat Rd, Bhimganj Mandi, Kota, Rajasthan 324002</span></span><span>📞 <a href="tel:+916350606267" style="color:inherit;text-decoration:none"><span id="footPhone">063506&nbsp;06267</span></a></span><span>📞 <a href="tel:+919116606780" style="color:inherit;text-decoration:none">+91&nbsp;91166&nbsp;06780</a></span><span>✉️ <a href="mailto:info@hippotravel.in" style="color:inherit;text-decoration:none">info@hippotravel.in</a></span><span>🌐 <a href="https://hippotravel.in/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">hippotravel.in</a></span><span>📷 <a href="https://instagram.com/hippotravels_" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">@hippotravels_</a></span></address>
+<address class="foot-info"><span>📍 <a id="footMap" href="https://www.google.com/maps/search/?api=1&amp;query=Shop%20No%20-%2025%2C%206V9F%2BC8Q%2C%20Haat%20Rd%2C%20Bhimganj%20Mandi%2C%20Kota%2C%20Rajasthan%20324002" target="_blank" rel="noopener" title="Open in Google Maps" style="color:inherit;text-decoration:none"><span id="footAddress">Shop No - 25, 6V9F+C8Q, Haat Rd, Bhimganj Mandi, Kota, Rajasthan 324002</span></a></span><span>📞 <a href="tel:+916350606267" style="color:inherit;text-decoration:none"><span id="footPhone">063506&nbsp;06267</span></a></span><span>📞 <a href="tel:+919116606780" style="color:inherit;text-decoration:none">+91&nbsp;91166&nbsp;06780</a></span><span>✉️ <a href="mailto:info@hippotravel.in" style="color:inherit;text-decoration:none">info@hippotravel.in</a></span><span>🌐 <a href="https://hippotravel.in/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">hippotravel.in</a></span><span>📷 <a href="https://instagram.com/hippotravels_" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">@hippotravels_</a></span></address>
 <div class="foot-credit">✨ Created by Rishab Jha</div>
 </footer>
 
@@ -5033,7 +5033,7 @@ function saveWORD(){
   setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
 }
 function initials(name){return (name||'').trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()||'TP'}
-function updateSettings(){footAddress.textContent=companyAddress.value||'---';footPhone.textContent=companyPhone.value||'---'}
+function updateSettings(){footAddress.textContent=companyAddress.value||'---';try{var fm=document.getElementById('footMap');if(fm&&companyAddress.value)fm.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(companyAddress.value);}catch(e){}footPhone.textContent=companyPhone.value||'---'}
 
 function allSavedData(){
   return {
@@ -15191,6 +15191,7 @@ try{(function(){
   };
   function kind(sp){
     var a=sp.querySelector('a'),h=a?(a.getAttribute('href')||''):'';
+    if(sp.querySelector('#footAddress'))return 'pin';   /* the address (its link opens Google Maps) */
     if(/^tel:/i.test(h))return 'phone';
     if(/^mailto:/i.test(h))return 'mail';
     if(/instagram\.com/i.test(h))return 'insta';
