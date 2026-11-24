@@ -265,6 +265,8 @@ body.dark #landing .ld-facts{border-top-color:#23344a;color:#e6edf7}
 #landing .ld-cta{margin:56px 0 0;background:linear-gradient(135deg,#0a1830 0%,#0d3a5c 100%);color:#fff;border-radius:22px;padding:32px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
 #landing .ld-cta h2{color:#fff;margin:0 0 6px;font-size:26px}
 #landing .ld-cta p{margin:0;color:rgba(255,255,255,.8);font-size:15px}
+#landing .ld-credit{display:block;margin-top:6px;font-weight:600;color:#7a5f2e;letter-spacing:.2px}
+body.dark #landing .ld-credit{color:#e2c48a}
 #landing .ld-foot{margin-top:48px;padding:22px 0 110px;border-top:1px solid #eadfca;color:#5e6a7d;font-size:13.5px;text-align:center}
 .login-card .login-home{position:relative;z-index:1;display:inline-flex;align-items:center;margin:-8px 0 4px -8px;background:none;border:0;color:#0d3a5c;font:600 14px Inter,'Segoe UI',Arial,sans-serif;cursor:pointer;padding:8px 10px;border-radius:10px;min-height:40px}
 .login-card .login-home:hover{background:#f3ead7}
@@ -2939,7 +2941,7 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
         <div class="ld-card ld-step"><span class="n" aria-hidden="true">3</span><h3>Itinerary and PDF</h3><p>Make the day-by-day itinerary, then print it or save it as a PDF for your client.</p></div>
       </div>
       <div class="ld-cta"><div><h2>Ready to start?</h2><p>Log in or sign up to make your first costing.</p></div><div class="ld-hero-acts"><button type="button" class="ld-btn gold" data-ld-open="signup">Sign up</button><button type="button" class="ld-btn line" data-ld-open="login">Log in</button></div></div>
-      <footer class="ld-foot">© <span id="ldYear"></span> <span class="ld-brand-name">Hippo Travel</span> Group · Kota, Rajasthan</footer>
+      <footer class="ld-foot">© <span id="ldYear"></span> <span class="ld-brand-name">Hippo Travel</span> Group · Kota, Rajasthan<span class="ld-credit">Created by <span class="notranslate" translate="no">Rishab Jha</span></span></footer>
     </div></section>
   </div>
   <div aria-hidden="true" class="login-plane p1"><svg class="pl-ico" viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></div>
@@ -8183,7 +8185,8 @@ try{(function(){
     });
   }
   var SORTERS={
-    number:function(r){return isAdminSession()?creatorOf(r).toLowerCase()+'|'+String(seqNo(r)).padStart(6,'0'):seqNo(r);},
+    /* in number order (COST-001, COST-002, COST-003…); only when two people have the same number, by name */
+    number:function(r){return isAdminSession()?String(seqNo(r)).padStart(9,'0')+'|'+creatorOf(r).toLowerCase():seqNo(r);},
     client:function(r){return (r.name||'').toLowerCase();},
     date:function(r){return r.date||'';},
     pax:function(r){return +r.pax||0;},
