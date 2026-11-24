@@ -173,6 +173,17 @@ body.dark .login-card .login-home:hover{background:#13284a}
 @media (max-width:640px){#landing .ld-top{padding:10px 16px}#landing .ld-brand img{width:38px;height:38px}#landing .ld-brand b{font-size:18px}#landing .ld-btn{padding:0 14px;font-size:14px}#landing .ld-acts{gap:8px}
  #landing .ld-wrap{padding:0 16px}#landing .ld-hero{padding:36px 0 52px}#landing h1{font-size:31px}#landing .ld-lead{font-size:16px}#landing .ld-hero-acts .ld-btn{flex:1 1 140px}
  #landing .ld-lock{margin:-26px 16px 0}#landing .ld-sec{padding-top:40px}#landing h2{font-size:25px}#landing .ld-cta{padding:24px 20px;margin-top:40px}#landing .ld-cta .ld-btn{width:100%}}
+.login-card .su-switch{text-align:center;margin:12px 0 0;font-size:14.5px;color:#5e6a7d}
+.login-card .su-link{background:none;border:0;padding:6px 4px;min-height:36px;color:#0d3a5c;font:700 14.5px Inter,'Segoe UI',Arial,sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.login-card .su-link:hover{color:#0b1f3a}
+.login-card .su-link:focus-visible{outline:3px solid #7bd4f0;outline-offset:2px;border-radius:6px}
+.login-card .su-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.login-card .su-two .field-icon,.login-card .su-two input,.login-card .su-two select{width:100%;min-width:0}
+.login-card .su-hint{margin-top:6px!important}
+.login-card #suGender{appearance:auto}
+body.dark .login-card .su-switch{color:#aab6c8}
+body.dark .login-card .su-link{color:#c6a76b}
+@media (max-width:420px){.login-card .su-two{grid-template-columns:1fr;gap:0}}
 @media (max-width:380px){#landing .ld-brand b{display:none}}
 @media (prefers-reduced-motion:no-preference){#landing{scroll-behavior:smooth}}
 </style>
@@ -2781,7 +2792,7 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
         <img class="ld-logo-big" alt="Hippo Travel logo" data-same-logo>
       </div>
     </section>
-    <div class="ld-lock" role="note"><span class="ic" aria-hidden="true">🔒</span><div><b>Please log in or sign up first</b><p>Without logging in, nothing can be made or saved on this website — no costing, no itinerary and no PDF. Logging in takes only your name and phone number.</p></div></div>
+    <div class="ld-lock" role="note"><span class="ic" aria-hidden="true">🔒</span><div><b>Please log in or sign up first</b><p>Without logging in, nothing can be made or saved on this website — no costing, no itinerary and no PDF. New here? Sign up once. Already have an account? Log in with your name and phone number.</p></div></div>
 
     <section class="ld-sec" aria-labelledby="ldAboutHead"><div class="ld-wrap">
       <h2 id="ldAboutHead">About the company</h2>
@@ -2801,7 +2812,7 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
         <div class="ld-card ld-feat"><div class="ic" aria-hidden="true">🖨️</div><h3>Print / PDF</h3><p>Print the quotation or the voucher, or save it as a PDF with the company details, ready to send to the client.</p></div>
         <div class="ld-card ld-feat"><div class="ic" aria-hidden="true">📁</div><h3>My Costings</h3><p>Every saved costing gets its own number. Find it later, open it, change it or print it again.</p></div>
         <div class="ld-card ld-feat"><div class="ic" aria-hidden="true">💼</div><h3>Saved Rates</h3><p>The admin keeps the rate list of transfers, tickets, tours and services, so everybody uses the same prices.</p></div>
-        <div class="ld-card ld-feat"><div class="ic" aria-hidden="true">📱</div><h3>Laptop and phone</h3><p>Log in with the same name and phone number on every laptop and phone to see all your work.</p></div>
+        <div class="ld-card ld-feat"><div class="ic" aria-hidden="true">📱</div><h3>Laptop and phone</h3><p>Signed up on one device? On every other laptop and phone just log in with the same name and phone number to see all your work.</p></div>
       </div>
     </div></section>
 
@@ -2809,7 +2820,7 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
       <h2 id="ldHowHead">How it works</h2>
       <p class="ld-sec-sub">Three easy steps.</p>
       <div class="ld-steps">
-        <div class="ld-card ld-step"><span class="n" aria-hidden="true">1</span><h3>Sign up or log in</h3><p>Type your name and phone number. No password is needed. The first time, your account is made by itself.</p></div>
+        <div class="ld-card ld-step"><span class="n" aria-hidden="true">1</span><h3>Sign up once, then log in</h3><p>Sign up once with your name, phone number, date of birth and gender. After that, log in with only your name and phone number — on any laptop or phone.</p></div>
         <div class="ld-card ld-step"><span class="n" aria-hidden="true">2</span><h3>Make the costing</h3><p>Fill in the client details, add the items, then press Save.</p></div>
         <div class="ld-card ld-step"><span class="n" aria-hidden="true">3</span><h3>Itinerary and PDF</h3><p>Make the day-by-day itinerary, then print it or save it as a PDF for your client.</p></div>
       </div>
@@ -2842,10 +2853,29 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
       <div class="phone-row"><select id="loginUserCc" class="cc-sel notranslate" translate="no" aria-label="Country code" autocomplete="tel-country-code"><option value="91|India" selected>+91 India</option></select><div class="field-icon"><span aria-hidden="true">📱</span><input id="loginUserPhone" autocomplete="tel-national" type="tel" inputmode="tel" maxlength="20" placeholder="98290 11111" aria-describedby="loginUserHint"></div></div>
       <p class="login-field-hint" id="loginUserHint">Type your name and phone number — no password needed. Use the same on every laptop and phone to see all your work.</p>
       <button class="blue login-main-btn" onclick="loginWithName()" type="button">Continue ➜</button>
+      <p class="su-switch">New here? <button type="button" class="su-link" id="toSignup">Sign up</button></p>
       <div class="login-divider" role="separator"><span class="or-badge">OR</span></div>
       <div style="text-align:center">
         <button type="button" onclick="showAdminLoginPanel()" class="login-admin-link login-switch">🔑 Login as Admin</button>
       </div>
+    </div>
+
+    <div id="loginPanel-signup" class="login-panel" role="group" aria-labelledby="signupHead">
+      <h3 class="login-panel-title visually-hidden" id="signupHead">✨ Sign up</h3>
+      <label for="suName">Full name<span class="req" aria-hidden="true"> *</span></label>
+      <div class="field-icon"><span aria-hidden="true">👤</span><input id="suName" autocomplete="name" type="text" maxlength="60" placeholder="e.g. Rahul Sharma" aria-required="true" aria-describedby="suNameHint"></div>
+      <p class="login-field-hint su-hint" id="suNameHint">First name and last name, like on your ID card.</p>
+      <label for="suPhone" style="margin-top:12px">Phone number<span class="req" aria-hidden="true"> *</span></label>
+      <div class="phone-row"><select id="suCc" class="cc-sel notranslate" translate="no" aria-label="Country code" autocomplete="tel-country-code"><option value="91|India" selected>+91 India</option></select><div class="field-icon"><span aria-hidden="true">📱</span><input id="suPhone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="20" placeholder="98290 11111" aria-required="true"></div></div>
+      <div class="su-two">
+        <div><label for="suDob" style="margin-top:12px">Date of birth<span class="req" aria-hidden="true"> *</span></label>
+        <div class="field-icon"><span aria-hidden="true">🎂</span><input id="suDob" type="date" autocomplete="bday" min="1906-01-01" aria-required="true"></div></div>
+        <div><label for="suGender" style="margin-top:12px">Gender<span class="req" aria-hidden="true"> *</span></label>
+        <div class="field-icon"><span aria-hidden="true">🧑</span><select id="suGender" aria-required="true"><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div></div>
+      </div>
+      <p class="login-field-hint" id="suHint">Fill in your real details once. Next time — on this or any other laptop or phone — log in with only your name and phone number.</p>
+      <button class="blue login-main-btn" id="suBtn" type="button">Sign up ➜</button>
+      <p class="su-switch">Already have an account? <button type="button" class="su-link" id="toLogin">Log in</button></p>
     </div>
 
     <div id="loginPanel-admin" class="login-panel" role="group" aria-labelledby="adminLoginHead">
@@ -4500,7 +4530,7 @@ function deleteWebsiteUser(key){
   let u=users[key];
   if(!u)return;
   let name=((u.firstName||'')+' '+(u.lastName||'')).trim()||u.name||u.email||u.phone||'this user';
-  if(!confirm('Delete "'+name+'" from the website users list?\n\nThis cannot be undone — they will need to sign up again to use the app.'))return;
+  if(!confirm('Delete "'+name+'"?\n\nTheir account is deleted: they must sign up again to use the website. Their costings and vouchers stay.'))return;
   delete users[key];
   saveLoginUsers(users);
   renderAboutPage();
@@ -7061,6 +7091,15 @@ try{(function(){
     completeLogin(key,u,isNew);
   };
   window.loginWithEmail=window.loginWithName;   // old buttons/shortcuts → name login
+  /* the same name rules for the Sign up form */
+  window.userNameProblem=function(raw){
+    var name=cleanName(raw),problem=nameProblem(name);
+    if(!problem){var w=name.split(' ').filter(Boolean);
+      if(w.length<2)problem='Please enter your full name — first name and last name (e.g. Rahul Sharma).';
+      else if(w[0].replace(/[.'-]/g,'').length<2||name.replace(/[\s.'-]/g,'').length<4)problem='Please enter your full name (e.g. Rahul Sharma).';
+      else if(/(.)\1\1/i.test(name))problem='Please check the spelling of your name.';}
+    return {name:name,problem:problem};
+  };
 
   /* ---------------- Admin login: name + ID + password ---------------- */
   var failed=0,lockedUntil=0;
@@ -14586,6 +14625,67 @@ try{(function(){
     });
   };
 
+  /* ---------- Sign up / Log in: is there an account for this name + phone? ----------
+     The account is the same one the website already uses for "the same user on another laptop / phone"
+     (made from the name + phone number). Its profile record keeps the sign-up details
+     (name, phone, date of birth, gender). When the admin deletes the user, the profile is marked
+     deleted → the person must sign up again. */
+  var SIGNIN='https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=',SIGNUP='https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=';
+  function credsFor(key,phone){
+    var ph=String(phone||'').replace(/\D/g,'').replace(/^0+/,'');if(ph.length>9)ph=ph.slice(-9);   /* same rule as userCreds() */
+    if(!window.crypto||!crypto.subtle||ph.length<6)return Promise.reject(new Error('This browser cannot check the account. Please use an up-to-date browser.'));
+    return Promise.all([sha('hippo-user|'+key+'|'+ph),sha('hippo-pass|'+key+'|'+ph)]).then(function(h){return {email:'u'+h[0].slice(0,40)+'@users.hippotravel.in',password:h[1]};});
+  }
+  function profPath(uid,key){return '/drafts/'+encodeURIComponent(uid+'_profile_'+safe(key));}
+  function notFound(e){return /INVALID_LOGIN_CREDENTIALS|EMAIL_NOT_FOUND|INVALID_PASSWORD/.test(e&&e.code||'');}
+  function readProfile(j,key){
+    return api(profPath(j.localId,key),{},j.idToken).then(function(d){var f=d.fields||{};return {exists:true,deleted:val(f,'deleted')===true,profile:parse(val(f,'data'),null),j:j};},
+      function(e){if(e.status===404||e.status===403)return {exists:true,deleted:false,profile:null,j:j};throw e;});
+  }
+  function writeProfile(j,key,pr){
+    pr=Object.assign({},pr,{key:key});var sg=JSON.stringify(pr);
+    var body={fields:{owner:{stringValue:j.localId},ownerKey:{stringValue:key},ownerName:{stringValue:pr.name||''},data:{stringValue:sg},updatedAt:{timestampValue:new Date().toISOString()},deleted:{booleanValue:false},kind:{stringValue:'profile'}}};
+    return api(profPath(j.localId,key),{method:'PATCH',body:JSON.stringify(body)},j.idToken).then(function(){set('travelCloudProfSig:'+key,sg);});
+  }
+  window.cloudAccount={
+    /* → {exists, deleted, profile} ; rejects when the internet / cloud cannot be reached */
+    check:function(key,phone){
+      return credsFor(key,phone).then(function(c){
+        return post(SIGNIN+CFG.apiKey,{email:c.email,password:c.password,returnSecureToken:true}).then(function(j){return readProfile(j,key);},function(e){if(notFound(e))return {exists:false};throw e;});
+      });
+    },
+    /* makes the account (or uses the one that is there) and saves the sign-up details */
+    create:function(key,phone,pr){
+      return credsFor(key,phone).then(function(c){
+        return post(SIGNUP+CFG.apiKey,{email:c.email,password:c.password,returnSecureToken:true}).catch(function(e){
+          if(/EMAIL_EXISTS/.test(e&&e.code||''))return post(SIGNIN+CFG.apiKey,{email:c.email,password:c.password,returnSecureToken:true});throw e;
+        }).then(function(j){return writeProfile(j,key,pr);});
+      });
+    },
+    /* admin: mark the person's profile deleted (their costings and vouchers stay) */
+    markDeleted:function(ck){
+      if(!admin())return Promise.resolve(0);
+      var k=String(ck).split('|')[0];
+      function targets(){var all=parse(get('travelCloudPeople'),{})||{};return Object.keys(all).filter(function(x){var u=all[x]||{};return (u.key||x.split('|')[0])===k&&(ck.indexOf('|')<0||x===ck);}).map(function(x){return [x,all[x]];});}
+      function go(list){
+        return identity().then(function(me){
+          if(me.which!=='admin')return 0;
+          var n=0,chain=Promise.resolve();
+          list.forEach(function(t){var u=t[1];if(!u.doc||!u.owner)return;
+            chain=chain.then(function(){
+              var body={fields:{owner:{stringValue:u.owner},ownerKey:{stringValue:k},ownerName:{stringValue:u.name||''},data:{stringValue:'{}'},updatedAt:{timestampValue:new Date().toISOString()},deleted:{booleanValue:true},kind:{stringValue:'profile'}}};
+              return api('/drafts/'+encodeURIComponent(u.doc),{method:'PATCH',body:JSON.stringify(body)},me.token).then(function(){n++;var all=parse(get('travelCloudPeople'),{})||{};delete all[t[0]];set('travelCloudPeople',JSON.stringify(all));});
+            });});
+          return chain.then(function(){return n;});
+        });
+      }
+      var list=targets();
+      if(list.length&&list.every(function(t){return t[1].doc&&t[1].owner;}))return go(list);
+      /* older list without the record names: read the cloud once, then mark */
+      return Promise.resolve(typeof window.cloudSync==='function'?window.cloudSync():null).catch(function(){}).then(function(){return go(targets());});
+    }
+  };
+
   /* ---------- Firestore (REST) ---------- */
   function api(path,opt,tok){
     opt=opt||{};opt.headers=Object.assign({'Content-Type':'application/json','Authorization':'Bearer '+tok},opt.headers||{});
@@ -14626,7 +14726,7 @@ try{(function(){
   function uploadProfile(me){
     if(me.which==='admin')return Promise.resolve();
     var key=get('travelCurrentUserKey')||'';if(!key||key==='admin:main')return Promise.resolve();
-    var u=(parse(get('travelLoginUsers'),{})||{})[key];if(!u)return Promise.resolve();
+    var u=(parse(get('travelLoginUsers'),{})||{})[key];if(!u||get('travelAccountDeleted')===key)return Promise.resolve();
     var pr={key:key,name:u.name||((u.firstName||'')+' '+(u.lastName||'')).trim()||'',method:u.method||'',phone:u.phone||'',country:u.country||'',gender:u.gender||'',dob:u.dob||'',createdAt:u.createdAt||0,lastLoginAt:u.lastLoginAt||0};
     var sg=JSON.stringify(pr),sk='travelCloudProfSig:'+key;
     if(get(sk)===sg)return Promise.resolve();
@@ -14697,7 +14797,7 @@ try{(function(){
   function markDl(col,at){var dl=parse(get(K_DL),{})||{};dl[col]=at;set(K_DL,JSON.stringify(dl));}
   var stats={costings:0,drafts:0,vouchers:0,people:0};
   function download(me){
-    var chain=Promise.resolve(),people={},prof={};
+    var chain=Promise.resolve(),people={},prof={},goneProf={};
     Object.keys(COLS).forEach(function(col){
       var started=new Date().toISOString();
       chain=chain.then(function(){return listAll(col,me.token,me);}).then(function(docs){
@@ -14708,7 +14808,9 @@ try{(function(){
           var f=d.fields||{},doc=d.name.split('/').pop(),kind=val(f,'kind'),del=val(f,'deleted')===true,owner=val(f,'owner')||'';
           if(kind==='test'||kind==='oldvouchers')return;   /* old vouchers: read only when the itinerary needs them */
           /* a user's profile (name, login time): for the admin's list of website users — not a record */
-          if(kind==='profile'){if(!del){var pr=parse(val(f,'data'),null);if(pr&&pr.key&&pr.key!=='admin:main'){pr.seenAt=val(f,'updatedAt');prof[pr.key+'|'+(function(d){d=d.replace(/^0+/,'');return d.length>9?d.slice(-9):d;})(String(pr.phone||'').replace(/\D/g,''))]=pr;}}return;}
+          if(kind==='profile'&&del&&me.which!=='admin'&&val(f,'ownerKey')&&val(f,'ownerKey')===get('travelCurrentUserKey')){setTimeout(function(){if(typeof window.accountWasDeleted==='function')window.accountWasDeleted();},0);return;}
+          if(kind==='profile'&&del){goneProf[doc]=1;return;}
+          if(kind==='profile'){if(!del){var pr=parse(val(f,'data'),null);if(pr&&pr.key&&pr.key!=='admin:main'){pr.seenAt=val(f,'updatedAt');pr.doc=doc;pr.owner=owner;prof[pr.key+'|'+(function(d){d=d.replace(/^0+/,'');return d.length>9?d.slice(-9):d;})(String(pr.phone||'').replace(/\D/g,''))]=pr;}}return;}
           var e=m[col][doc];
           if(del){
             if(e&&!e.del){var li=idx[e.id];if(li!=null&&sig(list[li])===e.sig){list.splice(li,1);changed=true;list.forEach(function(r,i){if(r&&r.id!=null)idx[r.id]=i;});}e.del=true;}
@@ -14742,9 +14844,11 @@ try{(function(){
     });
     return chain.then(function(){
       stats.people=Object.keys(people).length;
-      if(me.which==='admin'&&Object.keys(prof).length){
+      if(me.which==='admin'&&(Object.keys(prof).length||Object.keys(goneProf).length)){
         var all=parse(get('travelCloudPeople'),{})||{};
         Object.keys(prof).forEach(function(k){all[k]=Object.assign({},all[k]||{},prof[k]);});
+        /* people the admin deleted (on any computer) leave the list */
+        Object.keys(all).forEach(function(k){if(all[k]&&all[k].doc&&goneProf[all[k].doc])delete all[k];});
         set('travelCloudPeople',JSON.stringify(all));
         try{var a=document.querySelector('.page.active');if(a&&a.id==='about'&&typeof renderAboutPage==='function')renderAboutPage();}catch(e){}
       }
@@ -16410,7 +16514,7 @@ try{(function(){
     if(loc[key])return pd.apply(this,arguments);
     try{if(!requireAdmin())return;}catch(e){return;}
     var u=merged()[key]||{};var name=u.name||'this user';
-    if(!confirm('Remove "'+name+'" from the website users list?\n\nTheir costings and vouchers stay. They show again if they log in again.'))return;
+    if(!confirm('Delete "'+name+'"?\n\nTheir account is deleted: they must sign up again to use the website. Their costings and vouchers stay.'))return;
     var h=hidden();h[key]=Date.now();set('travelCloudPeopleHidden',JSON.stringify(h));
     try{renderAboutPage();}catch(e){}
   };
@@ -16595,11 +16699,11 @@ try{(function(){
   var lt=document.getElementById('loginTitle'),lsu=document.querySelector('#loginSub .ls-user');
   var ltText=lt?lt.textContent:'',lsuText=lsu?lsu.innerHTML:'';
   function setMode(mode){
-    if(lt)lt.textContent=mode==='signup'?'Sign up — make your account':ltText;
-    if(lsu)lsu.innerHTML=mode==='signup'?'New here? Type your name and phone number, then press Start. Your account is made the first time — no password needed.':lsuText;
+    if(lt)lt.textContent=mode==='signup'?'Sign up — make your account':'Log in to your account';
+    if(lsu)lsu.innerHTML=mode==='signup'?'Fill in your details once. After that, log in with only your name and phone number.':'Type the name and phone number you signed up with, then press Start.';
     if(head&&hint){
-      if(mode==='signup'){head.innerHTML='✨ Sign up — make your account';hint.innerHTML='New here? Type your name and phone number, then press Start. Your account is made the first time — no password needed. Use the same name and phone on every laptop and phone.';}
-      else{head.innerHTML=headText;hint.innerHTML=hintText;}
+      head.innerHTML='👤 Log in';
+      hint.innerHTML='Use the same name and phone number you signed up with — on this or any other laptop or phone. No account yet? Press Sign up.';
     }
   }
   function fillContact(){
@@ -16624,11 +16728,13 @@ try{(function(){
   function leaveLanding(){gate.classList.remove('lg-landing');gate.setAttribute('aria-labelledby','loginTitle');}
   window.showLandingPage=showLanding;
   function openLogin(mode){
+    if(mode==='signup'&&typeof window.showSignupPanel==='function'){window.showSignupPanel();return;}
     if(typeof showEmailLoginPanel==='function')showEmailLoginPanel();
     leaveLanding();
-    setMode(mode);
+    setMode('login');
     setTimeout(function(){var n=document.getElementById('loginUserName');if(n)try{n.focus({preventScroll:true});}catch(e){n.focus();}},60);
   }
+  window.setLoginTexts=setMode;
   window.openLoginFromLanding=openLogin;
   land.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-ld-open]');if(!b)return;e.preventDefault();openLogin(b.getAttribute('data-ld-open'));});
   var home=document.getElementById('loginHomeBtn');
@@ -16636,7 +16742,7 @@ try{(function(){
   /* anything that opens a login panel shows the login box (not the first page) */
   ['showEmailLoginPanel','showAdminLoginPanel','showLoginGateManually'].forEach(function(n){
     var orig=window[n];if(typeof orig!=='function')return;
-    window[n]=function(){var r=orig.apply(this,arguments);leaveLanding();if(n==='showAdminLoginPanel')setMode('login');return r;};
+    window[n]=function(){var r=orig.apply(this,arguments);leaveLanding();if(n!=='showLoginGateManually')setMode('login');return r;};
   });
   /* the ✕ on the login box, when nobody is logged in, goes back to the first page */
   var prevClose=window.closeLoginGateManually;
@@ -16661,6 +16767,150 @@ try{(function(){
   /* the footer icons are drawn a moment after the page opens: copy them again then */
   setTimeout(function(){if(gate.classList.contains('lg-landing'))fillContact();},1600);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
+</script>
+<script>
+/* ---------- Sign up and Log in are different ----------
+   Sign up: name, phone, date of birth, gender — only when there is no account yet.
+   Log in: only name and phone — only when the account is there (on any laptop or phone).
+   An account the admin deleted must sign up again. Both need the internet (the account is checked online). */
+(function(){
+  function $(id){return document.getElementById(id);}
+  var gate=$('loginGate'),panel=$('loginPanel-signup');if(!gate||!panel)return;
+  function err(msg,field){
+    ['suName','suPhone','suDob','suGender','loginUserName','loginUserPhone'].forEach(function(i){var e=$(i);if(e)e.removeAttribute('aria-invalid');});
+    if(typeof showLoginError==='function')showLoginError(msg||'');
+    if(field){field.setAttribute('aria-invalid','true');try{field.focus({preventScroll:false});}catch(e){field.focus();}}
+  }
+  function busy(btn,on,text){if(!btn)return;if(on){btn._t=btn._t||btn.innerHTML;btn.disabled=true;btn.setAttribute('aria-busy','true');btn.innerHTML=text;}else{btn.disabled=false;btn.removeAttribute('aria-busy');if(btn._t)btn.innerHTML=btn._t;btn._t=null;}}
+  function netMsg(e){return 'Could not check your account — please check the internet and try again.'+(e&&e.message&&!/fetch|network|Failed/i.test(e.message)?' ('+e.message+')':'');}
+  /* ---- the Sign up form ---- */
+  function fillCc(){var a=$('loginUserCc'),b=$('suCc');if(a&&b&&b.options.length<a.options.length){b.innerHTML=a.innerHTML;b.value=a.value;}}
+  function place(){var b=$('suCc'),i=$('suPhone');if(!b||!i)return;var c=(b.value||'91').split('|')[0];i.placeholder=c==='91'?'98290 11111':'Number without +'+c;}
+  function today(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+  window.showSignupPanel=function(){
+    if(typeof showEmailLoginPanel==='function')showEmailLoginPanel();   /* leaves the first page, clears messages */
+    document.querySelectorAll('.login-panel').forEach(function(p){p.classList.toggle('active',p.id==='loginPanel-signup');});
+    var x=$('loginExtraInfo');if(x)x.style.display='none';
+    if(typeof window.setLoginTexts==='function')window.setLoginTexts('signup');
+    fillCc();place();var d=$('suDob');if(d)d.max=today();
+    err('');
+    setTimeout(function(){var n=$('suName');if(n)try{n.focus({preventScroll:true});}catch(e){n.focus();}},60);
+  };
+  function toLogin(){if(typeof showEmailLoginPanel==='function')showEmailLoginPanel();if(typeof window.setLoginTexts==='function')window.setLoginTexts('login');}
+  $('toSignup')&&$('toSignup').addEventListener('click',function(){
+    /* carry over what was typed */
+    var a=$('loginUserName'),b=$('loginUserPhone'),c=$('loginUserCc');window.showSignupPanel();
+    if(a&&a.value&&!$('suName').value)$('suName').value=a.value;if(b&&b.value&&!$('suPhone').value)$('suPhone').value=b.value;if(c&&$('suCc'))$('suCc').value=c.value;place();
+  });
+  $('toLogin')&&$('toLogin').addEventListener('click',function(){
+    var a=$('suName'),b=$('suPhone'),c=$('suCc');toLogin();
+    if(a&&a.value)$('loginUserName').value=a.value;if(b&&b.value)$('loginUserPhone').value=b.value;if(c&&$('loginUserCc'))$('loginUserCc').value=c.value;
+    setTimeout(function(){var n=$('loginUserName');if(n)n.focus();},60);
+  });
+  $('suCc')&&$('suCc').addEventListener('change',place);
+  panel.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();e.stopPropagation();signup();}},true);
+  function ageOn(dob){var b=new Date(dob+'T00:00:00'),t=new Date();var a=t.getFullYear()-b.getFullYear();if(t.getMonth()<b.getMonth()||(t.getMonth()===b.getMonth()&&t.getDate()<b.getDate()))a--;return a;}
+  var working=false;
+  function signup(){
+    if(working)return;
+    var nm=$('suName'),ph=$('suPhone'),cc=$('suCc'),db=$('suDob'),gd=$('suGender');
+    var n=window.userNameProblem?window.userNameProblem(nm.value):{name:String(nm.value||'').trim(),problem:''};
+    if(n.problem)return err(n.problem,nm);
+    var pc=typeof phoneCheck==='function'?phoneCheck(ph.value,cc&&cc.value):{problem:'',digits:String(ph.value||'').replace(/\D/g,'')};
+    if(pc.problem)return err(pc.problem,ph);
+    if(cc&&pc.code&&cc.value.split('|')[0]!==pc.code){var m=[].filter.call(cc.options,function(o){return o.value.split('|')[0]===pc.code;})[0];if(m)cc.value=m.value;}
+    var dob=db.value;
+    if(!dob||!/^\d{4}-\d{2}-\d{2}$/.test(dob)||isNaN(new Date(dob+'T00:00:00').getTime()))return err('Please enter your date of birth.',db);
+    if(dob>today())return err('The date of birth cannot be in the future.',db);
+    var age=ageOn(dob);
+    if(age<18)return err('You must be at least 18 years old to sign up. Please check your date of birth.',db);
+    if(age>100)return err('Please check the year of your date of birth.',db);
+    var gender=gd.value;
+    if(['Male','Female','Other'].indexOf(gender)<0)return err('Please choose your gender.',gd);
+    var name=n.name,key='name:'+name.toLowerCase(),digits=pc.digits;
+    var users=typeof getLoginUsers==='function'?getLoginUsers():{},old=users[key];
+    if(old&&old.phone&&window.samePhone&&samePhone(old.phone)!==samePhone(digits))return err('This name is already used on this computer with another phone number. Type your full name (e.g. Ram Sharma) or check the phone number.',nm);
+    if(!window.cloudAccount)return err('Sign up is not possible right now. Please refresh the page and try again.');
+    err('');working=true;var btn=$('suBtn');busy(btn,true,'⏳ Checking…');
+    var country=(cc&&cc.value.split('|')[1])||'';
+    cloudAccount.check(key,digits).then(function(r){
+      if(r.exists&&!r.deleted&&r.profile){
+        throw {shown:'An account with this name and phone number is already there. Please log in.',login:true};
+      }
+      if(r.exists&&!r.deleted&&!r.profile&&old){
+        throw {shown:'You already have an account on this computer. Please log in.',login:true};
+      }
+      busy(btn,false);busy(btn,true,'⏳ Making your account…');
+      var now=Date.now(),parts=name.split(' ');
+      var pr={name:name,method:'Name',phone:digits,country:country,gender:gender,dob:dob,createdAt:now,lastLoginAt:now,signedUpAt:now};
+      return cloudAccount.create(key,digits,pr).then(function(){
+        var us=getLoginUsers(),u=Object.assign({},us[key]||{},{method:'Name',name:name,firstName:parts[0],lastName:parts.slice(1).join(' '),phone:digits,country:country,dob:dob,gender:gender,createdAt:(us[key]&&us[key].createdAt)||now,lastLoginAt:now,signedUpAt:now});
+        us[key]=u;saveLoginUsers(us);
+        try{localStorage.setItem('travelLoginCc',cc?cc.value:'');localStorage.removeItem('travelAccountDeleted');}catch(e){}
+        nm.value='';ph.value='';db.value='';gd.value='';
+        completeLogin(key,u,true);
+      });
+    }).catch(function(e){
+      if(e&&e.shown){err(e.shown);if(e.login){var b=$('toLogin');if(b)setTimeout(function(){b.focus();},30);}return;}
+      err(netMsg(e));
+    }).then(function(){working=false;busy(btn,false);});
+  }
+  $('suBtn')&&$('suBtn').addEventListener('click',signup);
+  window.signupWithDetails=signup;
+
+  /* ---- Log in: only when the account is there ---- */
+  var realComplete=window.completeLogin,inLogin=null;
+  window.completeLogin=function(key,u,isNew){
+    if(!inLogin||key==='admin:main')return realComplete.apply(this,arguments);
+    var ctx=inLogin;inLogin=null;
+    var args=arguments,self=this;
+    var digits=String(u&&u.phone||'').replace(/\D/g,'');
+    var btn=document.querySelector('#loginPanel-email .login-main-btn');
+    function undo(){try{saveLoginUsers(JSON.parse(ctx.before));}catch(e){}var n=$('loginUserName');if(n&&!n.value)n.value=ctx.name;}
+    if(!window.cloudAccount){undo();return err('Log in is not possible right now. Please refresh the page and try again.');}
+    busy(btn,true,'⏳ Checking…');working=true;
+    cloudAccount.check(key,digits).then(function(r){
+      if(!r.exists){undo();err('No account found with this name and phone number. Please check them, or press Sign up to make a new account.',$('loginUserName'));return;}
+      if(r.deleted){undo();err('This account was deleted. Please sign up again.');var b=$('toSignup');if(b)setTimeout(function(){b.focus();},30);return;}
+      if(r.profile){var us=getLoginUsers(),x=us[key]||u;['dob','gender','country','signedUpAt'].forEach(function(k){if(r.profile[k])x[k]=r.profile[k];});if(!x.createdAt||(r.profile.createdAt&&r.profile.createdAt<x.createdAt))x.createdAt=r.profile.createdAt||x.createdAt;us[key]=x;saveLoginUsers(us);u=x;}
+      try{localStorage.removeItem('travelAccountDeleted');}catch(e){}
+      realComplete.call(self,key,u,false);
+    },function(e){undo();err(netMsg(e));}).then(function(){working=false;busy(btn,false);});
+  };
+  var prevLogin=window.loginWithName;
+  if(typeof prevLogin==='function')window.loginWithName=function(){
+    if(working)return;
+    var n=$('loginUserName');
+    inLogin={before:JSON.stringify(typeof getLoginUsers==='function'?getLoginUsers():{}),name:n?n.value:''};
+    try{return prevLogin.apply(this,arguments);}finally{if(inLogin&&!working)inLogin=null;}
+  };
+  window.loginWithEmail=window.loginWithName;
+
+  /* ---- the admin deleted this account while it is logged in here ---- */
+  window.accountWasDeleted=function(){
+    var key='';try{key=localStorage.getItem('travelCurrentUserKey')||'';}catch(e){}
+    if(!key||key==='admin:main')return;
+    try{localStorage.setItem('travelAccountDeleted',key);}catch(e){}
+    var c=window.confirm;window.confirm=function(){return true;};
+    try{if(typeof logoutUser==='function')logoutUser();}finally{window.confirm=c;}
+    setTimeout(function(){if(typeof window.showSignupPanel==='function')window.showSignupPanel();setTimeout(function(){if(typeof showLoginError==='function')showLoginError('Your account was deleted by the admin. Please sign up again to use the website.');},120);},60);
+  };
+
+  /* ---- admin: Delete in Website Users also deletes the account (they must sign up again) ---- */
+  var prevDel=window.deleteWebsiteUser;
+  if(typeof prevDel==='function')window.deleteWebsiteUser=function(key){
+    var said=false,c=window.confirm;
+    window.confirm=function(m){said=c.call(window,m);return said;};
+    var r;try{r=prevDel.apply(this,arguments);}finally{window.confirm=c;}
+    if(said&&window.cloudAccount){
+      cloudAccount.markDeleted(key).then(function(n){
+        if(typeof showToast==='function')showToast(n?'🗑️ Account deleted. They must sign up again to use the website.':'🗑️ Removed from this list. (This person had no online account.)');
+        try{renderAboutPage();}catch(e){}
+      },function(){alert('The user was removed from this list, but the online account could not be deleted (no internet?). Please try Delete again when online.');});
+    }
+    return r;
+  };
 })();
 </script>
 </body>
