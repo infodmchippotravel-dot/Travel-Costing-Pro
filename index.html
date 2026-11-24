@@ -35,7 +35,7 @@
 /* logged in: no login screen from the first moment (the website decides after it has loaded) */
 try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.classList.add('boot-in');}catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-23-4';   /* change with every new version */
+window.SITE_BUILD='2026-11-24-1';   /* change with every new version */
 /* A language was chosen before: start Google Translate at once (not after the whole page has loaded),
    and keep the page hidden for a moment (max 2.5 s) so English does not flash before the chosen language. */
 /* Language belongs to the person: each user's (and the admin's) own choice is kept on this computer
@@ -3909,7 +3909,7 @@ function isValidNamePart(name){return /^[A-Za-z][A-Za-z\s'.-]{1,49}$/.test(name.
 function isJunkName(name){
   let n=name.trim().toLowerCase();
   // Common placeholder/test words people type instead of a real name
-  let junkWords=['abc','abcd','abcde','abcdef','xyz','xyzz','asdf','asdfg','asdfgh','qwerty','qwe','qwer','asdfasdf','name','users','none','na','nil','null','sample','dummy','fake','random','temp','temporary','unknown','anonymous','anon','firstname','lastname','aaa','bbb','ccc','xxx','yyy','zzz'];
+  let junkWords=['abc','abcd','abcde','abcdef','xyz','xyzz','asdf','asdfg','asdfgh','qwerty','qwe','qwer','asdfasdf','name','users','none','na','nil','null','sample','dummy','fake','random','temp','temporary','unknown','anonymous','anon','firstname','lastname','aaa','bbb','ccc','xxx','yyy','zzz','test','testing','tester','tst','demo','xxxx'];
   if(junkWords.includes(n))return true;
   // Same letter repeated the whole way through (aaaa, xxxxx, etc.)
   if(/^(.)\1+$/.test(n))return true;
@@ -10515,7 +10515,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 23 Nov 2026 (4)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 24 Nov 2026 (1)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
