@@ -525,6 +525,12 @@ html.theme-dark table.st textarea.strong,html.theme-dark table.st textarea,html.
 /* the Print & Download page: only the voucher and its buttons */
 body.pp main>*:not(#s-preview){display:none!important}
 body:not(.pp) #s-preview{display:none!important}   /* Print & Download is only on its own page */
+/* the Print / PDF view opens like a book page turning (its own movement, not the costing's); the form slides back afterwards */
+body.pp #s-preview{transform-origin:0 50%;animation:tvBook .8s cubic-bezier(.22,1,.36,1)}
+@keyframes tvBook{from{opacity:0;transform:perspective(1600px) rotateY(-18deg) translateX(-30px)}to{opacity:1;transform:none}}
+body.tv-back main{animation:tvBack .6s cubic-bezier(.22,1,.36,1)}
+@keyframes tvBack{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+@media print{body.pp #s-preview,body.tv-back main{animation:none!important;transform:none!important;opacity:1!important}}
 body.pp .pv-back{display:inline-flex;align-items:center}
 body.pp .topbar [data-act="printPage"]{display:none}
 .topbar .modebox{display:none!important}   /* the company is chosen on the print page (logo buttons) */
@@ -1245,6 +1251,10 @@ function goPage(id) {
   if (id === 'settings') { $('s-settings').open = true; $('s-settings').scrollIntoView({ block: 'start' }); return; }
   renderMake(); window.scrollTo(0, 0);
 }
+/* the costing website calls this when another page is opened: the Print / PDF view closes, so coming back shows the form */
+window.tvLeavePrint = () => { if (pvOpen()) ACT.printBack(); };
+/* the form comes back with its own small movement after Print / PDF */
+function tvBackAnim() { const b = document.body; b.classList.remove('tv-back'); void b.offsetWidth; b.classList.add('tv-back'); clearTimeout(tvBackAnim.t); tvBackAnim.t = setTimeout(() => b.classList.remove('tv-back'), 800); }
 let pvT;
 const refreshPreview = () => { if (pvOpen()) { clearTimeout(pvT); pvT = setTimeout(renderPreview, 450); } };
 $('s-preview').addEventListener('toggle', () => { if (!$('s-preview').open) { $('s-preview').open = true; return; } if (pvOpen()) renderPreview(); });   // the print page never folds shut
@@ -1675,7 +1685,7 @@ function scrollToDay(i) { const el = $('day-' + i); if (el) el.scrollIntoView({ 
 const ACT = {
   /* like the costing: a page of its own with the voucher, the company buttons and the Print / Download button */
   printPage() { if (document.activeElement) document.activeElement.blur(); autoSave(); document.body.classList.add('pp'); document.documentElement.classList.add('pp'); $('s-preview').open = true; renderPreview(); window.scrollTo(0, 0); try { const f = window.frameElement; if (f && f.getBoundingClientRect().top < 0) f.scrollIntoView({ block: 'start' }); } catch (e) { } },
-  printBack() { document.body.classList.remove('pp'); document.documentElement.classList.remove('pp'); goPage('make'); },
+  printBack() { document.body.classList.remove('pp'); document.documentElement.classList.remove('pp'); goPage('make'); tvBackAnim(); },
   newVoucher() {
     const kept = autoSave(); // the voucher you were making is saved first, so nothing is lost
     if (!kept && dirty && (draft.client.trim() || draft.days.some(d => d.title.trim()))) snap();

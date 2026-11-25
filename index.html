@@ -17632,6 +17632,8 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
 @media (hover:hover){#landing .ld-card.ldx-done:hover,#landing .ld-card:not(.ldx):hover{transform:translateY(-6px);border-color:#d9bd84;box-shadow:0 0 0 1px rgba(198,167,107,.35),0 22px 44px -20px rgba(160,120,50,.55)}
   #landing .ld-card:hover h3{background-size:100% 3px}
   body.dark #landing .ld-card:hover{border-color:#6d5a35}}
+@media (hover:none){#landing .ld-card.ldx-done:active,#landing .ld-card:not(.ldx):active{transform:scale(.975);border-color:#d9bd84;box-shadow:0 0 0 1px rgba(198,167,107,.35),0 14px 30px -18px rgba(160,120,50,.55)}
+  #landing .ld-card:active h3{background-size:100% 3px}}
 @media print{#landing .ldx{opacity:1!important;transform:none!important}}
 /* ===== Each page of the website opens with its own movement ===== */
 #home.page.active{animation:pgRise .6s cubic-bezier(.22,1,.36,1)}
@@ -17639,7 +17641,9 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
 #pdf.page.active{transform-origin:50% 0;animation:pgPaper .75s cubic-bezier(.2,.9,.3,1)}
 #saved.page.active{animation:pgStack .65s cubic-bezier(.34,1.35,.64,1)}
 #itinerary.page.active{transform-origin:50% 0;animation:pgMap .65s cubic-bezier(.22,1,.36,1)}
-#transfers.page.active,#services.page.active,#rates.page.active{transform-origin:0 50%;animation:pgLeft .6s cubic-bezier(.22,1,.36,1)}
+#transfers.page.active{transform-origin:0 50%;animation:pgLeft .6s cubic-bezier(.22,1,.36,1)}
+#services.page.active{transform-origin:0 0;animation:pgSwing .7s cubic-bezier(.22,1,.36,1)}
+#rates.page.active{animation:pgFocus .65s cubic-bezier(.22,1,.36,1)}
 #settings.page.active{transform-origin:0 50%;animation:pgDoor .7s cubic-bezier(.22,1,.36,1)}
 #help.page.active{animation:pgZoom .6s cubic-bezier(.22,1,.36,1)}
 #about.page.active{animation:pgDrop .65s cubic-bezier(.22,1,.36,1)}
@@ -17651,6 +17655,8 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
 @keyframes pgLeft{from{opacity:0;transform:perspective(1400px) translateX(-70px) rotateY(6deg)}to{opacity:1;transform:none}}
 @keyframes pgDoor{from{opacity:0;transform:perspective(1200px) rotateY(14deg)}to{opacity:1;transform:none}}
 @keyframes pgZoom{from{opacity:0;transform:scale(1.06)}to{opacity:1;transform:none}}
+@keyframes pgSwing{from{opacity:0;transform:perspective(1400px) rotate(-2.5deg) translate(-24px,26px)}to{opacity:1;transform:none}}
+@keyframes pgFocus{from{opacity:0;filter:blur(6px);transform:translateY(18px)}to{opacity:1;filter:none;transform:none}}
 @keyframes pgDrop{from{opacity:0;transform:translateY(-30px)}to{opacity:1;transform:none}}
 /* a gold light sweeps once over the top of the page that just opened */
 .pg-sweep{position:fixed;left:0;right:0;height:3px;z-index:60;pointer-events:none;background:linear-gradient(90deg,transparent,#c6a76b 35%,#f3e2b3 50%,#c6a76b 65%,transparent);background-size:40% 100%;background-repeat:no-repeat;animation:pgSweep .8s ease-out forwards}
@@ -17906,16 +17912,31 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
     sweep();
   })();
 
+  /* --- Create Itinerary: when another page is opened, its Print / PDF view closes, so coming back shows the voucher form (as in the costing) --- */
+  (function(){
+    var pg=document.getElementById('itinerary');if(!pg||!window.MutationObserver)return;var on=pg.classList.contains('active');
+    new MutationObserver(function(){var now=pg.classList.contains('active');
+      if(on&&!now){try{var f=document.getElementById('itinFrame'),w=f&&f.contentWindow;if(w&&w.tvLeavePrint)w.tvLeavePrint();}catch(e){}}
+      on=now;}).observe(pg,{attributes:true,attributeFilter:['class']});
+  })();
+
   /* --- first page, lower part: cards rise into place while scrolling (each time the first page opens) --- */
   (function(){
     var land=document.getElementById('landing');if(!land||!window.IntersectionObserver)return;
     var cards=[].slice.call(land.querySelectorAll('.ld-sec .ld-card,.ld-sec .ld-cta'));if(!cards.length)return;
-    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)show(e.target);});},{root:land,threshold:0,rootMargin:'0px 0px -24px 0px'});
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)show(e.target);else hide(e.target);});},{root:land,threshold:0,rootMargin:'0px 0px -24px 0px'});
     function show(c){
       if(!c.classList.contains('ldx')||c.classList.contains('ldx-in'))return;
-      c.classList.add('ldx-in','ldx-seen');io.unobserve(c);
-      var d=parseInt(c.style.getPropertyValue('--ldx-d'))||0;
-      setTimeout(function(){c.classList.remove('ldx','ldx-in','ldx-up');c.classList.add('ldx-done');c.style.removeProperty('--ldx-d');},1700+d);
+      c.classList.add('ldx-in','ldx-seen');
+      var d=c.__d||0;
+      clearTimeout(c.__t);c.__t=setTimeout(function(){c.classList.remove('ldx','ldx-in','ldx-up');c.classList.add('ldx-done');c.style.removeProperty('--ldx-d');},1700+d);
+    }
+    /* a card that has gone right off the screen gets ready to rise again: from below, or from above when it went off the top */
+    function hide(c){
+      var r=c.getBoundingClientRect(),lr=land.getBoundingClientRect();if(!r.height)return;
+      var above=r.bottom<=lr.top,below=r.top>=lr.bottom;if(!above&&!below)return;
+      clearTimeout(c.__t);c.classList.remove('ldx-in','ldx-done','ldx-seen');
+      c.classList.toggle('ldx-up',above);c.style.setProperty('--ldx-d',(c.__d||0)+'ms');c.classList.add('ldx');
     }
     function arm(){
       var lr=land.getBoundingClientRect();
@@ -17923,13 +17944,13 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
         c.classList.remove('ldx-in','ldx-seen','ldx-done','ldx-up');
         var parent=c.parentNode,sib=[].filter.call(parent.children,function(x){return cards.indexOf(x)>-1;}),col=sib.indexOf(c);
         var cols=getComputedStyle(parent).gridTemplateColumns;cols=cols&&cols!=='none'?cols.split(' ').length:1;
-        c.style.setProperty('--ldx-d',((col%cols)*110)+'ms');
-        c.classList.add('ldx');io.observe(c);
+        c.__d=(col%cols)*110;clearTimeout(c.__t);c.style.setProperty('--ldx-d',c.__d+'ms');
+        c.classList.add('ldx');io.unobserve(c);io.observe(c);
       });
     }
     /* safety: a card that is on screen is never left hidden */
-    function sweep(){if(!document.getElementById('loginGate').classList.contains('lg-landing'))return;var vh=innerHeight;
-      cards.forEach(function(c){if(!c.classList.contains('ldx')||c.classList.contains('ldx-in'))return;var r=c.getBoundingClientRect();if(r.height>0&&r.top<vh-24&&r.bottom>0)show(c);});}
+    function sweep(){if(!document.getElementById('loginGate').classList.contains('lg-landing'))return;var lr=land.getBoundingClientRect();
+      cards.forEach(function(c){if(!c.classList.contains('ldx')||c.classList.contains('ldx-in'))return;var r=c.getBoundingClientRect();if(r.height>0&&r.top<lr.bottom-24&&r.bottom>lr.top)show(c);});}
     land.addEventListener('scroll',function(){setTimeout(sweep,500);},{passive:true});
     setInterval(sweep,1200);
     var gate=document.getElementById('loginGate'),was=false;
