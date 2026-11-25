@@ -2958,17 +2958,22 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
   </div>
 </div>
 <div class="idle-lock no-print" id="idleLock" role="dialog" aria-modal="true" aria-label="Screen locked" aria-hidden="true">
-  <img class="idle-lock-logo" data-same-logo alt="Hippo Travel">
-  <div class="idle-lock-icon" aria-hidden="true">🔒</div>
-  <div class="idle-lock-title">Screen Locked</div>
+  <div class="lk-card">
+  <div class="lk-logo-wrap"><img class="idle-lock-logo" data-same-logo alt="Hippo Travel"></div>
+  <div class="lk-head"><span class="lk-badge"><span class="idle-lock-icon" aria-hidden="true">🔒</span></span><span class="idle-lock-title">Screen Locked</span></div>
+  <div class="lk-clock notranslate" translate="no" aria-hidden="true"><b id="lkTime"></b><span id="lkDate"></span></div>
   <div class="idle-lock-sub">Move the Mouse and Press any key to continue</div>
+  </div>
 </div>
 
 <div class="welcome-screen no-print" id="welcomeScreen" role="status" aria-live="polite">
-<img class="welcome-brand-logo" data-same-logo alt="">
+<div class="wl-logo-wrap"><svg class="wl-orbit" aria-hidden="true" focusable="false" viewBox="0 0 160 160"><circle cx="80" cy="80" r="74" fill="none" stroke="#e2c48a" stroke-opacity=".35" stroke-width="1.2" stroke-dasharray="2 7" stroke-linecap="round"/><path id="wlOrbitPath" d="M142 80 A62 62 0 1 1 18 80 A62 62 0 1 1 142 80" fill="none" stroke="#7fd3f5" stroke-opacity=".28" stroke-width="1"/><g class="wl-orbit-plane"><g transform="translate(-9 -9) scale(.75)"><path transform="rotate(90 12 12)" fill="#ecd29b" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></g><animateMotion dur="5s" repeatCount="indefinite" rotate="auto"><mpath href="#wlOrbitPath"/></animateMotion></g></svg>
+<img class="welcome-brand-logo" data-same-logo alt=""></div>
 <div class="welcome-icon" aria-hidden="true">🎉</div>
 <div class="welcome-title" id="welcomeTitle">Welcome!</div>
+<div class="wl-line" aria-hidden="true"></div>
 <div class="welcome-sub" id="welcomeSub">Getting your dashboard ready...</div>
+<div class="wl-bar" aria-hidden="true"><i></i></div>
 </div>
 
 <div class="login-gate no-print lg-landing" id="loginGate" role="dialog" aria-modal="true" aria-labelledby="landTitle">
@@ -17590,5 +17595,152 @@ body.dark .wu-blocked{background:#4a1515;color:#fecaca}
 #blockedPeopleBox li{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #blockedPeopleBox h4{color:#fecaca}
 </style>
+<style id="skyFxCss">
+/* ===== Twinkling stars (first page top, Log in background, Welcome and Screen Locked) ===== */
+.tw-sky{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.tw-star{position:absolute;width:var(--s);height:var(--s);margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2);border-radius:50%;background:#fff;box-shadow:0 0 6px 1px rgba(255,255,255,.75);opacity:.18;animation:twStar var(--t) ease-in-out var(--d) infinite}
+.tw-star.g{background:#ffeec4;box-shadow:0 0 8px 1px rgba(236,210,155,.9)}
+.tw-star.big::before,.tw-star.big::after{content:"";position:absolute;left:50%;top:50%;width:calc(var(--s) * 7);height:1px;transform:translate(-50%,-50%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent)}
+.tw-star.big::after{transform:translate(-50%,-50%) rotate(90deg)}
+@keyframes twStar{0%,100%{opacity:.12;transform:scale(.55)}50%{opacity:1;transform:scale(1.15)}}
+#loginGate.lg-landing>.tw-sky{display:none}
+/* ===== Two planes meet: a small golden sparkle where they touch ===== */
+.pl-burst{position:absolute;width:0;height:0;pointer-events:none;z-index:0}
+.pl-burst .ring{position:absolute;left:-30px;top:-30px;width:60px;height:60px;border-radius:50%;border:2px solid rgba(236,210,155,.95);box-shadow:0 0 16px rgba(236,210,155,.75),inset 0 0 10px rgba(127,211,245,.5);animation:plRing .95s ease-out forwards}
+.pl-burst .flash{position:absolute;left:-18px;top:-18px;width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,#fff 0,rgba(255,238,196,.9) 35%,rgba(236,210,155,0) 70%);animation:plFlash .75s ease-out forwards}
+.pl-burst .sp{position:absolute;left:-5px;top:-5px;width:10px;height:10px;background:#ffe3a3;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);filter:drop-shadow(0 0 3px #fff);transform:rotate(var(--a)) translateX(4px);animation:plSpark 1s ease-out forwards}
+.pl-burst .sp.b{background:#9fe0fa}
+@keyframes plRing{0%{transform:scale(.2);opacity:1}100%{transform:scale(1.6);opacity:0}}
+@keyframes plFlash{0%{transform:scale(.3);opacity:1}60%{opacity:.9}100%{transform:scale(1.5);opacity:0}}
+@keyframes plSpark{0%{transform:rotate(var(--a)) translateX(4px) scale(1);opacity:1}100%{transform:rotate(var(--a)) translateX(var(--r)) scale(.3);opacity:0}}
+/* ===== Welcome screen ===== */
+.welcome-screen{background:radial-gradient(900px 520px at 50% 115%,rgba(14,147,201,.32),transparent 62%),radial-gradient(620px 380px at 12% -5%,rgba(226,196,138,.16),transparent 60%),linear-gradient(160deg,#040c20 0%,#081d40 45%,#0b3360 80%,#0f4878 100%)!important;overflow:hidden}
+.welcome-screen>*:not(.tw-sky):not(.pl-burst){position:relative;z-index:1}
+.welcome-screen>.pl-burst{z-index:2}
+.wl-logo-wrap{position:relative;width:160px;height:160px;display:grid;place-items:center;margin-bottom:-6px}
+.wl-logo-wrap::before{content:"";position:absolute;width:104px;height:104px;border-radius:50%;background:radial-gradient(circle,rgba(127,211,245,.45),transparent 70%);filter:blur(6px)}
+.wl-orbit{position:absolute;inset:0;width:160px;height:160px;overflow:visible}
+.wl-orbit-plane{filter:drop-shadow(0 0 4px rgba(236,210,155,.85))}
+.welcome-screen .welcome-brand-logo{position:relative;box-shadow:0 0 0 3px rgba(226,196,138,.55),0 10px 28px rgba(0,0,0,.45)!important;border-radius:50%}
+.welcome-screen .welcome-title{font-family:'Playfair Display',Georgia,serif;font-size:31px;font-weight:700;letter-spacing:.2px;text-shadow:0 2px 18px rgba(127,211,245,.35)}
+.wl-line{width:150px;height:2px;margin:2px 0 4px;background:linear-gradient(90deg,transparent,#e2c48a,transparent)}
+.welcome-screen .welcome-sub{color:#ecd29b;font-size:13.5px;letter-spacing:.6px}
+.wl-bar{width:min(260px,64vw);height:5px;margin-top:8px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
+.wl-bar i{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#7fd3f5,#e2c48a)}
+.welcome-screen.show .wl-bar i{animation:wlFill 1.6s cubic-bezier(.3,.7,.4,1) forwards}
+.welcome-screen.show .welcome-title{animation:wlUp .6s ease-out both}
+.welcome-screen.show .welcome-sub,.welcome-screen.show .wl-line{animation:wlUp .6s ease-out .15s both}
+@keyframes wlFill{to{width:100%}}
+@keyframes wlUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (max-width:720px){.welcome-screen .welcome-title{font-size:24px}.wl-logo-wrap{transform:scale(.9)}}
+/* ===== Screen Locked ===== */
+.idle-lock{background:radial-gradient(1000px 560px at 50% 115%,rgba(14,147,201,.3),transparent 62%),radial-gradient(640px 400px at 10% -5%,rgba(226,196,138,.15),transparent 60%),linear-gradient(160deg,#040c20 0%,#081d40 45%,#0b3360 80%,#0f4878 100%)!important;overflow:hidden}
+.lk-card{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px;width:min(440px,calc(100vw - 32px));box-sizing:border-box;padding:34px 30px 28px;border-radius:26px;text-align:center;background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.035));border:1px solid rgba(226,196,138,.38);box-shadow:0 30px 80px -24px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.14);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.lk-card::before{content:"";position:absolute;top:-1px;left:22%;right:22%;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,#e2c48a,transparent)}
+.lk-logo-wrap{position:relative;display:grid;place-items:center;width:100px;height:100px}
+.lk-logo-wrap::before,.lk-logo-wrap::after{content:"";position:absolute;inset:4px;border-radius:50%;border:1.5px solid rgba(226,196,138,.6);animation:lkRing 2.8s ease-out infinite}
+.lk-logo-wrap::after{animation-delay:1.4s;border-color:rgba(127,211,245,.55)}
+@keyframes lkRing{0%{transform:scale(.92);opacity:.9}100%{transform:scale(1.45);opacity:0}}
+.lk-card .idle-lock-logo{position:relative;box-shadow:0 0 0 3px rgba(226,196,138,.5),0 10px 26px rgba(0,0,0,.45)!important;border-radius:50%}
+.lk-head{display:flex;align-items:center;gap:10px}
+.lk-badge{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#f3dca6,#c6a76b);box-shadow:0 4px 14px rgba(198,167,107,.45)}
+.lk-card .idle-lock-icon{font-size:18px;line-height:1;animation:none}
+.lk-card .idle-lock-title{font-family:'Playfair Display',Georgia,serif;font-size:24px;font-weight:700;letter-spacing:.3px;color:#fff}
+.lk-clock{display:flex;flex-direction:column;align-items:center;gap:4px;margin:2px 0 4px}
+.lk-clock b{text-transform:uppercase;font-size:52px;line-height:1;font-weight:800;letter-spacing:1px;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 26px rgba(127,211,245,.4)}
+.lk-clock span{font-size:14px;font-weight:700;letter-spacing:.5px;color:#ecd29b}
+.lk-clock:empty,.lk-clock b:empty{display:none}
+.lk-card .idle-lock-sub{display:block;text-align:center;line-height:1.45;padding:9px 18px;border-radius:999px;font-size:13px;color:#d3deec;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16)}
+@media (max-width:720px){.lk-card{padding:28px 18px 22px;gap:12px}.lk-clock b{font-size:44px}.lk-card .idle-lock-title{font-size:21px}.lk-card .idle-lock-sub{font-size:12.5px;padding:8px 12px}}
+/* the computer may ask for less motion (Windows "Animation effects" off): these gentle effects still play */
+@media (prefers-reduced-motion:reduce){
+  html body .tw-star{animation-duration:var(--t)!important;animation-iteration-count:infinite!important}
+  html body .pl-burst .ring{animation-duration:.95s!important}
+  html body .pl-burst .flash{animation-duration:.75s!important}
+  html body .pl-burst .sp{animation-duration:1s!important}
+  html body .welcome-screen.show .wl-bar i{animation-duration:1.6s!important}
+  html body .lk-logo-wrap::before,html body .lk-logo-wrap::after{animation-duration:2.8s!important;animation-iteration-count:infinite!important}
+}
+</style>
+<script>
+/* ===== Twinkling stars, sparkle when two planes meet, lock-screen clock (looks only: nothing is saved or sent) ===== */
+(function(){
+  var small=function(){return window.innerWidth<=720;};
+  var seed=7;function rnd(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646;}
+  function addSky(box,count,first){
+    if(!box||box.querySelector(':scope>.tw-sky'))return;
+    var sky=document.createElement('div');sky.className='tw-sky';sky.setAttribute('aria-hidden','true');
+    var html='';
+    for(var i=0;i<count;i++){
+      var big=rnd()<0.16,gold=rnd()<0.3,s=big?(3+rnd()*1.6):(1.4+rnd()*1.8);
+      html+='<i class="tw-star'+(big?' big':'')+(gold?' g':'')+'" style="left:'+(rnd()*100).toFixed(2)+'%;top:'+(rnd()*100).toFixed(2)+'%;--s:'+s.toFixed(1)+'px;--t:'+(2.2+rnd()*3.2).toFixed(2)+'s;--d:-'+(rnd()*5).toFixed(2)+'s"></i>';
+    }
+    sky.innerHTML=html;
+    if(first)box.insertBefore(sky,box.firstChild);else box.appendChild(sky);
+  }
+  function build(){
+    var n=small();
+    addSky(document.querySelector('#landing .ld-sky'),n?26:46,false);
+    addSky(document.getElementById('loginGate'),n?30:60,true);
+    addSky(document.getElementById('welcomeScreen'),n?30:52,true);
+    addSky(document.getElementById('idleLock'),n?34:64,true);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
+
+  /* --- a golden sparkle when two background planes touch --- */
+  function burst(box,x,y){
+    var r=box.getBoundingClientRect(),b=document.createElement('div');b.className='pl-burst';b.setAttribute('aria-hidden','true');
+    b.style.left=(x-r.left+box.scrollLeft)+'px';b.style.top=(y-r.top+box.scrollTop)+'px';
+    var h='<span class="flash"></span><span class="ring"></span>';
+    for(var k=0;k<10;k++)h+='<span class="sp'+(k%3===1?' b':'')+'" style="--a:'+(k*36+rnd()*14)+'deg;--r:'+(34+rnd()*22).toFixed(0)+'px"></span>';
+    b.innerHTML=h;box.appendChild(b);setTimeout(function(){if(b.parentNode)b.parentNode.removeChild(b);},1200);
+  }
+  window.hippoPlaneBurst=burst;
+  var touching={},last={};
+  function shown(e){
+    var r=e.getBoundingClientRect();if(!r.width||r.right<0||r.left>innerWidth||r.bottom<0||r.top>innerHeight)return null;
+    if(getComputedStyle(e).visibility==='hidden')return null;
+    return {x:r.left+r.width/2,y:r.top+r.height/2,s:Math.max(r.width,r.height)};
+  }
+  function check(){
+    if(document.hidden)return;
+    var gate=document.getElementById('loginGate');if(!gate||gate.classList.contains('hide')||getComputedStyle(gate).display==='none')return;
+    var land=gate.classList.contains('lg-landing'),box,els;
+    if(land){box=document.querySelector('#landing .ld-hero');els=document.querySelectorAll('#landing .ld-plane,#landing .ld-orbit-plane');}
+    else{box=gate;els=gate.querySelectorAll('.login-plane,.route-plane');}
+    if(!box)return;
+    var p=[];for(var i=0;i<els.length;i++)p.push(shown(els[i]));
+    var now=Date.now();
+    for(var a=0;a<p.length;a++)for(var c=a+1;c<p.length;c++){
+      var key=(land?'L':'G')+a+'_'+c;
+      if(!p[a]||!p[c]){touching[key]=false;continue;}
+      var d=Math.hypot(p[a].x-p[c].x,p[a].y-p[c].y),near=d<(p[a].s+p[c].s)*0.42;
+      var mx=(p[a].x+p[c].x)/2,my=(p[a].y+p[c].y)/2,inside=mx>24&&mx<innerWidth-24&&my>24&&my<innerHeight-24;
+      if(near&&inside&&!touching[key]&&!(now-(last[key]||0)<2500)){last[key]=now;burst(box,mx,my);}
+      touching[key]=near;
+    }
+  }
+  setInterval(check,70);
+
+  /* --- Screen Locked: today's time and date --- */
+  var lk=document.getElementById('idleLock'),tick=null;
+  function clock(){
+    var t=document.getElementById('lkTime'),d=document.getElementById('lkDate'),now=new Date();
+    try{if(t)t.textContent=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+        if(d)d.textContent=now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}catch(e){}
+  }
+  function lockChanged(){
+    if(lk.classList.contains('show')){clock();if(!tick)tick=setInterval(clock,1000);}
+    else if(tick){clearInterval(tick);tick=null;}
+  }
+  if(lk&&window.MutationObserver){new MutationObserver(lockChanged).observe(lk,{attributes:true,attributeFilter:['class']});lockChanged();}
+
+  /* --- Welcome: a small sparkle around the 🎉 each time it opens --- */
+  var wl=document.getElementById('welcomeScreen');
+  if(wl&&window.MutationObserver){var was=false;new MutationObserver(function(){var on=wl.classList.contains('show');
+    if(on&&!was){setTimeout(function(){var ic=wl.querySelector('.welcome-icon');if(!ic||!wl.classList.contains('show'))return;var r=ic.getBoundingClientRect();burst(wl,r.left+r.width/2,r.top+r.height/2);},380);}
+    was=on;}).observe(wl,{attributes:true,attributeFilter:['class']});}
+})();
+</script>
 </body>
 </html>
