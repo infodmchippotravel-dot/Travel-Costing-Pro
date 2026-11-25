@@ -258,7 +258,7 @@ body.dark #loginPanel-admin .login-back-link{color:#ecd29b!important}
 #landing .ld-plane.a{font-size:36px;opacity:.62}
 #landing .ld-plane.b{font-size:24px;opacity:.32}
 #landing .ld-plane.c{font-size:30px;opacity:.5}
-@media (max-width:720px){#loginGate .login-plane{font-size:24px}#loginGate .login-plane.p3{font-size:30px}#landing .ld-plane.a{font-size:26px}#landing .ld-plane.c{font-size:22px}}
+@media (max-width:720px){#loginGate .login-plane{font-size:24px}#loginGate .login-plane.p3{font-size:30px}#loginGate .login-plane.p1,#loginGate .login-plane.p3,#loginGate .login-plane.p5{left:-48px}#loginGate .login-plane.p2,#loginGate .login-plane.p4,#loginGate .login-plane.p6{right:-48px}#landing .ld-plane.a{font-size:26px}#landing .ld-plane.c{font-size:22px}}
 /* ===== First page, company part: a warm sky — soft gold and blue light, fine dots and dotted routes (no planes here) ===== */
 #loginGate.lg-landing #landing{background:
   radial-gradient(circle at 1px 1px,rgba(150,115,50,.14) 1px,transparent 1.6px) 0 0/24px 24px,
@@ -17835,6 +17835,8 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
     var lr=w.layer.getBoundingClientRect(),ox=lr.left-w.layer.scrollLeft,oy=lr.top-w.layer.scrollTop;
     var dy=(innerHeight*0.18)*(rnd()<0.5?-1:1),sp=innerWidth<=720?120:190;
     var sides=[{x:-50,y:m.y+dy},{x:innerWidth+50,y:m.y-dy*0.6}],left=2,planes=[];
+    /* both planes take the same time and fly at a steady speed: they reach the meeting place together, still flying (none waits there) */
+    var far=Math.max.apply(null,sides.map(function(st){return Math.hypot(m.x-st.x,m.y-st.y);})),dur=Math.max(2600,far/sp*1000);
     sides.forEach(function(st,i){
       var e=document.createElement('span');e.className='x-plane';e.setAttribute('aria-hidden','true');e.innerHTML=PLANE;
       if(w.k==='G'){var sky=w.layer.querySelector(':scope>.tw-sky');w.layer.insertBefore(e,sky?sky.nextSibling:w.layer.firstChild);}else w.layer.appendChild(e);
@@ -17842,7 +17844,7 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
       var dx=m.x-st.x,dyy=m.y-st.y,ang=Math.atan2(dyy,dx)*180/Math.PI,dist=Math.hypot(dx,dyy);
       var flip=i===1?' scale(1,-1)':'';
       var from='translate('+(st.x-ox)+'px,'+(st.y-oy)+'px) rotate('+ang+'deg)'+flip,to='translate('+(m.x-ox)+'px,'+(m.y-oy)+'px) rotate('+ang+'deg)'+flip;
-      var an=e.animate([{transform:from,opacity:0},{transform:from,opacity:.88,offset:.06},{transform:to,opacity:.88}],{duration:Math.max(2600,dist/sp*1000),easing:'cubic-bezier(.35,0,.75,.55)',fill:'forwards'});
+      var an=e.animate([{transform:from,opacity:0},{opacity:.88,offset:.06},{transform:to,opacity:.88}],{duration:dur,easing:'linear',fill:'forwards'});
       an.onfinish=function(){left--;if(left)return;
         var still=where();
         if(still&&still.k===w.k){burst(w.burstBox,m.x,m.y,true);}
@@ -17861,7 +17863,7 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
     if(hitBusy||document.hidden||!gate||!gate.classList.contains('lg-landing')||getComputedStyle(gate).display==='none')return;
     var hero=document.querySelector('#landing .ld-hero'),sky=document.querySelector('#landing .ld-sky');if(!hero||!sky||!sky.animate)return;
     var hr=hero.getBoundingClientRect();if(hr.bottom<200||hr.top>innerHeight-200)return;
-    var olds=[].filter.call(document.querySelectorAll('#landing .ld-plane'),function(e){var r=e.getBoundingClientRect();return r.width>0&&getComputedStyle(e).display!=='none'&&r.left>-10&&r.left<innerWidth*0.35&&r.top>hr.top+20&&r.bottom<hr.bottom-20;});
+    var olds=[].filter.call(document.querySelectorAll('#landing .ld-plane'),function(e){var r=e.getBoundingClientRect();return r.width>0&&getComputedStyle(e).display!=='none'&&e.style.visibility!=='hidden'&&r.left>-10&&r.left<innerWidth*0.35&&r.top>hr.top+20&&r.bottom<hr.bottom-20;});
     if(!olds.length)return;
     var t=olds[Math.floor(rnd()*olds.length)],r1=t.getBoundingClientRect();
     hitBusy=true;
@@ -17878,10 +17880,12 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
       if(mx===null){hitBusy=false;return;}
       var lr=sky.getBoundingClientRect(),e=document.createElement('span');e.className='x-plane hit';e.setAttribute('aria-hidden','true');e.innerHTML=PLANE;sky.appendChild(e);
       var from='translate('+(start-lr.left)+'px,'+(y-lr.top)+'px) rotate(180deg) scale(1,-1)',to='translate('+(mx-lr.left)+'px,'+(y-lr.top)+'px) rotate(180deg) scale(1,-1)';
-      var an=e.animate([{transform:from,opacity:0},{transform:from,opacity:.9,offset:.05},{transform:to,opacity:.9}],{duration:tm*1000,easing:'linear',fill:'forwards'});
+      var an=e.animate([{transform:from,opacity:0},{opacity:.9,offset:.05},{transform:to,opacity:.9}],{duration:tm*1000,easing:'linear',fill:'forwards'});
       an.onfinish=an.oncancel=function(){
         var rr=t.getBoundingClientRect(),g=document.getElementById('loginGate');
-        if(g.classList.contains('lg-landing')&&!document.hidden&&rr.width){burst(hero,(rr.left+rr.width/2+mx)/2,rr.top+rr.height/2,true);window.hippoOldHits=(window.hippoOldHits||0)+1;}
+        if(g.classList.contains('lg-landing')&&!document.hidden&&rr.width){burst(hero,(rr.left+rr.width/2+mx)/2,rr.top+rr.height/2,true);window.hippoOldHits=(window.hippoOldHits||0)+1;
+          /* the plane that was hit is gone after the burst; it flies again on its next trip from the left */
+          t.style.visibility='hidden';var back=function(){t.style.visibility='';t.removeEventListener('animationiteration',back);clearTimeout(t.__hb);};t.addEventListener('animationiteration',back);t.__hb=setTimeout(back,40000);}
         if(e.parentNode)e.parentNode.removeChild(e);setTimeout(function(){hitBusy=false;},2500);
       };
     },250);
