@@ -39,7 +39,7 @@ try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.cla
     setTimeout(function(){bo.classList.remove('boot-out');},4000);}   /* never stays hidden */
 }catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-25-1';   /* change with every new version */
+window.SITE_BUILD='2026-11-25-2';   /* change with every new version */
 /* A language was chosen before: start Google Translate at once (not after the whole page has loaded),
    and keep the page hidden for a moment (max 2.5 s) so English does not flash before the chosen language. */
 /* Language belongs to the person: each user's (and the admin's) own choice is kept on this computer
@@ -10979,7 +10979,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 25 Nov 2026 (1)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 25 Nov 2026 (2)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -17622,7 +17622,7 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
 .wl-orbit{position:absolute;inset:0;width:160px;height:160px;overflow:visible}
 .wl-orbit-plane{filter:drop-shadow(0 0 4px rgba(236,210,155,.85))}
 .welcome-screen .welcome-brand-logo{position:relative;box-shadow:0 0 0 3px rgba(226,196,138,.55),0 10px 28px rgba(0,0,0,.45)!important;border-radius:50%}
-.welcome-screen .welcome-title{font-family:'Playfair Display',Georgia,serif;font-size:31px;font-weight:700;letter-spacing:.2px;text-shadow:0 2px 18px rgba(127,211,245,.35)}
+.welcome-screen .welcome-title{font-family:'Playfair Display',Georgia,serif;font-size:31px;font-weight:700;letter-spacing:.2px;text-shadow:0 2px 18px rgba(127,211,245,.35);text-wrap:balance;max-width:calc(100vw - 32px);text-align:center}
 .wl-line{width:150px;height:2px;margin:2px 0 4px;background:linear-gradient(90deg,transparent,#e2c48a,transparent)}
 .welcome-screen .welcome-sub{color:#ecd29b;font-size:13.5px;letter-spacing:.6px}
 .wl-bar{width:min(260px,64vw);height:5px;margin-top:8px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
