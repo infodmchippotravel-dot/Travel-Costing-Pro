@@ -267,13 +267,11 @@ body.dark #loginPanel-admin .login-back-link{color:#ecd29b!important}
 #landing .ld-sec>.ld-wrap{position:relative;z-index:1}
 #landing .ld-sec::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:
   radial-gradient(620px 380px at 92% 18%,rgba(198,167,107,.20),transparent 65%),
-  radial-gradient(560px 360px at 4% 88%,rgba(14,147,201,.10),transparent 65%),
-  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 300' preserveAspectRatio='none'%3E%3Cpath d='M-20 270 C 320 120, 820 90, 1220 20' fill='none' stroke='%23c6a76b' stroke-width='1.6' stroke-dasharray='2 11' stroke-linecap='round'/%3E%3Cpath d='M-20 60 C 400 200, 900 230, 1220 150' fill='none' stroke='%230e93c9' stroke-opacity='.45' stroke-width='1.2' stroke-dasharray='2 13' stroke-linecap='round'/%3E%3C/svg%3E") center/100% 100% no-repeat;opacity:.9}
+  radial-gradient(560px 360px at 4% 88%,rgba(14,147,201,.10),transparent 65%);opacity:.9}
 #landing .ld-sec:nth-of-type(odd)::before{background:
   radial-gradient(620px 380px at 6% 20%,rgba(198,167,107,.18),transparent 65%),
-  radial-gradient(560px 360px at 96% 90%,rgba(14,147,201,.10),transparent 65%),
-  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 300' preserveAspectRatio='none'%3E%3Cpath d='M-20 40 C 300 170, 800 260, 1220 250' fill='none' stroke='%23c6a76b' stroke-width='1.6' stroke-dasharray='2 11' stroke-linecap='round'/%3E%3C/svg%3E") center/100% 100% no-repeat}
-#landing .ld-sec+.ld-sec{border-top:1px solid rgba(198,167,107,.22)}
+  radial-gradient(560px 360px at 96% 90%,rgba(14,147,201,.10),transparent 65%)}
+/* (no line between the sections: the cards and headings already mark each part) */
 body.dark #loginGate.lg-landing #landing{background:
   radial-gradient(circle at 1px 1px,rgba(255,255,255,.05) 1px,transparent 1.6px) 0 0/24px 24px,
   linear-gradient(180deg,#0a121f 0%,#0b1626 50%,#0a1422 100%)!important}
@@ -17604,15 +17602,39 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
 .tw-star.big::after{transform:translate(-50%,-50%) rotate(90deg)}
 @keyframes twStar{0%,100%{opacity:.12;transform:scale(.55)}50%{opacity:1;transform:scale(1.15)}}
 #loginGate.lg-landing>.tw-sky{display:none}
-/* ===== Two planes meet: a small golden sparkle where they touch ===== */
+/* ===== Two planes meet: a golden burst where they touch ===== */
 .pl-burst{position:absolute;width:0;height:0;pointer-events:none;z-index:0}
-.pl-burst .ring{position:absolute;left:-30px;top:-30px;width:60px;height:60px;border-radius:50%;border:2px solid rgba(236,210,155,.95);box-shadow:0 0 16px rgba(236,210,155,.75),inset 0 0 10px rgba(127,211,245,.5);animation:plRing .95s ease-out forwards}
-.pl-burst .flash{position:absolute;left:-18px;top:-18px;width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,#fff 0,rgba(255,238,196,.9) 35%,rgba(236,210,155,0) 70%);animation:plFlash .75s ease-out forwards}
-.pl-burst .sp{position:absolute;left:-5px;top:-5px;width:10px;height:10px;background:#ffe3a3;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);filter:drop-shadow(0 0 3px #fff);transform:rotate(var(--a)) translateX(4px);animation:plSpark 1s ease-out forwards}
+.pl-burst.big{transform:scale(1.35)}
+.pl-burst .glow{position:absolute;left:-80px;top:-80px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(255,236,190,.55) 0,rgba(236,210,155,.28) 35%,rgba(127,211,245,.12) 55%,rgba(127,211,245,0) 70%);animation:plGlow 1.3s ease-out forwards}
+.pl-burst .ring{position:absolute;left:-40px;top:-40px;width:80px;height:80px;border-radius:50%;border:2.5px solid rgba(236,210,155,.95);box-shadow:0 0 22px rgba(236,210,155,.8),inset 0 0 14px rgba(127,211,245,.55);animation:plRing 1.05s ease-out forwards}
+.pl-burst .ring.r2{border:1.5px solid rgba(159,224,250,.9);box-shadow:0 0 16px rgba(127,211,245,.7);animation:plRing2 1.25s ease-out .14s both}
+.pl-burst .flash{position:absolute;left:-26px;top:-26px;width:52px;height:52px;border-radius:50%;background:radial-gradient(circle,#fff 0,rgba(255,238,196,.95) 32%,rgba(236,210,155,0) 70%);animation:plFlash .8s ease-out forwards}
+.pl-burst .sp{position:absolute;left:-6px;top:-6px;width:12px;height:12px;background:#ffe3a3;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);filter:drop-shadow(0 0 4px #fff);transform:rotate(var(--a)) translateX(6px);animation:plSpark 1.2s cubic-bezier(.2,.7,.3,1) forwards}
 .pl-burst .sp.b{background:#9fe0fa}
-@keyframes plRing{0%{transform:scale(.2);opacity:1}100%{transform:scale(1.6);opacity:0}}
-@keyframes plFlash{0%{transform:scale(.3);opacity:1}60%{opacity:.9}100%{transform:scale(1.5);opacity:0}}
-@keyframes plSpark{0%{transform:rotate(var(--a)) translateX(4px) scale(1);opacity:1}100%{transform:rotate(var(--a)) translateX(var(--r)) scale(.3);opacity:0}}
+.pl-burst .sp.s{width:7px;height:7px;left:-3.5px;top:-3.5px;background:#fff6dc}
+@keyframes plGlow{0%{transform:scale(.3);opacity:0}20%{opacity:1}100%{transform:scale(1.25);opacity:0}}
+@keyframes plRing{0%{transform:scale(.15);opacity:1}100%{transform:scale(1.9);opacity:0}}
+@keyframes plRing2{0%{transform:scale(.15);opacity:.9}100%{transform:scale(2.5);opacity:0}}
+@keyframes plFlash{0%{transform:scale(.3);opacity:1}55%{opacity:.95}100%{transform:scale(1.6);opacity:0}}
+@keyframes plSpark{0%{transform:rotate(var(--a)) translateX(6px) scale(1.1);opacity:1}70%{opacity:1}100%{transform:rotate(var(--a)) translateX(var(--r)) scale(.25);opacity:0}}
+/* two extra planes that fly at each other and meet (added on top of the background; the old planes are unchanged) */
+.x-plane{position:absolute;left:0;top:0;width:26px;height:26px;margin:-13px 0 0 -13px;color:#fff;line-height:0;pointer-events:none;z-index:0;opacity:.88;filter:drop-shadow(0 0 6px rgba(226,196,138,.65))}
+.x-plane svg{display:block;width:100%;height:100%;fill:currentColor}
+.x-plane::before{content:"";position:absolute;right:62%;top:50%;width:120px;height:2px;margin-top:-1px;border-radius:2px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,236,190,.6))}
+@media (max-width:720px){.x-plane{width:22px;height:22px;margin:-11px 0 0 -11px}.x-plane::before{width:80px}}
+/* first page, lower part: cards rise into place while scrolling (like inside the website) */
+#landing .ld-sec .ldx{opacity:0;transform:perspective(1000px) translateY(48px) rotateX(9deg) scale(.97);transform-origin:50% 100%;transition:opacity .8s cubic-bezier(.16,.84,.3,1),transform .9s cubic-bezier(.16,.84,.3,1);transition-delay:var(--ldx-d,0ms)}
+#landing .ld-sec .ldx.ldx-up{transform:perspective(1000px) translateY(-48px) rotateX(-9deg) scale(.97);transform-origin:50% 0}
+#landing .ld-sec .ldx.ldx-in{opacity:1;transform:none}
+#landing .ld-card.ldx-in,#landing .ld-cta.ldx-in{animation:ldxGlow 1.6s ease-out var(--ldx-d,0ms) both}
+@keyframes ldxGlow{0%,35%{box-shadow:0 0 0 2px rgba(198,167,107,.7),0 26px 56px -24px rgba(198,167,107,.75)}}
+#landing .ld-card h3{background-image:linear-gradient(90deg,#c6a76b,#f3e2b3);background-repeat:no-repeat;background-position:left 100%;background-size:0 3px;padding-bottom:8px;transition:background-size 1s cubic-bezier(.16,.84,.3,1) .35s}
+#landing .ld-card.ldx-seen h3{background-size:56px 3px}
+#landing .ld-card{transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease}
+@media (hover:hover){#landing .ld-card.ldx-done:hover,#landing .ld-card:not(.ldx):hover{transform:translateY(-6px);border-color:#d9bd84;box-shadow:0 0 0 1px rgba(198,167,107,.35),0 22px 44px -20px rgba(160,120,50,.55)}
+  #landing .ld-card:hover h3{background-size:100% 3px}
+  body.dark #landing .ld-card:hover{border-color:#6d5a35}}
+@media print{#landing .ldx{opacity:1!important;transform:none!important}}
 /* ===== Welcome screen ===== */
 .welcome-screen{background:radial-gradient(900px 520px at 50% 115%,rgba(14,147,201,.32),transparent 62%),radial-gradient(620px 380px at 12% -5%,rgba(226,196,138,.16),transparent 60%),linear-gradient(160deg,#040c20 0%,#081d40 45%,#0b3360 80%,#0f4878 100%)!important;overflow:hidden}
 .welcome-screen>*:not(.tw-sky):not(.pl-burst){position:relative;z-index:1}
@@ -17655,9 +17677,15 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
 /* the computer may ask for less motion (Windows "Animation effects" off): these gentle effects still play */
 @media (prefers-reduced-motion:reduce){
   html body .tw-star{animation-duration:var(--t)!important;animation-iteration-count:infinite!important}
-  html body .pl-burst .ring{animation-duration:.95s!important}
-  html body .pl-burst .flash{animation-duration:.75s!important}
-  html body .pl-burst .sp{animation-duration:1s!important}
+  html body .pl-burst .glow{animation-duration:1.3s!important}
+  html body .pl-burst .ring{animation-duration:1.05s!important}
+  html body .pl-burst .ring.r2{animation-duration:1.25s!important}
+  html body .pl-burst .flash{animation-duration:.8s!important}
+  html body .pl-burst .sp{animation-duration:1.2s!important}
+  html body #landing .ld-sec .ldx{transition-duration:.8s,.9s!important}
+  html body #landing .ld-card.ldx-in,html body #landing .ld-cta.ldx-in{animation-duration:1.6s!important}
+  html body #landing .ld-card h3{transition-duration:1s!important}
+  html body #landing .ld-card{transition-duration:.3s!important}
   html body .welcome-screen.show .wl-bar i{animation-duration:1.6s!important}
   html body .lk-logo-wrap::before,html body .lk-logo-wrap::after{animation-duration:2.8s!important;animation-iteration-count:infinite!important}
 }
@@ -17688,12 +17716,13 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
 
   /* --- a golden sparkle when two background planes touch --- */
-  function burst(box,x,y){
-    var r=box.getBoundingClientRect(),b=document.createElement('div');b.className='pl-burst';b.setAttribute('aria-hidden','true');
+  function burst(box,x,y,big){
+    var r=box.getBoundingClientRect(),b=document.createElement('div');b.className='pl-burst'+(big?' big':'');b.setAttribute('aria-hidden','true');
     b.style.left=(x-r.left+box.scrollLeft)+'px';b.style.top=(y-r.top+box.scrollTop)+'px';
-    var h='<span class="flash"></span><span class="ring"></span>';
-    for(var k=0;k<10;k++)h+='<span class="sp'+(k%3===1?' b':'')+'" style="--a:'+(k*36+rnd()*14)+'deg;--r:'+(34+rnd()*22).toFixed(0)+'px"></span>';
-    b.innerHTML=h;box.appendChild(b);setTimeout(function(){if(b.parentNode)b.parentNode.removeChild(b);},1200);
+    var h='<span class="glow"></span><span class="flash"></span><span class="ring"></span><span class="ring r2"></span>';
+    for(var k=0;k<14;k++)h+='<span class="sp'+(k%3===1?' b':'')+'" style="--a:'+(k*25.7+rnd()*12).toFixed(1)+'deg;--r:'+(52+rnd()*42).toFixed(0)+'px"></span>';
+    for(var j=0;j<8;j++)h+='<span class="sp s" style="--a:'+(j*45+20+rnd()*16).toFixed(1)+'deg;--r:'+(26+rnd()*22).toFixed(0)+'px"></span>';
+    b.innerHTML=h;box.appendChild(b);setTimeout(function(){if(b.parentNode)b.parentNode.removeChild(b);},1600);
   }
   window.hippoPlaneBurst=burst;
   var touching={},last={};
@@ -17701,6 +17730,11 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
     var r=e.getBoundingClientRect();if(!r.width||r.right<0||r.left>innerWidth||r.bottom<0||r.top>innerHeight)return null;
     if(getComputedStyle(e).visibility==='hidden')return null;
     return {x:r.left+r.width/2,y:r.top+r.height/2,s:Math.max(r.width,r.height)};
+  }
+  /* no burst on top of the Log in box (it would cover the form) */
+  function overCard(x,y,land){
+    if(land)return false;var c=document.querySelector('#loginGate .login-card');if(!c)return false;var r=c.getBoundingClientRect();
+    var g=small()?8:30;return x>r.left-g&&x<r.right+g&&y>r.top-g&&y<r.bottom+g;
   }
   function check(){
     if(document.hidden)return;
@@ -17714,13 +17748,112 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
     for(var a=0;a<p.length;a++)for(var c=a+1;c<p.length;c++){
       var key=(land?'L':'G')+a+'_'+c;
       if(!p[a]||!p[c]){touching[key]=false;continue;}
-      var d=Math.hypot(p[a].x-p[c].x,p[a].y-p[c].y),near=d<(p[a].s+p[c].s)*0.42;
-      var mx=(p[a].x+p[c].x)/2,my=(p[a].y+p[c].y)/2,inside=mx>24&&mx<innerWidth-24&&my>24&&my<innerHeight-24;
+      /* "meet" = the two planes pass very close (about one plane apart) */
+      var d=Math.hypot(p[a].x-p[c].x,p[a].y-p[c].y),near=d<Math.max((p[a].s+p[c].s)*0.42,62);
+      var mx=(p[a].x+p[c].x)/2,my=(p[a].y+p[c].y)/2,inside=mx>24&&mx<innerWidth-24&&my>24&&my<innerHeight-24&&!overCard(mx,my,land);
       if(near&&inside&&!touching[key]&&!(now-(last[key]||0)<2500)){last[key]=now;burst(box,mx,my);}
       touching[key]=near;
     }
   }
   setInterval(check,70);
+
+  /* --- planes that fly along a line (logo orbit, Log in route, Welcome) keep flying after their screen was hidden and shown again
+         (the browser stops redrawing them while hidden; giving their clock its own time again wakes them up) --- */
+  var smilOn=[];
+  function wakeLines(){
+    var m=document.querySelectorAll('animateMotion');
+    for(var i=0;i<m.length;i++){
+      var svg=m[i].closest&&m[i].closest('svg');if(!svg||!svg.setCurrentTime)continue;
+      var on=svg.getClientRects().length>0&&!document.hidden;
+      if(on&&smilOn[i]===false){try{svg.setCurrentTime(svg.getCurrentTime());}catch(e){}}
+      smilOn[i]=on;
+    }
+  }
+  setInterval(wakeLines,250);
+  document.addEventListener('visibilitychange',wakeLines);
+
+  /* --- two extra planes fly at each other from both sides and meet in a bigger burst --- */
+  var PLANE='<svg viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>';
+  var pairBusy={L:false,G:false};
+  function where(){
+    var gate=document.getElementById('loginGate');
+    if(document.hidden||!gate||gate.classList.contains('hide')||getComputedStyle(gate).display==='none')return null;
+    if(gate.classList.contains('lg-landing')){
+      var hero=document.querySelector('#landing .ld-hero'),sky=document.querySelector('#landing .ld-sky');if(!hero||!sky)return null;
+      var hr=hero.getBoundingClientRect();if(hr.bottom<160||hr.top>innerHeight-160)return null;
+      /* not under the white note that overlaps the bottom of the dark part; on a phone the text fills the width, so the burst may glow softly behind the paragraph (the words stay on top) */
+      return {k:'L',layer:sky,burstBox:hero,area:{l:0,r:innerWidth,t:Math.max(hr.top,70),b:Math.min(hr.bottom-60,innerHeight)},
+        avoid:small()?'#landing .ld-hero h1,#landing .ld-hero .ld-hero-acts,#landing .ld-top':'#landing .ld-hero h1,#landing .ld-hero .ld-lead,#landing .ld-hero .ld-hero-acts,#landing .ld-hero .ld-eyebrow,#landing .ld-logo-big,#landing .ld-top'};
+    }
+    return {k:'G',layer:gate,burstBox:gate,area:{l:0,r:innerWidth,t:0,b:innerHeight},
+      avoid:'#loginGate .login-card,#loginGate .lg-side-title,#loginGate .lg-side-text,#loginGate .lg-side-brand,#loginGate .lg-side-points'};
+  }
+  function freeSpot(w){
+    var A=w.area,g=small()?12:46,lo=small()?0.03:0.12,span=small()?0.94:0.76,rs=[].map.call(document.querySelectorAll(w.avoid),function(e){return e.getBoundingClientRect();}).filter(function(r){return r.width>0;});
+    for(var t=0;t<80;t++){
+      var x=A.l+(A.r-A.l)*(small()?0.24+rnd()*0.52:0.12+rnd()*0.76),y=A.t+(A.b-A.t)*(lo+rnd()*span),ok=y>28&&y<innerHeight-28;
+      for(var i=0;i<rs.length;i++){var r=rs[i];if(x>r.left-g&&x<r.right+g&&y>r.top-g&&y<r.bottom+g){ok=false;break;}}
+      if(ok)return {x:x,y:y};
+    }
+    return null;
+  }
+  function flyPair(){
+    var w=where();if(!w||pairBusy[w.k]||!w.layer.animate)return;
+    var m=freeSpot(w);if(!m)return;
+    pairBusy[w.k]=true;
+    var lr=w.layer.getBoundingClientRect(),ox=lr.left-w.layer.scrollLeft,oy=lr.top-w.layer.scrollTop;
+    var dy=(innerHeight*0.18)*(rnd()<0.5?-1:1),sp=innerWidth<=720?120:190;
+    var sides=[{x:-50,y:m.y+dy},{x:innerWidth+50,y:m.y-dy*0.6}],left=2,planes=[];
+    sides.forEach(function(st,i){
+      var e=document.createElement('span');e.className='x-plane';e.setAttribute('aria-hidden','true');e.innerHTML=PLANE;
+      if(w.k==='G'){var sky=w.layer.querySelector(':scope>.tw-sky');w.layer.insertBefore(e,sky?sky.nextSibling:w.layer.firstChild);}else w.layer.appendChild(e);
+      planes.push(e);
+      var dx=m.x-st.x,dyy=m.y-st.y,ang=Math.atan2(dyy,dx)*180/Math.PI,dist=Math.hypot(dx,dyy);
+      var flip=i===1?' scale(1,-1)':'';
+      var from='translate('+(st.x-ox)+'px,'+(st.y-oy)+'px) rotate('+ang+'deg)'+flip,to='translate('+(m.x-ox)+'px,'+(m.y-oy)+'px) rotate('+ang+'deg)'+flip;
+      var an=e.animate([{transform:from,opacity:0},{transform:from,opacity:.88,offset:.06},{transform:to,opacity:.88}],{duration:Math.max(2600,dist/sp*1000),easing:'cubic-bezier(.35,0,.75,.55)',fill:'forwards'});
+      an.onfinish=function(){left--;if(left)return;
+        var still=where();
+        if(still&&still.k===w.k){burst(w.burstBox,m.x,m.y,true);}
+        planes.forEach(function(p){if(p.parentNode)p.parentNode.removeChild(p);});
+        setTimeout(function(){pairBusy[w.k]=false;},1400);
+      };
+      an.oncancel=an.onfinish;
+    });
+  }
+  setInterval(function(){if(rnd()<0.55)flyPair();},2200);
+
+  /* --- first page, lower part: cards rise into place while scrolling (each time the first page opens) --- */
+  (function(){
+    var land=document.getElementById('landing');if(!land||!window.IntersectionObserver)return;
+    var cards=[].slice.call(land.querySelectorAll('.ld-sec .ld-card,.ld-sec .ld-cta'));if(!cards.length)return;
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)show(e.target);});},{root:land,threshold:0,rootMargin:'0px 0px -24px 0px'});
+    function show(c){
+      if(!c.classList.contains('ldx')||c.classList.contains('ldx-in'))return;
+      c.classList.add('ldx-in','ldx-seen');io.unobserve(c);
+      var d=parseInt(c.style.getPropertyValue('--ldx-d'))||0;
+      setTimeout(function(){c.classList.remove('ldx','ldx-in','ldx-up');c.classList.add('ldx-done');c.style.removeProperty('--ldx-d');},1700+d);
+    }
+    function arm(){
+      var lr=land.getBoundingClientRect();
+      cards.forEach(function(c){
+        c.classList.remove('ldx-in','ldx-seen','ldx-done','ldx-up');
+        var parent=c.parentNode,sib=[].filter.call(parent.children,function(x){return cards.indexOf(x)>-1;}),col=sib.indexOf(c);
+        var cols=getComputedStyle(parent).gridTemplateColumns;cols=cols&&cols!=='none'?cols.split(' ').length:1;
+        c.style.setProperty('--ldx-d',((col%cols)*110)+'ms');
+        c.classList.add('ldx');io.observe(c);
+      });
+    }
+    /* safety: a card that is on screen is never left hidden */
+    function sweep(){if(!document.getElementById('loginGate').classList.contains('lg-landing'))return;var vh=innerHeight;
+      cards.forEach(function(c){if(!c.classList.contains('ldx')||c.classList.contains('ldx-in'))return;var r=c.getBoundingClientRect();if(r.height>0&&r.top<vh-24&&r.bottom>0)show(c);});}
+    land.addEventListener('scroll',function(){setTimeout(sweep,500);},{passive:true});
+    setInterval(sweep,1200);
+    var gate=document.getElementById('loginGate'),was=false;
+    function onGate(){var on=gate.classList.contains('lg-landing')&&getComputedStyle(gate).display!=='none';if(on&&!was)arm();was=on;}
+    if(window.MutationObserver)new MutationObserver(onGate).observe(gate,{attributes:true,attributeFilter:['class','style']});
+    onGate();
+  })();
 
   /* --- Screen Locked: today's time and date --- */
   var lk=document.getElementById('idleLock'),tick=null;
