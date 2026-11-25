@@ -128,6 +128,37 @@ body.dark #loginGate:not(.lg-landing){
   radial-gradient(circle at 1px 1px,rgba(255,255,255,.07) 1px,transparent 1.7px) 0 0/26px 26px,
   linear-gradient(160deg,#06122a 0%,#0a2447 48%,#0d3a5c 100%)!important}
 #landing .ld-hero .ld-wrap{position:relative;z-index:1}
+/* ===== Top of the first page: a night sky — deep blue that gets lighter, twinkling stars, slow clouds, a warm horizon, and gold orbit rings around the logo ===== */
+#landing .ld-hero{background:
+  radial-gradient(560px 460px at 76% 46%,rgba(14,147,201,.42),transparent 66%),
+  radial-gradient(760px 380px at 100% -10%,rgba(198,167,107,.26),transparent 62%),
+  radial-gradient(620px 420px at -6% 4%,rgba(60,90,190,.30),transparent 62%),
+  linear-gradient(150deg,#040c20 0%,#081d40 38%,#0b3360 70%,#0f4878 100%)!important}
+body.dark #landing .ld-hero{background:
+  radial-gradient(560px 460px at 76% 46%,rgba(14,147,201,.30),transparent 66%),
+  radial-gradient(760px 380px at 100% -10%,rgba(198,167,107,.18),transparent 62%),
+  linear-gradient(150deg,#030918 0%,#061632 40%,#09294d 72%,#0c3a62 100%)!important}
+#landing .ld-stars,#landing .ld-stars::after{position:absolute;inset:0;pointer-events:none}
+#landing .ld-stars{background-image:radial-gradient(1.6px 1.6px at 6% 18%,rgba(255,255,255,0.9),transparent),radial-gradient(1.2px 1.2px at 14% 62%,rgba(255,255,255,0.7),transparent),radial-gradient(1.8px 1.8px at 22% 30%,rgba(255,255,255,0.8),transparent),radial-gradient(1.2px 1.2px at 31% 78%,rgba(255,255,255,0.6),transparent),radial-gradient(1.4px 1.4px at 38% 12%,rgba(255,255,255,0.8),transparent),radial-gradient(1.1px 1.1px at 47% 52%,rgba(255,255,255,0.6),transparent),radial-gradient(1.7px 1.7px at 55% 24%,rgba(255,255,255,0.9),transparent),radial-gradient(1.2px 1.2px at 63% 70%,rgba(255,255,255,0.6),transparent),radial-gradient(1.3px 1.3px at 71% 14%,rgba(255,255,255,0.7),transparent),radial-gradient(1.6px 1.6px at 79% 84%,rgba(255,255,255,0.8),transparent),radial-gradient(1.2px 1.2px at 87% 36%,rgba(255,255,255,0.7),transparent),radial-gradient(1.7px 1.7px at 94% 64%,rgba(255,255,255,0.9),transparent),radial-gradient(1.3px 1.3px at 9% 90%,rgba(255,255,255,0.6),transparent),radial-gradient(1.5px 1.5px at 42% 88%,rgba(255,255,255,0.7),transparent),radial-gradient(1.3px 1.3px at 97% 10%,rgba(255,255,255,0.8),transparent),radial-gradient(1px 1px at 27% 46%,rgba(255,255,255,0.5),transparent),radial-gradient(1px 1px at 66% 40%,rgba(255,255,255,0.5),transparent),radial-gradient(1px 1px at 84% 58%,rgba(255,255,255,0.5),transparent);animation:ldTwinkle 4.5s ease-in-out infinite alternate}
+#landing .ld-stars::after{content:"";background-image:radial-gradient(1.6px 1.6px at 11% 40%,rgba(236,210,155,0.9),transparent),radial-gradient(1.2px 1.2px at 35% 22%,rgba(236,210,155,0.8),transparent),radial-gradient(1.5px 1.5px at 51% 74%,rgba(236,210,155,0.8),transparent),radial-gradient(1.8px 1.8px at 75% 30%,rgba(236,210,155,0.9),transparent),radial-gradient(1.3px 1.3px at 90% 80%,rgba(236,210,155,0.7),transparent),radial-gradient(1.2px 1.2px at 18% 8%,rgba(236,210,155,0.7),transparent),radial-gradient(1.4px 1.4px at 60% 6%,rgba(236,210,155,0.8),transparent);animation:ldTwinkle 3.4s ease-in-out infinite alternate-reverse}
+@keyframes ldTwinkle{from{opacity:.35}to{opacity:1}}
+#landing .ld-cloud{position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,rgba(255,255,255,.13),rgba(255,255,255,.05) 60%,transparent);filter:blur(10px);animation:ldDrift linear infinite}
+#landing .ld-cloud.k1{width:460px;height:110px;top:14%;left:-30%;animation-duration:70s}
+#landing .ld-cloud.k2{width:340px;height:90px;top:62%;left:-30%;animation-duration:95s;animation-delay:-40s;opacity:.8}
+#landing .ld-cloud.k3{width:520px;height:130px;top:80%;left:-30%;animation-duration:120s;animation-delay:-75s;opacity:.6}
+@keyframes ldDrift{from{transform:translateX(0)}to{transform:translateX(170vw)}}
+#landing .ld-horizon{position:absolute;left:-10%;right:-10%;bottom:-120px;height:240px;pointer-events:none;border-radius:50%;background:radial-gradient(closest-side,rgba(236,210,155,.34),rgba(236,210,155,.10) 55%,transparent);filter:blur(4px)}
+#landing .ld-hero .ld-wrap>div:first-child{grid-column:1;grid-row:1}
+#landing .ld-hero .ld-logo-big{grid-column:2;grid-row:1;position:relative;z-index:2}
+#landing .ld-orbit{grid-column:2;grid-row:1;justify-self:center;align-self:center;width:420px;height:420px;margin:-95px;max-width:none;position:relative;z-index:1;pointer-events:none;overflow:visible}
+#landing .ld-orbit-spin{transform-origin:220px 220px;animation:ldSpin 26s linear infinite}
+#landing .ld-orbit-plane{filter:drop-shadow(0 0 5px rgba(236,210,155,.8))}
+#landing .ld-orbit-dot{animation:ldTwinkle 2.8s ease-in-out infinite alternate}
+#landing .ld-orbit-dot.d2{animation-delay:-1.4s}
+@keyframes ldSpin{to{transform:rotate(360deg)}}
+@media (max-width:900px){#landing .ld-orbit{display:none}}
+@media (max-width:720px){#landing .ld-cloud.k1{width:300px}#landing .ld-cloud.k3{width:340px}}
+@media (prefers-reduced-motion:reduce){#landing .ld-stars,#landing .ld-stars::after,#landing .ld-cloud,#landing .ld-orbit-spin,#landing .ld-orbit-dot{animation:none}}
 #landing .ld-sky{position:absolute;inset:0;pointer-events:none;z-index:0}
 #landing .ld-arc{position:absolute;inset:0;width:100%;height:100%;opacity:.35}
 #landing .ld-plane{position:absolute;left:-12%;display:block;color:#fff;line-height:0;filter:drop-shadow(0 0 6px rgba(226,196,138,.5))}
@@ -2954,6 +2985,7 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
     </header>
     <section class="ld-hero" aria-labelledby="landTitle">
       <div class="ld-sky" aria-hidden="true">
+        <span class="ld-stars"></span><span class="ld-cloud k1"></span><span class="ld-cloud k2"></span><span class="ld-cloud k3"></span><span class="ld-horizon"></span>
         <svg class="ld-arc" viewBox="0 0 1200 400" preserveAspectRatio="none" focusable="false"><path d="M-40 360 C 300 250, 700 230, 1240 40" fill="none" stroke="#e2c48a" stroke-width="1.6" stroke-dasharray="2 12" stroke-linecap="round"/></svg>
         <span class="ld-plane a"><svg viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span><span class="ld-plane b"><svg viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span><span class="ld-plane c"><svg viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span>
       </div>
@@ -2967,6 +2999,7 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
             <button type="button" class="ld-btn line" data-ld-open="login">Log in</button>
           </div>
         </div>
+        <svg class="ld-orbit" aria-hidden="true" viewBox="0 0 440 440" focusable="false"><circle cx="220" cy="220" r="205" fill="none" stroke="#e2c48a" stroke-opacity=".28" stroke-width="1.2" stroke-dasharray="2 9" stroke-linecap="round"/><circle cx="220" cy="220" r="168" fill="none" stroke="#7fd3f5" stroke-opacity=".22" stroke-width="1"/><g class="ld-orbit-spin"><ellipse cx="220" cy="220" rx="205" ry="78" fill="none" stroke="#e2c48a" stroke-opacity=".35" stroke-width="1.2" transform="rotate(-24 220 220)"/><g transform="rotate(-24 220 220)"><g class="ld-orbit-plane"><svg x="406" y="208" width="24" height="24" viewBox="0 0 24 24"><path transform="rotate(180 12 12)" fill="#ecd29b" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></g></g></g><circle class="ld-orbit-dot" cx="52" cy="128" r="3.2" fill="#ecd29b"/><circle class="ld-orbit-dot d2" cx="392" cy="318" r="2.6" fill="#7fd3f5"/></svg>
         <img class="ld-logo-big" alt="Hippo Travel logo" data-same-logo>
       </div>
     </section>
