@@ -165,8 +165,8 @@ body.dark #landing .ld-hero{background:
 #landing .ld-plane svg{display:block;width:1.2em;height:1.2em;fill:currentColor}
 #landing .ld-plane::before{content:"";position:absolute;right:calc(100% - .2em);top:50%;width:6em;height:2px;margin-top:-1px;border-radius:2px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.55))}
 #landing .ld-plane.a{top:6%;font-size:24px;opacity:.5;animation:ldFly 24s linear infinite}
-#landing .ld-plane.b{top:50%;font-size:14px;opacity:.18;animation:ldFly 34s linear infinite;animation-delay:-14s}
-#landing .ld-plane.c{top:93%;font-size:19px;opacity:.38;animation:ldFly 29s linear infinite;animation-delay:-6s}
+#landing .ld-plane.b{top:50%;font-size:14px;opacity:.18;animation:ldFly 34s linear infinite;animation-delay:9s}
+#landing .ld-plane.c{top:93%;font-size:19px;opacity:.38;animation:ldFly 29s linear infinite;animation-delay:4s}
 @media (max-width:720px){#landing .ld-plane.b{display:none}#landing .ld-plane.a{top:3%;font-size:18px}#landing .ld-plane.c{top:95%;font-size:16px}#landing .ld-arc{opacity:.22}}
 @keyframes ldFly{0%{transform:translate(0,0)}50%{transform:translate(62vw,-16px)}100%{transform:translate(125vw,0)}}
 #landing .ld-logo-big{animation:ldFloat 6s ease-in-out infinite,ldGlow 6s ease-in-out infinite}
@@ -3042,7 +3042,7 @@ html body .login-card select.cc-sel{flex:0 0 128px;width:128px;min-width:0;paddi
   <div aria-hidden="true" class="login-plane p6"><svg class="pl-ico" viewBox="0 0 24 24" focusable="false"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></div>
   <svg class="login-route" aria-hidden="true" focusable="false" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice"><path id="loginFlightPath" d="M -50 520 C 180 420, 480 380, 850 90" stroke="#7bd4f0" stroke-width="2" stroke-dasharray="3 16" stroke-linecap="round" fill="none"/><circle class="route-dot dot1" cx="-50" cy="520" r="5" fill="#7bd4f0"/><circle class="route-dot dot2" cx="850" cy="90" r="5" fill="#ff9d4d"/>
     <defs><linearGradient id="loginTrail" gradientUnits="userSpaceOnUse" x1="-70" y1="0" x2="-8" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".7"/></linearGradient></defs><g class="route-plane"><animateMotion dur="14s" repeatCount="indefinite" rotate="auto" begin="0s"><mpath href="#loginFlightPath"/></animateMotion><line x1="-70" y1="0" x2="-8" y2="0" stroke="url(#loginTrail)" stroke-width="2.4" stroke-linecap="round"/><g transform="scale(1.25) translate(-12 -12)"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#fff"/></g></g>
-    <g class="route-plane" opacity=".55"><animateMotion dur="14s" repeatCount="indefinite" rotate="auto" begin="7s"><mpath href="#loginFlightPath"/></animateMotion><line x1="-70" y1="0" x2="-8" y2="0" stroke="url(#loginTrail)" stroke-width="2.4" stroke-linecap="round"/><g transform="scale(0.9) translate(-12 -12)"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#fff"/></g></g>
+    <g class="route-plane" opacity=".55" visibility="hidden"><set attributeName="visibility" to="visible" begin="7s"/><animateMotion dur="14s" repeatCount="indefinite" rotate="auto" begin="7s"><mpath href="#loginFlightPath"/></animateMotion><line x1="-70" y1="0" x2="-8" y2="0" stroke="url(#loginTrail)" stroke-width="2.4" stroke-linecap="round"/><g transform="scale(0.9) translate(-12 -12)"><path transform="rotate(90 12 12)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#fff"/></g></g>
   </svg>
   <aside class="lg-side" aria-label="About Hippo Travel">
     <div class="lg-side-brand"><img alt="" class="lg-side-logo"><span><b>Hippo Travel</b><small>Hippo Travel Group · Kota, Rajasthan</small></span></div>
@@ -17170,7 +17170,12 @@ try{(function(){
   },true);
   (function(){var a=document.querySelector('#loginGate .lg-side-logo'),l=document.getElementById('loginLogo');if(a&&l&&!a.getAttribute('src'))a.src=l.src;})();
   /* one scrollbar: while the first page / login box is open, the website behind it does not scroll */
-  function syncScroll(){document.documentElement.classList.toggle('gate-open',gateOpen()&&getComputedStyle(gate).display!=='none');}
+  /* the planes on the curved route start at the beginning of the route each time the Log in screen is shown
+     (their clock starts with the page, so without this they popped up in the middle of the screen) */
+  var routeShown=false;
+  function restartRoute(){var show=gateOpen()&&!gate.classList.contains('lg-landing')&&getComputedStyle(gate).display!=='none';
+    if(show&&!routeShown){var rs=gate.querySelector('.login-route');try{if(rs&&rs.setCurrentTime)rs.setCurrentTime(0);}catch(e){}}routeShown=show;}
+  function syncScroll(){document.documentElement.classList.toggle('gate-open',gateOpen()&&getComputedStyle(gate).display!=='none');restartRoute();}
   try{new MutationObserver(syncScroll).observe(gate,{attributes:true,attributeFilter:['class','style']});new MutationObserver(syncScroll).observe(document.documentElement,{attributes:true,attributeFilter:['class']});}catch(e){}
   function start(){if(!hasUser()&&gateOpen())showLanding();else if(hasUser())leaveLanding();document.documentElement.classList.remove('boot-out');syncScroll();}
   /* the footer icons are drawn a moment after the page opens: copy them again then */
