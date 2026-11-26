@@ -1,0 +1,19 @@
+# Hippo Travel — Help chat AI server (Cloudflare Worker)
+# The API key is NOT written here. Set it once with:  npx wrangler secret put ANTHROPIC_API_KEY
+name = "hippo-help-ai"
+main = "src/worker.js"
+compatibility_date = "2026-11-01"
+
+[vars]
+FIREBASE_PROJECT_ID = "hippo-travel-b1006"
+ALLOWED_ORIGIN = "https://infodmchippotravel-dot.github.io"
+MODEL = "claude-opus-5-5"
+EFFORT = "low"
+USER_DAILY_LIMIT = "40"
+GLOBAL_DAILY_LIMIT = "800"
+
+# Daily limits are kept here. Make it once with:  npx wrangler kv namespace create LIMITS
+# then put the id it prints below and remove the # signs.
+# [[kv_namespaces]]
+# binding = "LIMITS"
+# id = "PUT-THE-ID-HERE"

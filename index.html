@@ -40,6 +40,34 @@ try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.cla
 }catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
 window.SITE_BUILD='2026-11-26-1';   /* change with every new version */
+/* Help chat AI server (ai-worker/ in this repository). Empty = the AI is off and nothing is sent anywhere.
+   When it is set, also add the same address to connect-src in the Content-Security-Policy above. */
+window.HIPPO_AI_URL=window.HIPPO_AI_URL||'';
+/* Problems on the website (for Help chat → "website check"): errors of this website's own code and files that did not load.
+   Kept only in this open page (nothing is sent anywhere). Outside scripts (Google Translate, browser add-ons) are left out. */
+(function(){
+  var list=window.__siteProblems=[];
+  function own(src){return !src||String(src).indexOf(location.origin)===0&&!/translate|gstatic|googleapis/.test(src);}
+  function add(k,m,src){
+    m=String(m||'').replace(/\s+/g,' ').trim().slice(0,300);if(!m||/^Script error\.?$|ResizeObserver loop|extension|chrome-extension|moz-extension|translate|gstatic|AbortError|The play\(\) request|NotAllowedError: play/i.test(m))return;
+    var last=list[list.length-1];if(last&&last.m===m){last.n++;return;}
+    if(k==='app'&&list.some(function(x){return x.m&&m.indexOf(x.m.replace(/^Uncaught (\w*Error: )?/,''))!==-1;}))return;
+    var d=new Date();list.push({k:k,m:m,src:src||'',n:1,t:String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')});
+    if(list.length>30)list.shift();
+    try{if(window.__siteProblemAdded)window.__siteProblemAdded();}catch(e){}
+  }
+  window.addEventListener('error',function(e){
+    var t=e.target;
+    if(t&&t!==window&&t.tagName){var u=t.src||t.href||'';if(u&&u!==location.href&&own(u)&&!/\/assets\/vendor\/?$/.test(u))add('file',(t.tagName||'').toLowerCase()+' '+u.replace(location.origin,''),u);return;}
+    if(own(e.filename))add('js',e.message,(e.filename||'').replace(location.origin,'')+':'+(e.lineno||''));
+  },true);
+  window.addEventListener('unhandledrejection',function(e){var r=e.reason,st=r&&r.stack||'';if(st&&!own((/https?:\/\/[^\s)]+/.exec(st)||[''])[0]))return;add('js',r&&r.message?r.message:r);});
+  var ce=console.error;
+  console.error=function(){
+    try{var m=[].map.call(arguments,function(a){return a&&a.message?a.message:typeof a==='string'?a:'';}).join(' ');if(/fail|error|could not|cannot/i.test(m))add('app',m);}catch(x){}
+    return ce.apply(console,arguments);
+  };
+})();
 /* A language was chosen before: start Google Translate at once (not after the whole page has loaded),
    and keep the page hidden for a moment (max 2.5 s) so English does not flash before the chosen language. */
 /* Language belongs to the person: each user's (and the admin's) own choice is kept on this computer
@@ -13187,7 +13215,8 @@ try{(function(){
     var bar=document.getElementById('easyBar'),bh=0;
     if(bar&&!bar.hidden){var cs=getComputedStyle(bar);if(cs.display!=='none'&&cs.visibility!=='hidden'){var r=bar.getBoundingClientRect();if(r.height>0&&r.top<innerHeight&&r.bottom>innerHeight-6)bh=innerHeight-r.top;}}
     var base=innerWidth<=600?16:24;
-    btn.style.bottom=(bh?Math.round(bh+12):base)+'px';
+    var fabUp=0;try{fabUp=window.__fabSpace?window.__fabSpace():0;}catch(e){}   /* the round Help chat button is under it */
+    btn.style.bottom=(bh?Math.round(bh+12):base)+fabUp+'px';
     if(!btn.classList.contains('show')){btn.classList.remove('sfx-dodge');return;}
     /* its real place and size (not the smaller size it has while it fades in or out) */
     var bcs=getComputedStyle(btn),bw=btn.offsetWidth,bhh=btn.offsetHeight,vw=document.documentElement.clientWidth,rt=parseFloat(bcs.right)||0,bt=parseFloat(bcs.bottom)||0;
@@ -16160,8 +16189,8 @@ try{(function(){
   }
   /* the best voice for a language: natural voices first, then Google / Apple / Microsoft, women's voices a little first */
   var GOOD=['natural','neural','online','premium','enhanced','google','swara','madhur','lekha','kiyara','neerja','prabhat','heera','kalpana','hemant','aria','jenny','guy','samantha','daniel','karen','moira','rishi','veena'];
-  function best(prefix,region){
-    var all=voices().filter(function(v){return v.lang&&v.lang.toLowerCase().replace('_','-').indexOf(prefix)===0;});
+  function best(prefix,region,only){
+    var all=voices().filter(function(v){var l=v.lang&&v.lang.toLowerCase().replace('_','-');return l&&(only?l===region:l.indexOf(prefix)===0);});
     if(!all.length)return null;
     var sc=all.map(function(v){
       var n=(v.name||'').toLowerCase(),l=v.lang.toLowerCase().replace('_','-'),s=0;
@@ -16194,26 +16223,41 @@ try{(function(){
   var M={'ा':'aa','ि':'i','ी':'ee','ु':'u','ू':'oo','ृ':'ri','े':'e','ै':'ai','ो':'o','ौ':'au','ॉ':'o','ॅ':'e'};
   var C={'क':'k','ख':'kh','ग':'g','घ':'gh','ङ':'n','च':'ch','छ':'chh','ज':'j','झ':'jh','ञ':'n','ट':'t','ठ':'th','ड':'d','ढ':'dh','ण':'n','त':'t','थ':'th','द':'d','ध':'dh','न':'n','प':'p','फ':'ph','ब':'b','भ':'bh','म':'m','य':'y','र':'r','ल':'l','व':'v','श':'sh','ष':'sh','स':'s','ह':'h','ळ':'l'};
   var NUK={'क':'q','ख':'kh','ग':'g','ज':'z','ड':'r','ढ':'rh','फ':'f'};
-  function roman(t){
-    var out='',ch=[...String(t||'')];
+  /* common words, the way people say them (an English voice reads these clearly) */
+  var WORD={'में':'mein','मे':'mein','हैं':'hain','है':'hai','नहीं':'nahin','नही':'nahin','यह':'yeh','ये':'ye','वह':'voh','वो':'vo','यहाँ':'yahaan','यहां':'yahaan','वहाँ':'vahaan','वहां':'vahaan','कैसे':'kaise','क्या':'kya','और':'aur','मैं':'main','हूँ':'hoon','हूं':'hoon','आप':'aap',
+    'करें':'karen','करे':'kare','दें':'den','लें':'len','जाएँ':'jaayen','जाएं':'jaayen','से':'se','पर':'par','को':'ko','का':'ka','की':'ki','के':'ke','एक':'ek','भी':'bhi','तो':'to','हो':'ho','गया':'gaya','गई':'gayi','रहा':'raha','रही':'rahi','रहे':'rahe',
+    'बाट':'baht','लगभग':'lagbhag','घंटे':'ghante','घंटा':'ghanta','मिनट':'minute','रात':'raat','रातें':'raaten','दिन':'din','बच्चे':'bachche','बच्चा':'bachcha','बड़े':'bade','बड़ा':'bada','कॉस्टिंग':'costing','इटिनरेरी':'itinerary','ट्रांसफ़र':'transfer','ट्रांसफर':'transfer','टूर':'tour','होटल':'hotel','एयरपोर्ट':'airport','फ्लाइट':'flight','पीडीएफ':'PDF','वीज़ा':'visa','थाईलैंड':'Thailand','बैंकॉक':'Bangkok','पटाया':'Pattaya','फुकेत':'Phuket','क्राबी':'Krabi',
+    'लिए':'liye','दिए':'diye','गए':'gaye','हुए':'hue','कोई':'koi','नीचे':'neeche','सवाल':'savaal','सवालों':'savaalon','असिस्टेंट':'assistant','हेल्प':'help','हिप्पो':'Hippo','या':'ya','हाँ':'haan','हां':'haan','डैशबोर्ड':'dashboard','सेटिंग्स':'settings','लॉगिन':'login','पासवर्ड':'password','ईमेल':'email','इंटरनेट':'internet','वेबसाइट':'website','एडमिन':'admin','यूज़र':'user','क्लाइंट':'client','सर्विस':'service','टिकट':'ticket','शॉपिंग':'shopping','मार्केट':'market','बीच':'beach','आइलैंड':'island','बोट':'boat','स्पीड':'speed','दिया':'diya','किया':'kiya','कीजिए':'kijiye','बताइए':'bataiye','दबाएँ':'dabaayen','दबाएं':'dabaayen','पेज':'page','बटन':'button','सेव':'save','डाउनलोड':'download','सबसे':'sabse','अच्छा':'achchha','ज़रूर':'zaroor','ज़्यादा':'zyaada','थोड़ा':'thoda','सकते':'sakte','सकता':'sakta','चाहिए':'chaahiye','इसलिए':'isliye','लेकिन':'lekin','अगर':'agar','अभी':'abhi','फिर':'phir','साथ':'saath'};
+  function romanWord(w){
+    if(WORD[w])return WORD[w];
+    var ch=[...w],u=[];
     for(var i=0;i<ch.length;i++){
       var c=ch[i],nx=ch[i+1];
       if(C[c]){
         var base=C[c];if(nx==='़'){base=NUK[c]||base;i++;nx=ch[i+1];}
-        if(nx&&M[nx]){out+=base+M[nx];i++;}
-        else if(nx==='्'){out+=base;i++;}
-        else{var end=!nx||!/[ऀ-ॿ]/.test(nx)||nx==='ं'||nx==='ँ';out+=base+(end&&!(nx==='ं'||nx==='ँ')?'':'a');}
+        if(nx&&M[nx]){u.push({c:base,v:M[nx]});i++;}
+        else if(nx==='्'){u.push({c:base,v:''});i++;}
+        else u.push({c:base,v:'a',inh:true});
       }
-      else if(V[c])out+=V[c];
-      else if(M[c])out+=M[c];
-      else if(c==='ं'||c==='ँ')out+='n';
-      else if(c==='ः')out+='h';
-      else if(c==='।'||c==='॥')out+='.';
+      else if(V[c])u.push({c:'',v:V[c]});
+      else if(M[c])u.push({c:'',v:M[c]});
+      else if(c==='ं'||c==='ँ'){if(u.length)u[u.length-1].nas=true;else u.push({c:'n',v:''});}
+      else if(c==='ः')u.push({c:'h',v:''});
       else if(c==='़'||c==='्')continue;
-      else if(/[०-९]/.test(c))out+=String('०१२३४५६७८९'.indexOf(c));
-      else out+=c;
+      else if(c==='।'||c==='॥')u.push({raw:'.'});
+      else if(/[०-९]/.test(c))u.push({raw:String('०१२३४५६७८९'.indexOf(c))});
+      else u.push({raw:c});
     }
-    return out;
+    /* the short “a” is not said at the end of a word, nor between a vowel + consonant and a consonant + vowel (कमरा = kamra) */
+    var last=u.length-1;while(last>=0&&u[last].raw!=null)last--;
+    if(last>0&&u[last].inh)u[last].v='';
+    for(var k=last-1;k>=1;k--){var x=u[k];if(x.inh&&u[k-1].v&&u[k+1]&&u[k+1].c&&u[k+1].v)x.v='';}
+    var lastV=last>=0?u[last]:null;if(lastV&&!lastV.nas&&u.length>1){if(lastV.v==='aa'&&lastV.c)lastV.v='a';else if(lastV.v==='ee')lastV.v='i';}
+    if(lastV&&u.length>1&&!lastV.c&&lastV.v==='e'&&u[last-1]&&u[last-1].v==='i')lastV.v='ye';   /* दिए = diye */
+    return u.map(function(x){return x.raw!=null?x.raw:x.c+x.v+(x.nas?'n':'');}).join('');
+  }
+  function roman(t){
+    return String(t||'').replace(/[ऀ-ॿ]+/g,function(w){return romanWord(w);});
   }
   /* short parts (long text is cut off half-way in some browsers) */
   function parts(t){
@@ -16227,7 +16271,11 @@ try{(function(){
   }
   function note(){
     if(noteShown)return;noteShown=true;
-    try{chatbotAddMsg('🔈 <i>'+(hi()?'इस browser में हिंदी आवाज़ नहीं है — इसलिए हिंदी को Roman अक्षरों में पढ़ रहा हूँ।':'This browser has no Hindi voice — reading the Hindi in Roman letters.')+'</i>','bot system');}catch(e){}
+    /* once in this browser: how to get a real Hindi voice (no message every time) */
+    try{if(localStorage.getItem('hxHiVoiceTip'))return;localStorage.setItem('hxHiVoiceTip','1');}catch(e){}
+    try{chatbotAddMsg('🔈 <small>'+(hi()
+      ?'इस फ़ोन / ब्राउज़र में हिंदी आवाज़ इंस्टॉल नहीं है, इसलिए हिंदी को Indian-English आवाज़ में बोल रहा हूँ। साफ़ हिंदी आवाज़ के लिए (एक बार): <b>Android</b> — Settings → Text-to-speech → Google → Install voice data → Hindi. <b>Windows</b> — Settings → Time &amp; language → Speech → Add voices → Hindi. <b>iPhone</b> — Settings → Accessibility → Spoken Content → Voices → Hindi. फिर पेज Refresh करें।'
+      :'This phone / browser has no Hindi voice installed, so Hindi is spoken by an Indian-English voice. For a clear Hindi voice (once): <b>Android</b> — Settings → Text-to-speech → Google → Install voice data → Hindi. <b>Windows</b> — Settings → Time &amp; language → Speech → Add voices → Hindi. <b>iPhone</b> — Settings → Accessibility → Spoken Content → Voices → Hindi. Then refresh the page.')+'</small>','bot system');}catch(e){}
   }
   function stop(){try{synth.cancel();}catch(e){}keep=[];speakingBtnText=null;}
   /* 🔊 reads the whole message as it is now (with the costing cards under it), not only its first line */
@@ -16247,16 +16295,16 @@ try{(function(){
     var t=clean(text);if(!t)return;
     speakingBtnText=text;
     ready().then(function(){
-      var wantHi=hi()||/[ऀ-ॿ]/.test(t),voice=null,lang='en-US';
+      var wantHi=hi()||/[ऀ-ॿ]/.test(t),voice=null,lang='en-US',romanised=false;
       if(wantHi){
         voice=best('hi','hi-in');lang='hi-IN';
-        if(!voice){t=roman(t);voice=best('en','en-in');lang=voice?voice.lang:'en-IN';note();}
+        if(!voice){t=roman(t);romanised=true;voice=best('en','en-in',true)||best('en','en-in');lang=voice?voice.lang:'en-IN';note();}   /* an Indian-English voice says Hindi words best */
       }else{voice=best('en','en-us')||best('en');lang=voice?voice.lang:'en-US';}
       var list=parts(t);
       list.forEach(function(p,i){
         var u=new SpeechSynthesisUtterance(p);
         u.lang=lang;if(voice)u.voice=voice;
-        u.rate=wantHi?0.98:1;u.pitch=1;u.volume=1;
+        u.rate=wantHi?(romanised?0.9:0.95):0.95;u.pitch=1;u.volume=1;   /* a little slower: clearer */
         if(i===list.length-1)u.onend=function(){if(speakingBtnText===text)speakingBtnText=null;keep=[];};
         u.onerror=function(){};
         keep.push(u);   /* kept, so the browser does not drop it half-way */
@@ -16268,6 +16316,1007 @@ try{(function(){
   /* the welcome voice after login uses the same, clearest voice */
   window.chatbotPickFemaleVoice=function(code){var c=String(code||'en-US').toLowerCase(),pre=c.split('-')[0];return best(pre,c)||null;};
 })();}catch(err){console.error('Help chat voice failed to start:',err);}
+</script>
+<style id="helpChatSmartCss">
+/* round Help chat button at the bottom (shown only inside the website, never on the Log in screen) */
+@media screen{html body #chatbotFab.fab-on{display:flex!important}}
+#chatbotFab{transition:transform .3s ease,opacity .3s ease,bottom .25s ease}
+#chatbotFab .hx-dot{position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;background:#e11d48;border:2px solid #fff;display:none}
+#chatbotFab.has-alert .hx-dot{display:block}
+#chatbotFab.fab-tuck{transform:translateX(64%);opacity:.8}
+#chatbotFab.fab-tuck:hover,#chatbotFab.fab-tuck:focus-visible{transform:none;opacity:1}
+#chatbotFab:focus-visible{outline:3px solid #0B1F3A;outline-offset:3px}
+@media (max-width:600px){#chatbotFab{width:52px;height:52px;right:14px;font-size:23px}}
+@media (prefers-reduced-motion:reduce){#chatbotFab{transition:none}}
+/* 🎤 */
+#chatbotInputRow .hx-mic{flex:0 0 auto;width:44px;min-height:44px;padding:0;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:18px;cursor:pointer}
+#chatbotInputRow .hx-mic{display:grid;place-items:center}
+#chatbotInputRow .hx-mic.on{color:#e11d48;background:#fee2e2;border-color:#e11d48;animation:hxMic 1s ease-in-out infinite}
+@keyframes hxMic{50%{box-shadow:0 0 0 6px rgba(225,29,72,.18)}}
+@media (prefers-reduced-motion:reduce){#chatbotInputRow .hx-mic.on{animation:none}}
+/* answers */
+.chatbot-msg .hx-plan{margin:6px 0 6px 2px;padding-left:16px}
+.chatbot-msg .hx-plan li{margin:3px 0}
+.chatbot-msg .hx-warn{color:#b45309;font-weight:700}
+body.dark .chatbot-msg .hx-warn{color:#fbbf24}
+.chatbot-msg .hx-tours{margin-top:8px;padding:8px 10px;border-radius:10px;background:rgba(198,167,107,.14);font-size:13px;line-height:1.5}
+.chatbot-msg .chat-actions .chat-go.go{background:linear-gradient(135deg,#C6A76B,#a8874a);color:#0B1F3A;border-color:transparent;font-weight:800}
+#chatbotQuick .cb-smart{font-weight:700}
+/* the quick questions: one row that scrolls sideways, so the answers keep their room */
+html body #chatbotPanel.chatbot-panel .chatbot-quick{flex-wrap:nowrap!important;flex-direction:row!important;overflow-x:auto;overflow-y:hidden;max-height:none!important;padding-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+html body #chatbotPanel.chatbot-panel .chatbot-quick button{flex:0 0 auto;white-space:nowrap}
+</style>
+<script>
+/* =====================================================================
+   HELP CHAT — SMART ASSISTANT (runs inside the website; no outside AI,
+   nothing is sent anywhere)
+     • Thailand: every city, how to go, how long, visa, money, weather,
+       food, SIM, rules, festivals, shopping, safety …
+     • makes a costing (and the itinerary) from what you type, e.g.
+       “Rahul Sharma 2 adults 1 child 10 Dec Phuket 3N Krabi 2N
+        Phi Phi tour, James Bond” — it shows what it understood first,
+       then fills the real Costing Sheet with the saved rates and saves
+     • “check my costing” — finds mistakes in the open costing
+     • “website check” — tells what is wrong on the website (internet,
+       errors, storage, old version)
+     • 🎤 speak the question
+   ===================================================================== */
+try{(function(){
+  'use strict';
+  if(typeof window.chatbotAsk!=='function'||typeof window.chatbotAddMsg!=='function')return;
+  var prevAsk=window.chatbotAsk,prevQuick=window.chatbotQuickAsk;
+  function $(id){return document.getElementById(id);}
+  function hi(){try{return chatbotLang==='hi';}catch(e){return false;}}
+  function L(en,h){return hi()?h:en;}
+  function admin(){return typeof isAdminSession==='function'&&isAdminSession();}
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function money(n){return (Math.round((+n||0)*100)/100).toLocaleString('en-IN',{maximumFractionDigits:2});}
+  function pad(n){return String(n).padStart(2,'0');}
+  function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+  function day0(s){var d=new Date(String(s||'')+'T00:00:00');return isNaN(d)?null:d;}
+  function addD(s,k){var d=day0(s);if(!d)return '';d.setDate(d.getDate()+k);return iso(d);}
+  function fmtD(s){var d=day0(s);return d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';}
+  function dayName(s){var d=day0(s);return d?['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]:'';}
+  function plural(n,a,b){return n+' '+(n===1?a:b);}
+  function closeChatOnPhone(){if((window.innerWidth||1000)<=640){try{var pn=$('chatbotPanel');if(pn&&pn.classList.contains('show'))toggleChatbot();}catch(e){}}}
+
+  /* ---- showing an answer (with cards / buttons) ---- */
+  function say(html,cards,btns){
+    var m=chatbotAddMsg(html,'bot');if(!m)return null;
+    if(cards&&cards.length){
+      var box=document.createElement('div');box.className='chat-res';
+      cards.forEach(function(c){
+        var d=document.createElement('div');d.className='cr'+(c.cls?' '+c.cls:'');d.innerHTML=c.html;
+        if(c.btns&&c.btns.length)d.appendChild(btnRow(c.btns));
+        box.appendChild(d);
+      });
+      m.appendChild(box);
+    }
+    if(btns&&btns.length)m.appendChild(btnRow(btns,'chat-actions'));
+    var body=$('chatbotBody');if(body)body.scrollTop=body.scrollHeight;
+    return m;
+  }
+  function btnRow(list,cls){
+    var b=document.createElement('div');b.className=cls||'cr-btns';
+    list.forEach(function(x){var bt=document.createElement('button');bt.type='button';bt.textContent=x[0];bt.className=x[2]?'go':'';if(cls==='chat-actions')bt.className='chat-go'+(x[2]?' go':'');
+      bt.onclick=function(){try{x[1]();}catch(e){console.error('Help chat button failed:',e);say(L('⚠️ That did not work: ','⚠️ ये नहीं हो पाया: ')+esc(e.message||e));}};b.appendChild(bt);});
+    return b;
+  }
+  function ask(text){chatbotAddMsg(esc(text),'user',false);setTimeout(function(){window.chatbotAsk.__inner(text);},150);}
+
+  /* ---- words ---- */
+  function norm(q){return ' '+String(q||'').toLowerCase().replace(/[’`]/g,"'").replace(/[,;!?()]/g,' ').replace(/\s+/g,' ').trim()+' ';}
+  var MON={jan:0,january:0,feb:1,february:1,mar:2,march:2,apr:3,april:3,may:4,jun:5,june:5,jul:6,july:6,aug:7,august:7,sep:8,sept:8,september:8,oct:9,october:9,nov:10,november:10,dec:11,december:11,
+    'जनवरी':0,'फरवरी':1,'मार्च':2,'अप्रैल':3,'मई':4,'जून':5,'जुलाई':6,'अगस्त':7,'सितंबर':8,'अक्टूबर':9,'नवंबर':10,'दिसंबर':11};
+
+  /* ---------------- Thailand: places ---------------- */
+  var CITY=[
+   {id:'Bangkok',n:['bangkok','bkk','dmk','suvarnabhumi','don mueang','bangkk','bankok','बैंकॉक','बैंकाक'],
+    en:{about:'Thailand’s capital: temples, river cruises, theme parks and big shopping malls.',
+      see:['Grand Palace & Wat Phra Kaew','Wat Arun and Wat Pho (Reclining Buddha) — the “Two Temple Tour”','Safari World & Marine Park (best for families)','Chao Phraya dinner cruise','Floating market (Damnoen Saduak)','SEA LIFE aquarium, Madame Tussauds, Dream World','Shopping: Pratunam, MBK, Siam Paragon, ICONSIAM, Chatuchak weekend market, Asiatique night market'],
+      reach:'Flights land at Suvarnabhumi (BKK) or Don Mueang (DMK). Direct flights from most big Indian cities (about 4 hours from Delhi).',
+      stay:'2–3 nights',tip:'Pratunam and Sukhumvit have many Indian restaurants. Use BTS / MRT trains to skip traffic.'},
+    hi:{about:'थाईलैंड की राजधानी: मंदिर, नदी क्रूज़, थीम पार्क और बड़े शॉपिंग मॉल।',
+      see:['ग्रैंड पैलेस और वाट फ्रा केओ','वाट अरुण और वाट फो (लेटे हुए बुद्ध) — “Two Temple Tour”','सफारी वर्ल्ड और मरीन पार्क (परिवार के लिए सबसे अच्छा)','चाओ फ्राया डिनर क्रूज़','फ्लोटिंग मार्केट (डमनोएन सदुआक)','SEA LIFE एक्वेरियम, मैडम तुसाद, ड्रीम वर्ल्ड','शॉपिंग: प्रतुनाम, MBK, सियाम पैरागॉन, ICONSIAM, चतुचक वीकेंड मार्केट, एशियाटिक नाइट मार्केट'],
+      reach:'फ्लाइट सुवर्णभूमि (BKK) या डॉन मुआंग (DMK) एयरपोर्ट पर उतरती है। भारत के ज़्यादातर बड़े शहरों से सीधी फ्लाइट (दिल्ली से लगभग 4 घंटे)।',
+      stay:'2–3 रात',tip:'प्रतुनाम और सुखुमवित में बहुत से भारतीय रेस्टोरेंट हैं। ट्रैफिक से बचने के लिए BTS / MRT ट्रेन लें।'}},
+   {id:'Pattaya',n:['pattaya','patya','pataya','pattya','पटाया','पट्टाया'],
+    en:{about:'A beach city about 2 hours from Bangkok airport: island trips, shows and nightlife.',
+      see:['Coral Island (Koh Larn) by speed boat','Alcazar or Tiffany’s cabaret show','Nong Nooch tropical garden','Tiger Park','Sanctuary of Truth','Art in Paradise (3D museum), Frost Magical Ice of Siam','Pattaya floating market, Big Buddha hill, Walking Street'],
+      reach:'By road from Bangkok Suvarnabhumi airport: about 1.5–2 hours (around 120 km). From Bangkok city: about 2–2.5 hours.',
+      stay:'2–3 nights',tip:'Most Bangkok + Pattaya trips do Pattaya first (straight from the airport), then Bangkok.'},
+    hi:{about:'बैंकॉक एयरपोर्ट से लगभग 2 घंटे दूर समुद्र किनारे का शहर: आइलैंड ट्रिप, शो और नाइटलाइफ़।',
+      see:['स्पीड बोट से कोरल आइलैंड (कोह लार्न)','अल्काज़ार या टिफ़नी कैबरे शो','नोंग नूच गार्डन','टाइगर पार्क','सैंक्चुअरी ऑफ ट्रुथ','आर्ट इन पैराडाइज़ (3D म्यूज़ियम), फ्रॉस्ट मैजिकल आइस ऑफ सियाम','पटाया फ्लोटिंग मार्केट, बिग बुद्धा, वॉकिंग स्ट्रीट'],
+      reach:'बैंकॉक सुवर्णभूमि एयरपोर्ट से सड़क से लगभग 1.5–2 घंटे (करीब 120 km)। बैंकॉक शहर से लगभग 2–2.5 घंटे।',
+      stay:'2–3 रात',tip:'ज़्यादातर बैंकॉक + पटाया ट्रिप में पहले पटाया (सीधे एयरपोर्ट से), फिर बैंकॉक।'}},
+   {id:'Phuket',n:['phuket','fuket','phukat','phucket','pukhet','फुकेत','फुकेट'],
+    en:{about:'Thailand’s biggest island: beaches, island hopping and shows.',
+      see:['Phi Phi Island tour (Maya Bay) by speed boat or catamaran','James Bond Island (Phang Nga Bay) with canoe','Phuket city tour: Big Buddha, Wat Chalong, Karon viewpoint, Old Town','Patong beach and Bangla Road at night','Carnival Magic, Simon Cabaret, dolphin show','Coral Island / Racha Island, Andamanda water park'],
+      reach:'Flight to Phuket airport (HKT): about 1 hour 20 minutes from Bangkok; some direct flights from India.',
+      stay:'3–4 nights',tip:'From May to October the sea can be rough — boat trips may change or be cancelled.'},
+    hi:{about:'थाईलैंड का सबसे बड़ा आइलैंड: बीच, आइलैंड टूर और शो।',
+      see:['स्पीड बोट या कैटामरैन से फी फी आइलैंड टूर (माया बे)','कैनो के साथ जेम्स बॉन्ड आइलैंड (फांग न्गा बे)','फुकेत सिटी टूर: बिग बुद्धा, वाट चलोंग, करोन व्यूपॉइंट, ओल्ड टाउन','पटोंग बीच और रात में बांगला रोड','कार्निवल मैजिक, साइमन कैबरे, डॉल्फ़िन शो','कोरल आइलैंड / राचा आइलैंड, अंडमांडा वॉटर पार्क'],
+      reach:'फुकेत एयरपोर्ट (HKT) की फ्लाइट: बैंकॉक से लगभग 1 घंटा 20 मिनट; भारत से कुछ सीधी फ्लाइट भी हैं।',
+      stay:'3–4 रात',tip:'मई से अक्टूबर में समुद्र तेज़ हो सकता है — बोट टूर बदल या रद्द हो सकते हैं।'}},
+   {id:'Krabi',n:['krabi','karabi','krbi','क्राबी','करबी'],
+    en:{about:'Calm beaches and tall limestone cliffs — great for couples and families.',
+      see:['4 Island tour (Phra Nang cave beach, Chicken Island, Tup Island, Poda)','Hong Island tour','7 Island sunset tour with BBQ dinner','Ao Nang beach and Railay beach','Tiger Cave Temple','Emerald Pool and hot springs'],
+      reach:'Flight to Krabi airport (KBV): about 1 hour 20 minutes from Bangkok. By road from Phuket: about 3 hours (around 165 km); ferry about 2 hours.',
+      stay:'2–3 nights',tip:'Phuket + Krabi go well together: arrive in Phuket, go to Krabi by road.'},
+    hi:{about:'शांत बीच और ऊँची चूना-पत्थर की चट्टानें — कपल और परिवार दोनों के लिए अच्छा।',
+      see:['4 आइलैंड टूर (फ्रा नांग केव बीच, चिकन आइलैंड, टुप आइलैंड, पोडा)','होंग आइलैंड टूर','BBQ डिनर के साथ 7 आइलैंड सनसेट टूर','आओ नांग बीच और रेलै बीच','टाइगर केव टेम्पल','एमराल्ड पूल और गर्म पानी के झरने'],
+      reach:'क्राबी एयरपोर्ट (KBV) की फ्लाइट: बैंकॉक से लगभग 1 घंटा 20 मिनट। फुकेत से सड़क से लगभग 3 घंटे (करीब 165 km); फेरी से लगभग 2 घंटे।',
+      stay:'2–3 रात',tip:'फुकेत + क्राबी साथ में अच्छे रहते हैं: फुकेत पहुँचें, सड़क से क्राबी जाएँ।'}},
+   {id:'Koh Samui',n:['samui','koh samui','ko samui','kosamui','समुई','कोह समुई'],
+    en:{about:'A quieter, upscale island in the Gulf of Thailand — popular for honeymoons.',
+      see:['Ang Thong Marine Park boat tour','Big Buddha and Wat Plai Laem','Chaweng and Lamai beaches','Fisherman’s Village (Friday walking street)','Day trip to Koh Tao & Nang Yuan for snorkelling'],
+      reach:'Flight to Samui airport (USM): about 1 hour from Bangkok. Or bus / train to Surat Thani + ferry.',
+      stay:'3–4 nights',tip:'Its rainy months are different: October to December has the most rain.'},
+    hi:{about:'थाईलैंड की खाड़ी में शांत और प्रीमियम आइलैंड — हनीमून के लिए मशहूर।',
+      see:['आंग थोंग मरीन पार्क बोट टूर','बिग बुद्धा और वाट प्लाई लैम','चावेंग और लमाई बीच','फ़िशरमैन विलेज (शुक्रवार को वॉकिंग स्ट्रीट)','स्नॉर्कलिंग के लिए कोह ताओ और नांग युआन'],
+      reach:'समुई एयरपोर्ट (USM) की फ्लाइट: बैंकॉक से लगभग 1 घंटा। या बस/ट्रेन से सूरत थानी + फेरी।',
+      stay:'3–4 रात',tip:'यहाँ बारिश के महीने अलग हैं: अक्टूबर से दिसंबर में सबसे ज़्यादा बारिश।'}},
+   {id:'Chiang Mai',n:['chiang mai','chiangmai','chang mai','चियांग माई'],
+    en:{about:'The cool, green north: old temples, mountains and night markets.',
+      see:['Doi Suthep temple on the hill','Old City temples (Wat Chedi Luang, Wat Phra Singh)','An ethical elephant sanctuary (no riding)','Night Bazaar and Sunday walking street','Doi Inthanon — Thailand’s highest mountain'],
+      reach:'Flight to Chiang Mai (CNX): about 1 hour 10 minutes from Bangkok. Overnight train is also possible.',
+      stay:'2–3 nights',tip:'November to February is cool — carry a light jacket.'},
+    hi:{about:'ठंडा और हरा-भरा उत्तर थाईलैंड: पुराने मंदिर, पहाड़ और नाइट मार्केट।',
+      see:['पहाड़ी पर दोई सुथेप मंदिर','ओल्ड सिटी के मंदिर (वाट चेदी लुआंग, वाट फ्रा सिंह)','हाथियों का सेंक्चुअरी (बिना सवारी वाला)','नाइट बाज़ार और संडे वॉकिंग स्ट्रीट','दोई इंथानोन — थाईलैंड का सबसे ऊँचा पहाड़'],
+      reach:'चियांग माई (CNX) की फ्लाइट: बैंकॉक से लगभग 1 घंटा 10 मिनट। रात की ट्रेन भी चलती है।',
+      stay:'2–3 रात',tip:'नवंबर से फरवरी में ठंड रहती है — हल्की जैकेट रखें।'}},
+   {id:'Chiang Rai',n:['chiang rai','chiangrai','चियांग राय'],
+    en:{about:'Famous for its art temples, near the Golden Triangle.',see:['White Temple (Wat Rong Khun)','Blue Temple and Black House','Golden Triangle (Thailand, Laos, Myanmar meet)'],reach:'About 3 hours by road from Chiang Mai, or a flight from Bangkok.',stay:'1–2 nights (or a day trip from Chiang Mai)',tip:'Cover shoulders and knees in the temples.'},
+    hi:{about:'कलात्मक मंदिरों के लिए मशहूर, गोल्डन ट्रायंगल के पास।',see:['व्हाइट टेम्पल (वाट रोंग खुन)','ब्लू टेम्पल और ब्लैक हाउस','गोल्डन ट्रायंगल (थाईलैंड, लाओस, म्यांमार मिलते हैं)'],reach:'चियांग माई से सड़क से लगभग 3 घंटे, या बैंकॉक से फ्लाइट।',stay:'1–2 रात (या चियांग माई से एक दिन की ट्रिप)',tip:'मंदिरों में कंधे और घुटने ढके रखें।'}},
+   {id:'Hua Hin',n:['hua hin','huahin','हुआ हिन'],
+    en:{about:'A calm royal beach town — good for families and older guests.',see:['Hua Hin beach and night market','Cicada market (weekends)','Vana Nava water park','Khao Takiab (monkey hill)'],reach:'About 3 hours by road from Bangkok.',stay:'2–3 nights',tip:'Quieter than Pattaya.'},
+    hi:{about:'शांत शाही बीच शहर — परिवार और बुज़ुर्ग मेहमानों के लिए अच्छा।',see:['हुआ हिन बीच और नाइट मार्केट','सिकाडा मार्केट (वीकेंड)','वाना नावा वॉटर पार्क','खाओ ताकियाब (बंदरों वाली पहाड़ी)'],reach:'बैंकॉक से सड़क से लगभग 3 घंटे।',stay:'2–3 रात',tip:'पटाया से ज़्यादा शांत।'}},
+   {id:'Koh Chang',n:['koh chang','ko chang','kochang','कोह चांग'],
+    en:{about:'A green island near Cambodia with quiet beaches.',see:['White Sand Beach','Waterfalls (Klong Plu)','Snorkelling trip to nearby islands'],reach:'About 5 hours by road from Bangkok + a short ferry.',stay:'2–3 nights',tip:'Best November to April.'},
+    hi:{about:'कंबोडिया के पास हरा-भरा आइलैंड, शांत बीच।',see:['व्हाइट सैंड बीच','झरने (क्लोंग प्लू)','पास के आइलैंड पर स्नॉर्कलिंग'],reach:'बैंकॉक से सड़क से लगभग 5 घंटे + छोटी फेरी।',stay:'2–3 रात',tip:'नवंबर से अप्रैल सबसे अच्छा।'}},
+   {id:'Phi Phi',n:['phi phi','phiphi','pi pi','fi fi','फी फी'],
+    en:{about:'Small islands near Phuket and Krabi with clear water — most people visit on a day tour.',see:['Maya Bay','Pileh Lagoon','Viking Cave','Monkey Beach'],reach:'Speed boat about 1 hour, ferry about 1.5–2 hours from Phuket or Krabi.',stay:'Day tour, or 1–2 nights on the island',tip:'Maya Bay closes for nature every year (usually August–September). A national park fee is paid there.'},
+    hi:{about:'फुकेत और क्राबी के पास साफ़ पानी वाले छोटे आइलैंड — ज़्यादातर लोग एक दिन के टूर पर जाते हैं।',see:['माया बे','पिलेह लैगून','वाइकिंग केव','मंकी बीच'],reach:'फुकेत या क्राबी से स्पीड बोट लगभग 1 घंटा, फेरी लगभग 1.5–2 घंटे।',stay:'एक दिन का टूर, या आइलैंड पर 1–2 रात',tip:'माया बे हर साल कुछ समय बंद रहता है (आमतौर पर अगस्त–सितंबर)। वहाँ नेशनल पार्क फ़ीस लगती है।'}},
+   {id:'Ayutthaya',n:['ayutthaya','ayuthaya','अयुत्थया'],
+    en:{about:'The old royal capital — temple ruins (UNESCO).',see:['Wat Mahathat (Buddha head in tree roots)','Wat Chaiwatthanaram','Boat ride around the old city'],reach:'About 1.5 hours by road from Bangkok — a day trip.',stay:'Day trip',tip:'Go early, it gets hot.'},
+    hi:{about:'पुरानी शाही राजधानी — मंदिरों के खंडहर (UNESCO)।',see:['वाट महाथात (पेड़ की जड़ों में बुद्ध का सिर)','वाट चैवत्थनाराम','पुराने शहर के चारों तरफ बोट राइड'],reach:'बैंकॉक से सड़क से लगभग 1.5 घंटे — एक दिन की ट्रिप।',stay:'एक दिन की ट्रिप',tip:'सुबह जल्दी जाएँ, दोपहर में गर्मी बहुत होती है।'}},
+   {id:'Kanchanaburi',n:['kanchanaburi','kanchnaburi','river kwai','कंचनबुरी'],
+    en:{about:'Rivers, waterfalls and the Bridge on the River Kwai.',see:['Bridge on the River Kwai','Erawan waterfall','Death Railway train ride'],reach:'About 2.5–3 hours by road from Bangkok.',stay:'1–2 nights or a long day trip',tip:'Erawan has 7 levels — wear good shoes.'},
+    hi:{about:'नदियाँ, झरने और रिवर क्वाई का पुल।',see:['रिवर क्वाई का पुल','एरावन झरना','डेथ रेलवे ट्रेन'],reach:'बैंकॉक से सड़क से लगभग 2.5–3 घंटे।',stay:'1–2 रात या लंबी डे-ट्रिप',tip:'एरावन झरने के 7 लेवल हैं — अच्छे जूते पहनें।'}}
+  ];
+  /* travel between places (approximate) */
+  var ROUTE=[
+   ['Bangkok','Pattaya','By road about 2–2.5 hours (around 150 km); from Bangkok airport 1.5–2 hours.','सड़क से लगभग 2–2.5 घंटे (करीब 150 km); बैंकॉक एयरपोर्ट से 1.5–2 घंटे।'],
+   ['Phuket','Krabi','By road about 3 hours (around 165 km); ferry about 2 hours.','सड़क से लगभग 3 घंटे (करीब 165 km); फेरी से लगभग 2 घंटे।'],
+   ['Phuket','Phi Phi','Speed boat about 1 hour; ferry about 1.5–2 hours.','स्पीड बोट से लगभग 1 घंटा; फेरी से लगभग 1.5–2 घंटे।'],
+   ['Krabi','Phi Phi','Speed boat about 45 minutes–1 hour; ferry about 1.5–2 hours.','स्पीड बोट से लगभग 45 मिनट–1 घंटा; फेरी से लगभग 1.5–2 घंटे।'],
+   ['Bangkok','Phuket','Flight about 1 hour 20 minutes.','फ्लाइट से लगभग 1 घंटा 20 मिनट।'],
+   ['Bangkok','Krabi','Flight about 1 hour 20 minutes.','फ्लाइट से लगभग 1 घंटा 20 मिनट।'],
+   ['Bangkok','Koh Samui','Flight about 1 hour 5 minutes.','फ्लाइट से लगभग 1 घंटा 5 मिनट।'],
+   ['Bangkok','Chiang Mai','Flight about 1 hour 10 minutes; overnight train about 11–13 hours.','फ्लाइट से लगभग 1 घंटा 10 मिनट; रात की ट्रेन से लगभग 11–13 घंटे।'],
+   ['Bangkok','Hua Hin','By road about 3 hours.','सड़क से लगभग 3 घंटे।'],
+   ['Bangkok','Ayutthaya','By road about 1.5 hours.','सड़क से लगभग 1.5 घंटे।'],
+   ['Bangkok','Kanchanaburi','By road about 2.5–3 hours.','सड़क से लगभग 2.5–3 घंटे।'],
+   ['Bangkok','Koh Chang','By road about 5 hours + a short ferry.','सड़क से लगभग 5 घंटे + छोटी फेरी।'],
+   ['Chiang Mai','Chiang Rai','By road about 3 hours.','सड़क से लगभग 3 घंटे।'],
+   ['Pattaya','Phuket','No road trip — fly from Bangkok (or U-Tapao airport near Pattaya) to Phuket, about 1 hour 20 minutes.','सड़क से नहीं — बैंकॉक (या पटाया के पास U-Tapao एयरपोर्ट) से फुकेत फ्लाइट, लगभग 1 घंटा 20 मिनट।'],
+   ['Pattaya','Krabi','Fly from Bangkok or U-Tapao to Krabi, about 1 hour 20 minutes.','बैंकॉक या U-Tapao से क्राबी फ्लाइट, लगभग 1 घंटा 20 मिनट।']
+  ];
+  /* ---------------- Thailand: general topics ---------------- */
+  var TOPIC=[
+   {k:/\bvisa\b|वीज़ा|वीजा|\bentry rule|\btdac\b|arrival card|immigration/,
+    en:'🛂 <b>Visa for Indian passports</b><ul><li>At the time this was written, Indians can enter Thailand <b>without a visa</b> for a short holiday. These rules change often — please check the Royal Thai Embassy website before booking.</li><li>Fill the <b>Thailand Digital Arrival Card (TDAC)</b> online before you fly (within 3 days before arrival).</li><li>Passport valid for at least <b>6 months</b>, a return ticket and the hotel booking. Immigration can ask for money for the stay (about 10,000 baht per person / 20,000 per family).</li></ul>',
+    hi:'🛂 <b>भारतीय पासपोर्ट के लिए वीज़ा</b><ul><li>यह लिखते समय भारतीय लोग छोटी छुट्टी के लिए <b>बिना वीज़ा</b> थाईलैंड जा सकते हैं। ये नियम अक्सर बदलते हैं — बुकिंग से पहले थाई एम्बेसी की वेबसाइट ज़रूर देखें।</li><li>फ्लाइट से पहले <b>Thailand Digital Arrival Card (TDAC)</b> ऑनलाइन भरें (पहुँचने से 3 दिन के अंदर)।</li><li>पासपोर्ट कम से कम <b>6 महीने</b> वैध हो, वापसी टिकट और होटल बुकिंग साथ रखें। इमिग्रेशन खर्च के पैसे दिखाने को कह सकता है (लगभग 10,000 बाट प्रति व्यक्ति / 20,000 प्रति परिवार)।</li></ul>'},
+   {k:/currency|baht|\bthb\b|exchange|forex|paisa|paise|rupee|rupay|रुपये|बाट|करेंसी|atm|card chal/,
+    en:'💱 <b>Money</b><ul><li>Currency: <b>Thai Baht (THB)</b>. 1 baht is roughly ₹2.4–2.6 — the rate changes every day.</li><li>Change some money before you go or at the airport; in Bangkok, “SuperRich” exchange counters give good rates.</li><li>Thai ATMs charge about 220 baht for each withdrawal with a foreign card. Cards work in malls and hotels; carry cash for markets, tuk-tuks and street food.</li></ul>',
+    hi:'💱 <b>पैसे</b><ul><li>करेंसी: <b>थाई बाट (THB)</b>। 1 बाट लगभग ₹2.4–2.6 — रेट रोज़ बदलता है।</li><li>कुछ पैसे भारत में या एयरपोर्ट पर बदलवा लें; बैंकॉक में “SuperRich” काउंटर का रेट अच्छा होता है।</li><li>विदेशी कार्ड से थाई ATM हर बार लगभग 220 बाट चार्ज लेता है। मॉल और होटल में कार्ड चलता है; मार्केट, टुक-टुक और स्ट्रीट फ़ूड के लिए कैश रखें।</li></ul>'},
+   {k:/weather|mausam|मौसम|best time|kab jaye|kab jana|kab jaaye|which month|season|rain|barish|baarish|garmi|thand|monsoon|बारिश|गर्मी/,
+    en:'🌤️ <b>Weather and the best time</b><ul><li><b>November–February:</b> cool and dry — the best and busiest time.</li><li><b>March–May:</b> hot (often 35 °C and more). April has Songkran, the water festival.</li><li><b>June–October:</b> rainy season. Phuket, Krabi and Phi Phi can have rough sea; Bangkok and Pattaya are fine with short showers. Prices are lower.</li><li><b>Koh Samui</b> is different: most rain October–December.</li></ul>',
+    hi:'🌤️ <b>मौसम और सबसे अच्छा समय</b><ul><li><b>नवंबर–फरवरी:</b> ठंडा और सूखा — सबसे अच्छा और सबसे ज़्यादा भीड़ वाला समय।</li><li><b>मार्च–मई:</b> गर्मी (अक्सर 35 °C से ज़्यादा)। अप्रैल में सोंगक्रान (पानी का त्योहार)।</li><li><b>जून–अक्टूबर:</b> बारिश का मौसम। फुकेत, क्राबी, फी फी में समुद्र तेज़ हो सकता है; बैंकॉक और पटाया में छोटी बारिश, घूमना चलता है। रेट कम होते हैं।</li><li><b>कोह समुई</b> अलग है: अक्टूबर–दिसंबर में सबसे ज़्यादा बारिश।</li></ul>'},
+   {k:/time zone|time difference|kitna aage|kitne ghante aage|samay|टाइम|घड़ी|clock/,
+    en:'🕒 Thailand time is <b>GMT+7</b> — <b>1 hour 30 minutes ahead of India</b> (10:00 in India = 11:30 in Thailand).',
+    hi:'🕒 थाईलैंड का समय <b>GMT+7</b> है — <b>भारत से 1 घंटा 30 मिनट आगे</b> (भारत में 10:00 = थाईलैंड में 11:30)।'},
+   {k:/plug|socket|charger|adapter|voltage|बिजली|प्लग|चार्जर/,
+    en:'🔌 Electricity is <b>220 V</b>. Sockets take types A, B, C and O — Indian 2-pin plugs usually fit; for 3-pin plugs carry a universal adapter.',
+    hi:'🔌 बिजली <b>220 V</b> है। सॉकेट A, B, C, O टाइप के — भारतीय 2-पिन प्लग आमतौर पर लग जाते हैं; 3-पिन के लिए यूनिवर्सल अडैप्टर रखें।'},
+   {k:/\bsim\b|esim|internet|mobile data|wifi|roaming|सिम|इंटरनेट/,
+    en:'📶 <b>SIM card</b>: buy a tourist SIM at the airport (AIS, TrueMove H or dtac) — show your passport. 8–15 day plans with plenty of data cost about 300–600 baht. An eSIM bought online before the trip also works. Keep the internet on to call the driver / guide.',
+    hi:'📶 <b>सिम कार्ड</b>: एयरपोर्ट पर टूरिस्ट सिम लें (AIS, TrueMove H या dtac) — पासपोर्ट दिखाना होता है। 8–15 दिन के अच्छे डेटा वाले प्लान लगभग 300–600 बाट। ट्रिप से पहले ऑनलाइन eSIM भी ले सकते हैं। ड्राइवर / गाइड से बात के लिए इंटरनेट चालू रखें।'},
+   {k:/emergency|police|ambulance|hospital|doctor|help number|madad number|पुलिस|एम्बुलेंस|अस्पताल/,
+    en:'🚨 <b>Emergency numbers in Thailand</b><ul><li>Tourist Police: <b>1155</b> (English spoken)</li><li>Police: <b>191</b></li><li>Ambulance: <b>1669</b></li></ul>Big private hospitals (Bumrungrad, Bangkok Hospital) are very good. Travel insurance is strongly advised.',
+    hi:'🚨 <b>थाईलैंड के इमरजेंसी नंबर</b><ul><li>टूरिस्ट पुलिस: <b>1155</b> (अंग्रेज़ी में बात)</li><li>पुलिस: <b>191</b></li><li>एम्बुलेंस: <b>1669</b></li></ul>बड़े प्राइवेट अस्पताल (बमरुनग्राड, बैंकॉक हॉस्पिटल) बहुत अच्छे हैं। ट्रैवल इंश्योरेंस ज़रूर लें।'},
+   {k:/food|khana|khaana|veg\b|vegetarian|jain|indian food|indian restaurant|खाना|शाकाहारी|restaurant/,
+    en:'🍛 <b>Food</b><ul><li>Indian restaurants are easy to find in Bangkok (Pratunam, Sukhumvit), Pattaya, Phuket (Patong) and Krabi (Ao Nang).</li><li>Vegetarian: say <b>“jay”</b> (Thai vegan) or “no meat, no fish, no fish sauce”. Jain food is available in a few Indian restaurants — book ahead.</li><li>Try: Pad Thai, green curry, Tom Yum, mango sticky rice, fresh coconut.</li><li>Drink bottled water.</li></ul>',
+    hi:'🍛 <b>खाना</b><ul><li>बैंकॉक (प्रतुनाम, सुखुमवित), पटाया, फुकेत (पटोंग) और क्राबी (आओ नांग) में भारतीय रेस्टोरेंट आसानी से मिलते हैं।</li><li>शाकाहारी: <b>“जे”</b> (थाई वीगन) बोलें या “no meat, no fish, no fish sauce”। जैन खाना कुछ भारतीय रेस्टोरेंट में मिलता है — पहले बुक करें।</li><li>ज़रूर खाएँ: पैड थाई, ग्रीन करी, टॉम यम, मैंगो स्टिकी राइस, नारियल पानी।</li><li>बोतल वाला पानी पिएँ।</li></ul>'},
+   {k:/shopping|market|mall|vat refund|tax refund|kharid|खरीद|शॉपिंग|मार्केट/,
+    en:'🛍️ <b>Shopping</b><ul><li>Bangkok: Pratunam & Platinum (clothes, wholesale), MBK, Siam Paragon, ICONSIAM, Chatuchak (weekends), Asiatique (evenings).</li><li>Pattaya: Terminal 21, Central Festival, night markets. Phuket: Central Phuket, Jungceylon, weekend night market.</li><li>Bargain in markets, not in malls.</li><li><b>VAT refund</b>: in shops with the “VAT Refund for Tourists” sign, ask for the form (at least 2,000 baht in one shop in one day) and claim it at the airport before check-in.</li></ul>',
+    hi:'🛍️ <b>शॉपिंग</b><ul><li>बैंकॉक: प्रतुनाम और प्लैटिनम (कपड़े, होलसेल), MBK, सियाम पैरागॉन, ICONSIAM, चतुचक (वीकेंड), एशियाटिक (शाम)।</li><li>पटाया: टर्मिनल 21, सेंट्रल फ़ेस्टिवल, नाइट मार्केट। फुकेत: सेंट्रल फुकेत, जंगसीलॉन, वीकेंड नाइट मार्केट।</li><li>मार्केट में मोलभाव करें, मॉल में नहीं।</li><li><b>VAT रिफ़ंड</b>: “VAT Refund for Tourists” वाली दुकान में फ़ॉर्म माँगें (एक दुकान में एक दिन में कम से कम 2,000 बाट) और एयरपोर्ट पर चेक-इन से पहले क्लेम करें।</li></ul>'},
+   {k:/rule|law|dress|temple rule|kya na kare|kya nahi|etiquette|culture|vape|e-cigarette|smok|नियम|कानून|मंदिर में/,
+    en:'🙏 <b>Good to know (rules & manners)</b><ul><li>Temples: cover shoulders and knees, take shoes off, do not point feet at a Buddha.</li><li>Never say anything bad about the King or the royal family — it is against the law.</li><li><b>Vapes / e-cigarettes are illegal</b> (big fines). No smoking on many beaches.</li><li>Do not touch a person’s head. Greet with a “wai” (palms together) and “Sawasdee”.</li><li>Tipping is not required, but 20–100 baht for good service is welcome.</li></ul>',
+    hi:'🙏 <b>ज़रूरी बातें (नियम और तौर-तरीके)</b><ul><li>मंदिर में: कंधे और घुटने ढके रखें, जूते उतारें, बुद्ध की तरफ पैर न करें।</li><li>राजा या शाही परिवार के बारे में कुछ गलत न बोलें — यह कानूनन अपराध है।</li><li><b>वेप / ई-सिगरेट गैर-कानूनी है</b> (भारी जुर्माना)। कई बीच पर सिगरेट मना है।</li><li>किसी के सिर को न छुएँ। हाथ जोड़कर “वाई” करें और “सवासदी” बोलें।</li><li>टिप ज़रूरी नहीं, पर अच्छी सर्विस पर 20–100 बाट अच्छा लगता है।</li></ul>'},
+   {k:/festival|songkran|loy krathong|yi peng|new year|holi|diwali|त्योहार|तेहवार/,
+    en:'🎉 <b>Festivals</b><ul><li><b>Songkran</b> (13–15 April): the water festival everywhere — very busy, book early.</li><li><b>Loy Krathong</b> (full moon in November): floating lights on rivers; <b>Yi Peng</b> lanterns in Chiang Mai.</li><li><b>New Year’s Eve</b>: big fireworks in Bangkok, Pattaya and Phuket — hotel prices are highest.</li></ul>',
+    hi:'🎉 <b>त्योहार</b><ul><li><b>सोंगक्रान</b> (13–15 अप्रैल): हर जगह पानी का त्योहार — बहुत भीड़, जल्दी बुक करें।</li><li><b>लॉय क्राथोंग</b> (नवंबर की पूर्णिमा): नदियों में दीये; चियांग माई में <b>यी पेंग</b> लालटेन।</li><li><b>नया साल</b>: बैंकॉक, पटाया, फुकेत में बड़ी आतिशबाज़ी — होटल रेट सबसे ज़्यादा।</li></ul>'},
+   {k:/safe|safety|scam|fraud|dhokha|chori|surakshit|सुरक्षित|धोखा|ठगी/,
+    en:'🛡️ <b>Safety</b>: Thailand is generally safe for tourists. Watch out for: tuk-tuk drivers who take you to gem shops, “the palace is closed today” stories, jet-ski “damage” claims (take photos first), and taxis without a meter — use Grab or Bolt apps. Keep the passport in the hotel safe and carry a copy.',
+    hi:'🛡️ <b>सुरक्षा</b>: थाईलैंड टूरिस्ट के लिए आमतौर पर सुरक्षित है। इनसे बचें: जेम-शॉप पर ले जाने वाले टुक-टुक, “आज पैलेस बंद है” वाली कहानी, जेट-स्की “नुकसान” का झगड़ा (पहले फ़ोटो लें), बिना मीटर टैक्सी — Grab या Bolt ऐप इस्तेमाल करें। पासपोर्ट होटल के लॉकर में रखें, कॉपी साथ रखें।'},
+   {k:/transport|taxi|grab|bolt|tuk|bts|mrt|metro|local travel|ghoomne ke liye gadi|टैक्सी|मेट्रो/,
+    en:'🚕 <b>Getting around</b>: Grab and Bolt apps (like Ola / Uber) are easy and fixed-price. Bangkok has the BTS Skytrain and MRT metro. Tuk-tuks: agree on the price first. Island trips and airport transfers are best booked with the package.',
+    hi:'🚕 <b>घूमने के लिए गाड़ी</b>: Grab और Bolt ऐप (Ola / Uber जैसे) आसान हैं और रेट पहले से तय। बैंकॉक में BTS स्काईट्रेन और MRT मेट्रो। टुक-टुक में पहले रेट तय करें। आइलैंड टूर और एयरपोर्ट ट्रांसफ़र पैकेज के साथ बुक करना बेहतर।'},
+   {k:/language|thai words|thai bhasha|bolna|hello in thai|thank you in thai|भाषा|थाई में/,
+    en:'🗣️ <b>Useful Thai words</b>: Hello = <b>Sawasdee krab</b> (man) / <b>Sawasdee ka</b> (woman) · Thank you = <b>Khop khun krab / ka</b> · How much? = <b>Tao rai?</b> · No spicy = <b>Mai phet</b> · Vegetarian = <b>Jay</b>.',
+    hi:'🗣️ <b>काम के थाई शब्द</b>: नमस्ते = <b>सवासदी खाप</b> (पुरुष) / <b>सवासदी खा</b> (महिला) · धन्यवाद = <b>खोप खुन खाप / खा</b> · कितने का? = <b>ताओ राई?</b> · तीखा नहीं = <b>माई फेत</b> · शाकाहारी = <b>जे</b>।'},
+   {k:/airport|flight|udaan|direct flight|hawai|एयरपोर्ट|फ्लाइट/,
+    en:'✈️ <b>Airports</b>: Bangkok Suvarnabhumi (<b>BKK</b>) and Don Mueang (<b>DMK</b>), Phuket (<b>HKT</b>), Krabi (<b>KBV</b>), Koh Samui (<b>USM</b>), Chiang Mai (<b>CNX</b>), U-Tapao (<b>UTP</b>, near Pattaya). Direct flights from Delhi, Mumbai, Kolkata, Chennai, Bengaluru, Hyderabad and more go to Bangkok (Delhi–Bangkok about 4 hours).',
+    hi:'✈️ <b>एयरपोर्ट</b>: बैंकॉक सुवर्णभूमि (<b>BKK</b>) और डॉन मुआंग (<b>DMK</b>), फुकेत (<b>HKT</b>), क्राबी (<b>KBV</b>), कोह समुई (<b>USM</b>), चियांग माई (<b>CNX</b>), U-Tapao (<b>UTP</b>, पटाया के पास)। दिल्ली, मुंबई, कोलकाता, चेन्नई, बेंगलुरु, हैदराबाद आदि से बैंकॉक की सीधी फ्लाइट (दिल्ली–बैंकॉक लगभग 4 घंटे)।'},
+   {nocity:true,k:/package|combo|kaun sa trip|which trip|itinerary idea|plan suggest|kitne din|how many days|best plan|honeymoon|family trip|couple|हनीमून|पैकेज/,
+    en:'🧳 <b>Popular Thailand trips</b><ul><li><b>Bangkok + Pattaya, 4 nights</b>: 2N Pattaya (Coral Island, Alcazar show, Nong Nooch) + 2N Bangkok (Safari World, temples, shopping). Best for first trips and families.</li><li><b>Phuket + Krabi, 5 nights</b>: 3N Phuket (Phi Phi, James Bond Island, city tour) + 2N Krabi (4 Island tour). Great for couples and honeymoons.</li><li><b>Phuket + Krabi + Bangkok, 6–7 nights</b>: beaches and city in one trip.</li><li><b>Honeymoon</b>: Phuket, Krabi or Koh Samui with a pool villa.</li><li><b>Family with kids</b>: Bangkok (Safari World, Dream World, SEA LIFE) + Pattaya (Coral Island, Ramayana water park).</li></ul>Tell me the plan (e.g. “<b>Pattaya 2 night Bangkok 2 night, 2 adults, 10 Dec</b>”) and I will make the costing.',
+    hi:'🧳 <b>थाईलैंड के मशहूर ट्रिप</b><ul><li><b>बैंकॉक + पटाया, 4 रात</b>: 2 रात पटाया (कोरल आइलैंड, अल्काज़ार शो, नोंग नूच) + 2 रात बैंकॉक (सफारी वर्ल्ड, मंदिर, शॉपिंग)। पहली ट्रिप और परिवार के लिए सबसे अच्छा।</li><li><b>फुकेत + क्राबी, 5 रात</b>: 3 रात फुकेत (फी फी, जेम्स बॉन्ड आइलैंड, सिटी टूर) + 2 रात क्राबी (4 आइलैंड टूर)। कपल और हनीमून के लिए बढ़िया।</li><li><b>फुकेत + क्राबी + बैंकॉक, 6–7 रात</b>: बीच और शहर एक ही ट्रिप में।</li><li><b>हनीमून</b>: पूल विला के साथ फुकेत, क्राबी या कोह समुई।</li><li><b>बच्चों के साथ परिवार</b>: बैंकॉक (सफारी वर्ल्ड, ड्रीम वर्ल्ड, SEA LIFE) + पटाया (कोरल आइलैंड, रामायण वॉटर पार्क)।</li></ul>मुझे प्लान बताइए (जैसे “<b>Pattaya 2 night Bangkok 2 night, 2 adults, 10 Dec</b>”) — मैं कॉस्टिंग बना दूँगा।'},
+   {k:/pack|luggage|kya le jaye|what to carry|saman|samaan|सामान|क्या ले जाएं/,
+    en:'🎒 <b>What to carry</b>: passport (+ copy), return ticket, hotel booking, TDAC done, some baht cash, light cotton clothes, swimwear, sunscreen, sunglasses, cap, slippers for boats, a dry bag for island trips, power bank, universal adapter, your medicines, and clothes that cover shoulders and knees for temples.',
+    hi:'🎒 <b>क्या साथ ले जाएँ</b>: पासपोर्ट (+ कॉपी), वापसी टिकट, होटल बुकिंग, TDAC भरा हुआ, कुछ बाट कैश, हल्के सूती कपड़े, स्विमवियर, सनस्क्रीन, चश्मा, टोपी, बोट के लिए चप्पल, आइलैंड टूर के लिए ड्राई बैग, पावर बैंक, यूनिवर्सल अडैप्टर, अपनी दवाइयाँ, और मंदिर के लिए कंधे-घुटने ढकने वाले कपड़े।'}
+  ];
+
+  function cityById(id){for(var i=0;i<CITY.length;i++)if(CITY[i].id===id)return CITY[i];return null;}
+  /* the cities named in the text, in the order they are written */
+  function citiesIn(m){
+    var hits=[];
+    CITY.forEach(function(c){
+      var best=-1;c.n.forEach(function(a){var re=new RegExp('(^|[^a-z\u0900-\u097f])'+a.replace(/ /g,'\\s*')+'(?![a-z\u0900-\u097f])');var r=re.exec(m);if(r&&(best<0||r.index<best))best=r.index;});
+      if(best>=0)hits.push({id:c.id,at:best});
+    });
+    hits.sort(function(a,b){return a.at-b.at;});
+    /* "Phi Phi" inside "Phi Phi island tour" is a tour, not a stay — kept only when nights are written next to it */
+    return hits;
+  }
+
+  /* ---- the tours of the website (Saved Rates → Tours, else the built-in list) ---- */
+  var toursP=null;
+  function tours(){
+    try{var own=JSON.parse(localStorage.getItem('travelTourList')||'null');if(Array.isArray(own)&&own.length)return Promise.resolve(own);}catch(e){}
+    if(Array.isArray(window.SLIP_PRESETS))return Promise.resolve(window.SLIP_PRESETS);
+    try{var fw=$('itinFrame')&&$('itinFrame').contentWindow;if(fw&&Array.isArray(fw.SLIP_PRESETS))return Promise.resolve(fw.SLIP_PRESETS);}catch(e){}
+    if(!toursP)toursP=new Promise(function(res){
+      var s=document.createElement('script');s.src='assets/itinerary-tours.js?b='+encodeURIComponent(window.SITE_BUILD||'1');
+      s.onload=function(){res(Array.isArray(window.SLIP_PRESETS)?window.SLIP_PRESETS:[]);};
+      s.onerror=function(){toursP=null;res([]);};
+      document.head.appendChild(s);
+    });
+    return toursP;
+  }
+  var POP={Bangkok:['safari world','two temple','temple','city tour','chao phraya','dinner cruise','dream world','floating market','sea life','madame'],
+    Pattaya:['coral island','alcazar','nong nooch','tiger park','sanctuary of truth','floating market','tiffany','art in paradise','frost'],
+    Phuket:['phi phi','james bond','city tour','coral island','simon','carnival','dolphin','racha','fantasea'],
+    Krabi:['4 island','04 island','four island','hong island','7 island','07 island','emerald pool','tiger cave','phi phi'],
+    'Koh Samui':['ang thong','big buddha','koh tao'],'Chiang Mai':['doi suthep','elephant','night bazaar','doi inthanon'],'Hua Hin':['vana nava','night market']};
+  function popRank(city,name){var l=POP[city]||[],t=String(name||'').toLowerCase();for(var i=0;i<l.length;i++)if(t.indexOf(l[i])!==-1)return i;return 99;}
+  function tourTitles(list,city){
+    var seen={},out=[];
+    (list||[]).forEach(function(p){
+      if(!p||p.c!==city)return;var t=String(p.t||'').trim();
+      if(!t||/^(arrival|departure|day at leisure|transfer to|guest|free day)/i.test(t)||/[&+·]\s*$|\bby\s*$/i.test(t))return;
+      var k=t.toLowerCase().replace(/^0+/,'').replace(/\s+/g,' ');if(seen[k])return;seen[k]=1;out.push(t);
+    });
+    out.sort(function(a,b){return popRank(city,a)-popRank(city,b)||a.length-b.length;});
+    return out;
+  }
+
+  /* =================================================================
+     1. THAILAND QUESTIONS
+     ================================================================= */
+  function cityAnswer(c,m){
+    var t=hi()?c.hi:c.en;
+    var wantReach=/(kaise|kese|how).{0,25}(ja|reach|pahunch|jaye|jaaye|jate|jaate)|\breach\b|pahunch|पहुँच|कैसे जा/.test(m);
+    var wantStay=/(kitne|kitni|how many).{0,12}(din|days|raat|rat|nights?)|kitna time|kitne din|how long/.test(m);
+    var wantSee=/(kya|what).{0,20}(dekh|see|ghoom|ghum|kare|karen|do)|places|jagah|famous|attraction|sightseeing|ghoomne|घूम|देख/.test(m);
+    if(wantReach&&!wantSee)return say('✈️ <b>'+esc(c.id)+'</b>: '+esc(t.reach),null,[[L('📍 More about '+c.id,'📍 '+c.id+' के बारे में और'),function(){ask(c.id);}]]);
+    if(wantStay&&!wantSee)return say('🗓️ <b>'+esc(c.id)+'</b>: '+L('usually ','आमतौर पर ')+'<b>'+esc(t.stay)+'</b>. '+esc(t.tip),null,[[L('📍 What to see','📍 क्या देखें'),function(){ask(c.id+' places');}]]);
+    var html='📍 <b>'+esc(c.id)+'</b> — '+esc(t.about)
+      +'<br><b>'+L('Best things to do:','क्या-क्या करें:')+'</b><ul>'+t.see.map(function(s){return '<li>'+esc(s)+'</li>';}).join('')+'</ul>'
+      +'<b>'+L('How to go:','कैसे जाएँ:')+'</b> '+esc(t.reach)+'<br>'
+      +'<b>'+L('How long:','कितने दिन:')+'</b> '+esc(t.stay)+'<br>'
+      +'💡 '+esc(t.tip);
+    var msg=say(html,null,[[L('🧾 Make a '+c.id+' costing','🧾 '+c.id+' की कॉस्टिंग बनाओ'),function(){startPlan(c.id+' ');},1],[L('🗓️ Day-by-day plan','🗓️ दिन-ब-दिन प्लान'),function(){ask(c.id+' 3 night plan');}]]);
+    tours().then(function(list){
+      var tt=[],ks={};tourTitles(list,c.id).forEach(function(t){if(/[+·]|self|pay \d|enter hotel|guest/i.test(t))return;var r=popRank(c.id,t),k=r<99?'#'+(POP[c.id][r].replace(/^0/,'')):tkey(t);if(!ks[k]){ks[k]=1;tt.push(t);}});tt=tt.slice(0,10);if(!tt.length||!msg)return;   /* one name per tour (not every boat type) */
+      var d=document.createElement('div');d.className='hx-tours';
+      d.innerHTML='<b>'+L('Tours in our list for '+esc(c.id)+':','हमारी लिस्ट के '+esc(c.id)+' टूर:')+'</b> '+tt.map(esc).join(' · ');
+      msg.insertBefore(d,msg.querySelector('.chat-actions'));
+    });
+    return msg;
+  }
+  function thailand(q){
+    var m=norm(q),cs=citiesIn(m);
+    /* a question about using the website (“airport transfer kaise add kare”, “package kaise banaye”) is for the help answers */
+    var howQ=/\b(kaise|kese|how|kahan|kaha|where|kyu|why)\b|कैसे|कहाँ/.test(m),site=/\b(add|jode|jodu|jodna|daale|dale|daalna|save|edit|delete|hatao|costing|itinerary|voucher|pdf|word|sheet|login|password|rate list|saved rates|website|button|page|setting|backup|print|download|admin|user)\b/.test(m);
+    if(howQ&&site&&!/thailand|\bthai\b|visa|baht|वीज़ा/.test(m))return false;
+    /* between two places */
+    if(cs.length>=2&&/(kaise|kese|how|distance|door|\bdur\b|far|time|ghante|hours|reach|pahunch|jaye|jaaye|jana|jaana|travel| to | se |kitna|kitni|दूर|कैसे)/.test(m)){
+      var a=cs[0].id,b=cs[1].id,r=ROUTE.find(function(x){return (x[0]===a&&x[1]===b)||(x[0]===b&&x[1]===a);});
+      if(r){say('🚐 <b>'+esc(a)+' ↔ '+esc(b)+'</b>: '+esc(hi()?r[3]:r[2])+'<br><small>'+L('Times are approximate — traffic and weather change them.','समय अंदाज़न है — ट्रैफ़िक और मौसम से बदल सकता है।')+'</small>');return true;}
+    }
+    for(var i=0;i<TOPIC.length;i++)if(TOPIC[i].k.test(m)&&!(cs.length&&TOPIC[i].nocity)){say(hi()?TOPIC[i].hi:TOPIC[i].en);return true;}
+    if(cs.length){cityAnswer(cityById(cs[0].id),m);return true;}
+    if(/thailand|thai land|थाईलैंड|\bthai\b/.test(m)){
+      say(L('🇹🇭 <b>Thailand</b> — ask me anything. For example:','🇹🇭 <b>थाईलैंड</b> — कुछ भी पूछिए। जैसे:')+'<ul>'
+        +'<li>'+L('a place: <b>Phuket</b>, <b>Pattaya</b>, <b>Bangkok</b>, <b>Krabi</b>, <b>Koh Samui</b>, <b>Chiang Mai</b> …','कोई जगह: <b>Phuket</b>, <b>Pattaya</b>, <b>Bangkok</b>, <b>Krabi</b>, <b>Koh Samui</b>, <b>Chiang Mai</b> …')+'</li>'
+        +'<li>'+L('<b>visa</b>, <b>money / baht</b>, <b>weather</b>, <b>SIM</b>, <b>food</b>, <b>shopping</b>, <b>rules</b>, <b>festivals</b>, <b>emergency</b>','<b>visa</b>, <b>baht / paisa</b>, <b>mausam</b>, <b>SIM</b>, <b>khana</b>, <b>shopping</b>, <b>niyam</b>, <b>festival</b>, <b>emergency</b>')+'</li>'
+        +'<li>'+L('<b>Phuket to Krabi how?</b> — travel time between places','<b>Phuket se Krabi kaise?</b> — दो जगहों के बीच का समय')+'</li>'
+        +'<li>'+L('<b>best packages</b> / <b>honeymoon</b> / <b>family trip</b>','<b>best package</b> / <b>honeymoon</b> / <b>family trip</b>')+'</li></ul>',null,
+        [[L('🧳 Best trips','🧳 बढ़िया ट्रिप'),function(){ask('best package');}],[L('🛂 Visa','🛂 वीज़ा'),function(){ask('visa');}],[L('🌤️ Weather','🌤️ मौसम'),function(){ask('weather');}]]);
+      return true;
+    }
+    return false;
+  }
+
+  /* =================================================================
+     2. MAKE A COSTING / ITINERARY FROM WHAT IS TYPED
+     ================================================================= */
+  var plan=null;   /* the trip being made: {name,a,c,date,stops:[{city,n}],items:[...],wantTours,ready} */
+  var STOPW=' the a an and with by of for to in on at from ka ki ke ko se me mein aur bhi wala wali chahiye chaiye karo kro dena dedo daalo dalo add include adult adults child children kids night nights din days pax ';
+  var GENERIC=' tour tours trip island islands transfer transfers ticket tickets entry sic shared private join hotel airport day half full boat speed speedboat long tail longtail lunch dinner breakfast meal meals show park city new old big small best '+
+    'bangkok pattaya phuket krabi samui chiang mai rai hua hin koh ko chang thailand ';
+  function words(t){return String(t||'').toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-9\u0900-\u097f]+/g,' ').trim().split(/\s+/).filter(function(w){return w&&w.length>=2&&STOPW.indexOf(' '+w+' ')===-1;});}
+  function generic(w){return GENERIC.indexOf(' '+w+' ')!==-1;}
+  function tkey(n){var w=words(n).filter(function(x){return !generic(x);});return (w.length?w:words(n)).slice(0,2).join(' ');}
+  function cityOfText(t){var m=norm(t),c=citiesIn(m).filter(function(x,i,a){return x.id!=='Phi Phi'||a.length===1;});return c.length?c[0].id:'';}
+
+  function parseName(raw){
+    var t=' '+String(raw||'').replace(/\s+/g,' ')+' ';
+    var pats=[/(?:client|guest|customer|name|naam|nam|party)\s*(?:name)?\s*(?:is|hai|:|-|=)?\s*([A-Za-z][A-Za-z.]*(?:\s+[A-Za-z][A-Za-z.]*){0,3}?)(?=\s*(?:,|\d|\bji\b|\bke\b|\bka\b|\bki\b|\bfor\b|\bwith\b|\badults?\b|$|\s(?:from|se|on|ko|travel|trip|date|pax)\b))/i,
+              /\b(?:for|mr\.?|mrs\.?|ms\.?|shri|smt\.?)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})/,
+              /([A-Za-z]+(?:\s+[A-Za-z]+){0,2})\s+(?:ji\s+)?(?:ke liye|ka trip|ki trip|ki costing|ka costing|ka package|ke liye costing)\b/i,
+              /^\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\b/,
+              /:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\s*(?:,|\d|$)/,
+              /^\s*([A-Z][a-z]{2,})\s*,?\s+\d/];
+    for(var i=0;i<pats.length;i++){
+      var r=pats[i].exec(t);if(!r)continue;
+      var n=r[1].trim().replace(/\s+(ji|sir|madam|family)$/i,'').replace(/^(mr|mrs|ms|miss|dr|shri|smt)\.?\s+/i,'');
+      var ws=n.split(/\s+/).filter(function(w){var lw=w.toLowerCase();return STOPW.indexOf(' '+lw+' ')===-1&&!/^(costing|quotation|itinerary|package|banao|bana|make|create|new|nayi|naya|please|plz|mujhe|ek|one|hello|hi|hey|thailand|trip)$/i.test(lw);});
+      if(ws.length&&ws.join('').length>=3)return ws.map(function(w){return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase();}).join(' ');
+    }
+    return '';
+  }
+  function parseDate(m){
+    var now=new Date();now.setHours(0,0,0,0);
+    var r=/\b(\d{1,2})(?:st|nd|rd|th)?[\s\-\/.]*(jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december|जनवरी|फरवरी|मार्च|अप्रैल|मई|जून|जुलाई|अगस्त|सितंबर|अक्टूबर|नवंबर|दिसंबर)[a-z]*[\s,\-\/.]*(\d{4}|\d{2}(?!\s*(?:n\b|night|raat|din|day|adult|child|kid|pax|log)))?/i.exec(m);
+    var d=null;
+    if(r){d=new Date(r[3]?(+r[3]<100?2000+(+r[3]):+r[3]):now.getFullYear(),MON[r[2].toLowerCase()]!=null?MON[r[2].toLowerCase()]:MON[r[2].toLowerCase().slice(0,3)],+r[1]);if(!r[3]&&d<now)d.setFullYear(d.getFullYear()+1);}
+    if(!d){r=/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/.exec(m);if(r)d=new Date(+r[1],+r[2]-1,+r[3]);}
+    if(!d){r=/\b(\d{1,2})-(\d{1,2})-(\d{4}|\d{2})\b/.exec(m);if(r&&+r[2]>=1&&+r[2]<=12)d=new Date(+r[3]<100?2000+(+r[3]):+r[3],+r[2]-1,+r[1]);}
+    if(!d){r=/\b(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?\b/.exec(m);if(r&&+r[2]>=1&&+r[2]<=12){d=new Date(r[3]?(+r[3]<100?2000+(+r[3]):+r[3]):now.getFullYear(),+r[2]-1,+r[1]);if(!r[3]&&d<now)d.setFullYear(d.getFullYear()+1);}}
+    if(!d&&/\b(kal|tomorrow)\b/.test(m)){d=new Date(now);d.setDate(d.getDate()+1);}
+    if(!d&&/\b(parso|day after tomorrow)\b/.test(m)){d=new Date(now);d.setDate(d.getDate()+2);}
+    return d&&!isNaN(d)?iso(d):'';
+  }
+  function parsePax(m){
+    var o={};
+    var a=/(\d{1,2})\s*(?:adults?|adt|adlt|bade|bada|bde|aadmi|log|people|persons?|pax|guests?|members?|व्यस्क|बड़े|लोग)\b/.exec(m);
+    var c=/(\d{1,2})\s*(?:child|children|chlid|kids?|bacche|bachche|bache|bachhe|baccha|bachha|bachcha|cwb|cnb|बच्चे|बच्चा)\b/.exec(m);
+    var p=/\b(\d{1,2})\s*\+\s*(\d{1,2})\b/.exec(m);
+    if(!a)a=/\b(\d{1,2})\s*a\b(?!\s*(?:m|p)\b)/.exec(m);if(!c)c=/\b(\d{1,2})\s*c\b/.exec(m);
+    if(a)o.a=+a[1];if(c)o.c=+c[1];
+    if(p&&o.a==null){o.a=+p[1];o.c=+p[2];}
+    if(o.a==null&&/\b(couple|honeymoon|husband wife|pati patni|do log|2 log)\b|हनीमून|कपल/.test(m))o.a=2;
+    if(o.c==null&&/\b(no kids|no child|without child|bina bacche)\b/.test(m))o.c=0;
+    if(o.c==null&&/\b(1|one|ek)\s*(child|kid|baccha|bachha)\b/.test(m))o.c=1;
+    return o;
+  }
+  /* "Phuket 3N", "3 night Krabi", "Pattaya me 2 raat" */
+  function parseStops(m){
+    var out=[],cs=citiesIn(m),taken={};
+    var tot=/(\d{1,2})\s*(?:n|nights?|raat|rat)\s*[\/\-]?\s*(\d{1,2})\s*(?:d|days?|din)\b/.exec(m);if(tot){taken[tot.index+tot[0].indexOf(tot[1])]=1;taken[tot.index+tot[0].lastIndexOf(tot[2])]=1;}
+    var NUM='(\\d{1,2})\\s*(?:n\\b|nts?\\b|nights?|raat|rat|रात|din|days?|दिन|d\\b)';
+    function find(c,after){
+      var best=null;
+      c.n.forEach(function(al){
+        var a=al.replace(/ /g,'\\s*');
+        var re=after?new RegExp('(?:^|[^a-zऀ-ॿ])'+a+'\\s*(?:me|mein|main|in|for|ke liye|:|-)?\\s*'+NUM,'g'):new RegExp(NUM+'\\s*(?:in|me|mein|of|at|-)?\\s*'+a+'(?![a-z])','g');
+        var r;while((r=re.exec(m))){var at=r.index+r[0].lastIndexOf(r[1]);if(taken[at])continue;if(!best||r.index<best.i)best={i:r.index,at:at,n:+r[1]};break;}
+      });
+      return best;
+    }
+    var res=cs.map(function(h){return {h:h,c:cityById(h.id),n:null};});
+    /* “Phuket 3N” first, then “3 nights in Phuket” */
+    res.forEach(function(x){var f=find(x.c,true);if(f){x.n=f.n;taken[f.at]=1;}});
+    res.forEach(function(x){if(x.n!=null)return;var f=find(x.c,false);if(f){x.n=f.n;taken[f.at]=1;}});
+    res.forEach(function(x){
+      if(x.h.id==='Phi Phi'){
+        /* a Phi Phi tour, not a stay: “Phi Phi tour / island / trip”, or no nights written */
+        if(x.n==null||new RegExp('phi\\s*phi\\s*(island\\s*)?(tour|trip|day|by|speed|catamaran)').test(m))return;
+      }
+      out.push({city:x.h.id,n:x.n});
+    });
+    return out;
+  }
+  function totalNights(m){var r=/(\d{1,2})\s*(?:n|nights?|raat|rat)\s*[\/\-]?\s*(\d{1,2})\s*(?:d|days?|din)\b/.exec(m);if(r)return +r[1];r=/\b(\d{1,2})\s*(?:days?|din)\s*(?:ka|ki|ke)?\s*(?:trip|tour|package|plan|yatra)\b/.exec(m);if(r)return Math.max(1,+r[1]-1);r=/\b(\d{1,2})\s*(?:nights?|raat)\s*(?:ka|ki|ke)?\s*(?:trip|tour|package|plan|yatra)?\b/.exec(m);if(r)return +r[1];r=/\b(\d{1,2})\s*(?:days?|din)\b/.exec(m);return r&&!/\b\d{1,2}\s*(?:n|nights?|raat|rat)\b/.test(m)?Math.max(1,+r[1]-1):null;}
+
+  /* ---- the saved rates the person may use ---- */
+  function options(){
+    var out=[];
+    try{(typeof transfers!=='undefined'&&Array.isArray(transfers)?transfers:[]).forEach(function(t,i){if(t&&t.name)out.push({cat:'transfer',key:String(i),name:t.name,raw:t});});}catch(e){}
+    try{var tk=typeof getTickets==='function'?getTickets():{};Object.keys(tk).forEach(function(n){out.push({cat:'ticket',key:n,name:n,raw:tk[n]});});}catch(e){}
+    try{var o=typeof getOther==='function'?getOther():{};Object.keys(o).forEach(function(n){var c=typeof categoryOfSaved==='function'?categoryOfSaved(o[n]):(o[n]&&o[n].category)||'sic';if(c==='sic'||c==='private'||c==='meal')out.push({cat:c,key:n,name:n,raw:o[n]});});}catch(e){}
+    return out;
+  }
+  /* transfers between airport and hotel / hotel and hotel */
+  function sides(name){var r=/^(.*?)\s*(?:-|–|→|to)\s*(.*)$/i.exec(String(name||''));return r?[r[1],r[2]]:null;}
+  function findTransfer(kind,from,to,opts){
+    var list=opts.filter(function(o){return o.cat==='transfer';}),best=null,score=-1;
+    list.forEach(function(o){
+      var s=sides(o.name);if(!s)return;var A=s[0].toLowerCase(),B=s[1].toLowerCase(),sc=-1;
+      var cin=function(x,c){return c&&cityOfText(x)===c;};
+      if(kind==='arr'&&/airport|\bair port\b/.test(A)&&/hotel/.test(B)&&cin(B,to))sc=cin(A,to)?3:(cityOfText(A)?1:2);
+      if(kind==='dep'&&/hotel/.test(A)&&/airport/.test(B)&&cin(A,from))sc=cin(B,from)?3:(cityOfText(B)?1:2);
+      if(kind==='move'&&/hotel/.test(A)&&/hotel/.test(B)&&cin(A,from)&&cin(B,to))sc=3;
+      if(sc>=0&&/\bbkk\b|suvarnabhumi/.test(kind==='dep'?B:A))sc+=0.5;   /* the main international airport first */
+      if(sc>score){score=sc;best=o;}
+    });
+    return best;
+  }
+  /* tours / tickets / meals named in the text */
+  function namedItems(m,opts){
+    var found=[];
+    opts.forEach(function(o){
+      if(o.cat==='transfer'&&sides(o.name))return;
+      var w=words(o.name).filter(function(x){return !/^\d+$/.test(x);});if(!w.length)return;
+      var uniq=w.filter(function(x,i){return w.indexOf(x)===i;}),hit=0,len=0,special=[],specialAll=0;
+      uniq.forEach(function(x){var on=new RegExp('(^|[^a-z0-9])'+x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![a-z0-9])').test(m);if(!generic(x)){specialAll++;if(on)special.push(x);}if(on){hit++;len+=x.length;}});
+      if(!hit||len<3)return;
+      var sc=hit/uniq.length;
+      /* a word only this item has (“coral”, “james”, “alcazar”) must be written — or every word of the name */
+      if(!special.length&&!(hit===uniq.length&&uniq.length>=2))return;
+      if(specialAll&&special.length/specialAll<0.5)return;
+      /* the kind the person asked for */
+      if(/\bspeed ?boat\b/.test(m)&&/speed ?boat/i.test(o.name))sc+=0.15;
+      if(/catamaran/.test(m)&&/catamaran/i.test(o.name))sc+=0.15;
+      if(/long ?tail/.test(m)&&/long ?tail/i.test(o.name))sc+=0.15;
+      if(/\bprivate\b/.test(m)&&o.cat==='private')sc+=0.1;
+      if(/\b(sic|shared|join)\b/.test(m)&&o.cat==='sic')sc+=0.1;
+      if(o.cat==='sic')sc+=0.02;
+      found.push({o:o,sc:sc,key:(special.length?special:uniq).slice().sort().join(' ')});
+    });
+    /* one per thing asked for: the best of the options that match the same words */
+    found.sort(function(a,b){return b.sc-a.sc||a.o.name.length-b.o.name.length;});
+    var out=[],used={};
+    found.forEach(function(f){if(used[f.key])return;var sub=Object.keys(used).some(function(k){return k.indexOf(f.key)!==-1&&f.key.length<k.length;});if(sub)return;used[f.key]=1;out.push(f.o);});
+    return out;
+  }
+  function vehiclesFor(p){var v=p<=2?'car':p<=4?'suv':'van';return {v:v,n:v==='van'?Math.max(1,Math.ceil(p/9)):1};}
+  function hasRate(o){
+    try{
+      if(o.cat==='ticket'){var t=normalizeTicketRate(o.raw||{});return (+t.adult||0)>0||(+t.child||0)>0;}
+      var r=o.raw||{};if(r.adult!=null||r.child!=null)return (+r.adult||0)>0||(+r.child||0)>0;
+      if(r.rate!=null)return +r.rate>0;return (+r.car||0)+(+r.suv||0)+(+r.van||0)>0;
+    }catch(e){return true;}
+  }
+
+  /* ---- reading the text into the plan ---- */
+  function readInto(p,raw){
+    var m=norm(raw);
+    var nm=parseName(raw);if(nm&&!/^(phi phi|coral|james bond)$/i.test(nm)&&!cityOfText(nm))p.name=nm;
+    var px=parsePax(m);if(px.a!=null)p.a=px.a;if(px.c!=null)p.c=px.c;
+    var d=parseDate(m);if(d)p.date=d;
+    var st=parseStops(m);
+    if(st.length){
+      var keep=p.stops||[];
+      st.forEach(function(s){var e=keep.find(function(x){return x.city===s.city;});if(e){if(s.n!=null)e.n=s.n;}else keep.push(s);});
+      p.stops=keep;
+    }
+    var tn=totalNights(m);if(tn!=null)p.total=tn;
+    /* nights not written for some places: share the trip's nights */
+    if(p.stops&&p.stops.length){
+      var known=p.stops.reduce(function(t,s){return t+(s.n||0);},0),unk=p.stops.filter(function(s){return s.n==null;});
+      if(unk.length&&p.total){var left=Math.max(unk.length,p.total-known),each=Math.floor(left/unk.length),extra=left-each*unk.length;unk.forEach(function(s,i){s.n=Math.max(1,each+(i<extra?1:0));s.guess=true;});}   /* a night left over goes to the first place */
+    }
+    if(/\b(tour|tours|sightseeing|ghumana|ghoomna|ghumao|activities|popular|best|famous)\b.{0,20}\b(bhi|daalo|dalo|add|include|karo|kro|sab|all|auto|khud)\b|\b(sab|all|full|complete|pura|poora)\b.{0,15}\b(package|tours?|sightseeing|plan)\b|\bwith tours?\b|अपने आप/.test(m))p.wantTours=true;
+    if(/\b(no|without|bina|nahi|nahin)\s+(tours?|sightseeing)\b/.test(m))p.wantTours=false;
+    if(/\b(no|without|bina|nahi|nahin)\s+(transfers?|airport transfer)\b/.test(m))p.noTransfers=true;
+    if(/\bitinerary|itenary|itinary|itinery|voucher|इटिनरेरी|वाउचर/.test(m))p.wantItin=true;
+    var opts=options(),named=namedItems(m,opts);
+    p.named=(p.named||[]);named.forEach(function(o){if(!p.named.some(function(x){return x.cat===o.cat&&x.key===o.key;}))p.named.push(o);});
+    var ATTR=['phi phi','james bond','coral island','alcazar','tiffany','nong nooch','tiger park','safari world','dream world','floating market','dinner cruise','city tour','4 island','four island','hong island','7 island','simon','carnival','dolphin','elephant','sanctuary of truth','temple tour','big buddha','emerald pool','ang thong','sea life','madame tussauds','art in paradise','frost','water park','cabaret','fantasea','racha','pattaya park','underwater world'];
+    p.notFound=(p.notFound||[]).filter(function(t){return !p.named.some(function(o){return o.name.toLowerCase().indexOf(t)!==-1;});});
+    ATTR.forEach(function(t){if(m.indexOf(t)!==-1&&!p.named.some(function(o){return o.name.toLowerCase().indexOf(t)!==-1;})&&p.notFound.indexOf(t)===-1)p.notFound.push(t);});
+    var hm=/\bhotel\s+([A-Za-z][A-Za-z0-9 &'.-]{2,40}?)(?=\s*(?:,|\.|\bfor\b|\bin\b|\bme\b|\d|$))/i.exec(raw);if(hm&&!/^(transfer|to|se|airport|pickup|drop)/i.test(hm[1]))p.hotelNote=(p.hotelNote||[]).concat([hm[1].trim()]);
+    return p;
+  }
+  function looksLikeTrip(m){
+    var hasPlace=citiesIn(m).some(function(c){return c.id!=='Phi Phi';})||/thailand/.test(m);
+    var build=/\b(banao|bana do|bnao|bana de|banado|bnado|create|make|prepare|ready karo|taiyar|costing|quotation|quote|package|itinerary|itenary|itinary|itinery|voucher)\b|बनाओ|बना दो|कॉस्टिंग/.test(m);
+    var facts=parsePax(m).a!=null||!!parseDate(m)||parseStops(m).some(function(s){return s.n!=null;})||totalNights(m)!=null;
+    var how=/\b(kaise|kese|how|kya hota|meaning|matlab|kyu|why)\b|कैसे/.test(m);
+    if(/\b(?:cost|cst)[\s\-#]*0*\d{1,7}\b/i.test(m))return false;   /* a costing number: the older search handles it */
+    if(how&&!facts)return false;
+    return hasPlace&&(build||facts)&&(build||parsePax(m).a!=null||!!parseDate(m));
+  }
+
+  /* ---- the full list of what will be added (with the day of each) ---- */
+  function build(p){
+    var opts=options(),stops=(p.stops||[]).filter(function(s){return s.n>0;}),lines=[],notes=[];
+    var pax=(p.a||0)+(p.c||0),day=0;
+    var nights=stops.reduce(function(t,s){return t+s.n;},0);
+    if(!p.noTransfers&&stops.length){
+      stops.forEach(function(s,i){
+        var o=i===0?findTransfer('arr',null,s.city,opts):findTransfer('move',stops[i-1].city,s.city,opts);
+        var dt=addD(p.date,day);
+        if(o)lines.push({o:o,date:dt,why:i===0?'arr':'move',city:s.city});
+        else notes.push(i===0?L('No saved airport → '+s.city+' hotel transfer — add it yourself (＋ Add Custom Transfer).','सेव रेट में एयरपोर्ट → '+s.city+' होटल ट्रांसफ़र नहीं है — खुद जोड़ें (＋ Add Custom Transfer)।'):L('No saved '+stops[i-1].city+' → '+s.city+' hotel transfer (maybe a flight) — add it yourself.','सेव रेट में '+stops[i-1].city+' → '+s.city+' होटल ट्रांसफ़र नहीं है (शायद फ्लाइट) — खुद जोड़ें।'));
+        day+=s.n;
+      });
+      var last=stops[stops.length-1],dep=findTransfer('dep',last.city,null,opts);
+      if(dep)lines.push({o:dep,date:addD(p.date,nights),why:'dep',city:last.city});
+      else notes.push(L('No saved '+last.city+' hotel → airport transfer — add it yourself.','सेव रेट में '+last.city+' होटल → एयरपोर्ट ट्रांसफ़र नहीं है — खुद जोड़ें।'));
+    }
+    /* free days in each place (not the arrival / change day, not the last day) */
+    var free=[];day=0;
+    stops.forEach(function(s,i){for(var k=1;k<s.n;k++)free.push({city:s.city,d:day+k});if(s.n===1&&i===0)free.push({city:s.city,d:day,half:true});day+=s.n;});
+    var used={};
+    function place(o,city){
+      var f=free.find(function(x){return !used[x.d]&&(!city||x.city===city);})||free.find(function(x){return !used[x.d];});
+      if(!f){var anyD=0;stops.some(function(s,i){if(s.city===city){anyD=stops.slice(0,i).reduce(function(t,x){return t+x.n;},0);return true;}return false;});return {d:anyD,full:true};}
+      used[f.d]=1;return f;
+    }
+    (p.named||[]).forEach(function(o){
+      var city=cityOfText(o.name)||(stops.length===1?stops[0].city:'');
+      var f=place(o,city);
+      lines.push({o:o,date:addD(p.date,f.d),why:'named',city:city,full:!!f.full});
+    });
+    if(p.wantTours){
+      stops.forEach(function(s){
+        var mine=opts.filter(function(o){return (o.cat==='sic'||o.cat==='private'||o.cat==='ticket')&&cityOfText(o.name)===s.city&&hasRate(o)&&!lines.some(function(l){return l.o.key===o.key&&l.o.cat===o.cat;});});
+        mine.sort(function(a,b){return popRank(s.city,a.name)-popRank(s.city,b.name)||(a.cat==='sic'?0:1)-(b.cat==='sic'?0:1)||a.name.length-b.name.length;});
+        var seen={};
+        free.filter(function(x){return x.city===s.city&&!used[x.d];}).forEach(function(fd){
+          var o=mine.find(function(x){return !seen[tkey(x.name)];});if(!o)return;
+          seen[tkey(o.name)]=1;used[fd.d]=1;
+          lines.push({o:o,date:addD(p.date,fd.d),why:'auto',city:s.city});
+        });
+      });
+    }
+    lines.forEach(function(l){if(!hasRate(l.o))l.noRate=true;});
+    lines.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:({arr:0,move:0,named:1,auto:1,dep:2}[a.why]-{arr:0,move:0,named:1,auto:1,dep:2}[b.why]);});
+    return {lines:lines,notes:notes,nights:nights,pax:pax,stops:stops};
+  }
+  function missing(p){
+    var need=[];
+    if(!p.name)need.push(L('the <b>client name</b>','<b>क्लाइंट का नाम</b>'));
+    if(p.a==null)need.push(L('how many <b>adults</b> (and children)','कितने <b>बड़े</b> (और बच्चे)'));
+    if(!p.date)need.push(L('the <b>travel date</b>','<b>यात्रा की तारीख</b>'));
+    if(!p.stops||!p.stops.length)need.push(L('the <b>places</b> with nights (e.g. Phuket 3N, Krabi 2N)','<b>जगह</b> और रातें (जैसे Phuket 3N, Krabi 2N)'));
+    else if(p.stops.some(function(s){return !s.n;}))need.push(L('the <b>nights</b> in '+p.stops.filter(function(s){return !s.n;}).map(function(s){return s.city;}).join(', '),'<b>'+p.stops.filter(function(s){return !s.n;}).map(function(s){return s.city;}).join(', ')+'</b> में कितनी <b>रात</b>'));
+    return need;
+  }
+  function catLabel(c){return {transfer:L('Transfer','ट्रांसफ़र'),sic:'SIC',private:L('Private','प्राइवेट'),ticket:L('Ticket','टिकट'),meal:L('Meal','खाना')}[c]||c;}
+  function showPlan(){
+    var p=plan,need=missing(p);
+    if(need.length){
+      var got=[];
+      if(p.name)got.push(L('Client','क्लाइंट')+': <b>'+esc(p.name)+'</b>');
+      if(p.a!=null)got.push(plural(p.a,L('adult','बड़ा'),L('adults','बड़े'))+(p.c?' + '+plural(p.c,L('child','बच्चा'),L('children','बच्चे')):''));
+      if(p.date)got.push(L('Travel','यात्रा')+': <b>'+esc(fmtD(p.date))+'</b>');
+      if(p.stops&&p.stops.length)got.push(p.stops.map(function(s){return esc(s.city)+(s.n?' '+s.n+'N':'');}).join(' → '));
+      say((got.length?L('Got it so far: ','अभी तक समझा: ')+got.join(' · ')+'<br>':'')
+        +L('Please tell me ','कृपया बताइए ')+need.join(L(', and ',', और '))+'.'
+        +'<br><small>'+L('Example: “Rahul Sharma, 2 adults 1 child, 10 Dec, Phuket 3N Krabi 2N, Phi Phi tour”','उदाहरण: “Rahul Sharma, 2 adults 1 child, 10 Dec, Phuket 3N Krabi 2N, Phi Phi tour”')+'</small>',null,
+        [[L('✖ Cancel','✖ रद्द करें'),function(){plan=null;say(L('OK, cancelled.','ठीक है, रद्द कर दिया।'));}]]);
+      return;
+    }
+    var b=build(p),showP=admin();
+    var head='🧾 <b>'+L('I will make this costing:','मैं ये कॉस्टिंग बनाऊँगा:')+'</b><br>'
+      +L('Client','क्लाइंट')+': <b>'+esc(p.name)+'</b> · '+plural(p.a,L('adult','बड़ा'),L('adults','बड़े'))+(p.c?' + '+plural(p.c,L('child','बच्चा'),L('children','बच्चे')):'')
+      +'<br>'+L('Travel','यात्रा')+': <b>'+esc(fmtD(p.date))+'</b> → '+esc(fmtD(addD(p.date,b.nights)))+' · <b>'+b.nights+'N / '+(b.nights+1)+'D</b>'
+      +'<br>'+b.stops.map(function(s){return esc(s.city)+' '+s.n+'N'+(s.guess?'*':'');}).join(' → ')
+      +(b.stops.some(function(s){return s.guess;})?'<br><small>* '+L('nights shared out by me — change them if needed.','रातें मैंने बाँटी हैं — ज़रूरत हो तो बदलें।')+'</small>':'');
+    var rows=b.lines.map(function(l){
+      var tag={arr:'🛬',move:'🚐',dep:'🛫',named:'🎟️',auto:'✨'}[l.why]||'•';
+      return '<li>'+tag+' <b>'+esc(fmtD(l.date).slice(0,6))+'</b> ('+dayName(l.date)+') — '+esc(l.o.name)+' <small>['+esc(catLabel(l.o.cat))+']</small>'
+        +(l.noRate?' <small class="hx-warn">⚠️ '+L('no price saved','कीमत सेव नहीं')+'</small>':'')+(l.full?' <small class="hx-warn">⚠️ '+L('no free day left','खाली दिन नहीं बचा')+'</small>':'')+'</li>';
+    }).join('');
+    var html=head+'<br><b>'+L('Items','आइटम')+' ('+b.lines.length+'):</b>'+(rows?'<ul class="hx-plan">'+rows+'</ul>':' <i>'+L('none found in Saved Rates','सेव रेट में कोई नहीं मिला')+'</i><br>')
+      +(b.notes.length?'<small>'+b.notes.map(function(n){return '⚠️ '+esc(n);}).join('<br>')+'</small><br>':'')
+      +(p.notFound&&p.notFound.length?'<small>⚠️ '+L('Not in Saved Rates (so not added): ','सेव रेट में नहीं है (इसलिए नहीं जोड़ा): ')+'<b>'+p.notFound.map(function(t){return esc(t.replace(/\b\w/g,function(c){return c.toUpperCase();}));}).join(', ')+'</b>. '+(admin()?L('Add it in Saved Rates, or later with ＋ Add Custom Service.','इसे Saved Rates में जोड़ें, या बाद में ＋ Add Custom Service से।'):L('Ask the admin to add it, or add it later with ＋ Add Custom Service.','एडमिन से जुड़वाएँ, या बाद में ＋ Add Custom Service से जोड़ें।'))+'</small><br>':'')
+      +(p.hotelNote?'<small>🏨 '+L('Hotels need a price: add them in the Costing Sheet (🏨 Hotel) after I save.','होटल की कीमत चाहिए: मेरे सेव करने के बाद Costing Sheet में (🏨 Hotel) जोड़ें।')+'</small><br>':'<small>🏨 '+L('Hotels are not added (they need your price).','होटल नहीं जोड़े गए (उनकी कीमत आपको डालनी है)।')+'</small><br>')
+      +(p.wantTours?'':'<small>💡 '+L('Want me to add popular tours on the free days too? Press “✨ Add tours”.','खाली दिनों में मशहूर टूर भी जोड़ूँ? “✨ टूर जोड़ो” दबाएँ।')+'</small><br>')
+      +'<small>'+L('Prices come from Saved Rates'+(showP?'':' (they are shown in the PDF as usual)')+'. You can still change anything after.','कीमतें सेव रेट से लगेंगी'+(showP?'':' (PDF में हमेशा की तरह)')+'। बाद में कुछ भी बदल सकते हैं।')+'</small>';
+    var btns=[[L('✅ Make costing','✅ कॉस्टिंग बनाओ'),function(){make(false);},1],[L('✅ Costing + itinerary','✅ कॉस्टिंग + इटिनरेरी'),function(){make(true);},1]];
+    if(!p.wantTours)btns.push([L('✨ Add tours','✨ टूर जोड़ो'),function(){plan.wantTours=true;showPlan();}]);
+    btns.push([L('✖ Cancel','✖ रद्द करें'),function(){plan=null;say(L('OK, cancelled. Nothing was changed.','ठीक है, रद्द कर दिया। कुछ नहीं बदला।'));}]);
+    say(html,null,btns);
+    say(L('<small>To change something, just type it — e.g. “3 adults”, “15 Dec”, “Krabi 3N”, “add James Bond”.</small>','<small>कुछ बदलना हो तो बस लिखिए — जैसे “3 adults”, “15 Dec”, “Krabi 3N”, “James Bond bhi”।</small>'));
+  }
+  function startPlan(text){plan=readInto({},text);showPlan();}
+
+  /* ---- filling the real Costing Sheet ---- */
+  function fire(e,t){try{e.dispatchEvent(new Event(t,{bubbles:true}));}catch(x){}}
+  function setVal(id,v){var e=$(id);if(!e)return false;e.value=v;fire(e,'input');fire(e,'change');return true;}
+  function addLine(l,p){
+    var o=l.o;
+    if(typeof window.openSheetEntry!=='function')throw new Error('Costing Sheet not ready');
+    openSheetEntry(o.cat,o.key);
+    var pick=$('efPick');if(!pick||pick.value!==o.key)return L('not in the list any more','अब लिस्ट में नहीं है');
+    setVal('efDate',l.date);
+    setVal('efA',String(p.a||0));setVal('efC',String(p.c||0));
+    var vb=document.querySelector('#entryForm [data-veh]');
+    if(vb&&!vb.hidden){
+      var vf=vehiclesFor((p.a||0)+(p.c||0)),inp=$('efV_'+vf.v);
+      /* the vehicle has no price: take the next one that has */
+      var r=o.raw||{},order=[vf.v,'suv','van','car'];
+      for(var i=0;i<order.length;i++){if((+r[order[i]]||0)>0||r.rate!=null){inp=$('efV_'+order[i]);break;}}
+      ['car','suv','van'].forEach(function(v){setVal('efV_'+v,'');});
+      if(inp){inp.value=String(vf.n);fire(inp,'input');fire(inp,'change');}
+    }
+    var before=(typeof services!=='undefined'?services.length:0);
+    var f=$('entryForm');if(f.requestSubmit)f.requestSubmit();else f.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));
+    var after=(typeof services!=='undefined'?services.length:0);
+    if(after>before)return '';
+    var er=$('efError');return (er&&er.textContent.trim())||L('could not be added','जोड़ा नहीं जा सका');
+  }
+  function make(withItin){
+    var p=plan;if(!p)return;
+    var b=build(p);
+    var nativeAlert=window.alert,nativeConfirm=window.confirm,msgs=[],asked=[];
+    window.alert=function(m){msgs.push(String(m));};
+    window.confirm=function(m){asked.push(String(m));return false;};   /* never say “yes” for the person */
+    var problems=[],added=0,rec=null,kept=false;
+    try{
+      if(typeof newCostingFromHome==='function')newCostingFromHome();else resetNewEntry();
+      kept=!!window.__draftKept;
+      setVal('personName',p.name);
+      setVal('dashAdults',String(p.a||0));setVal('dashChildren',String(p.c||0));
+      setVal('travelDate',p.date);
+      setVal('sheetDestination',b.stops.map(function(s){return s.city;}).join(', ')+', Thailand');
+      setVal('sheetNights',String(b.nights));
+      if($('currency')&&!$('currency').value)setVal('currency','THB');
+      if(typeof calculate==='function')calculate();
+      b.lines.forEach(function(l){var e=addLine(l,p);if(e)problems.push(esc(l.o.name)+': '+esc(e));else added++;});
+      if(typeof calculate==='function')calculate();
+      var stamp=function(){return (savedCostings||[]).map(function(r){return r.id+'@'+r.updatedAt;}).join('|');},before=stamp();
+      saveCurrentCosting();
+      if(stamp()!==before)rec=(savedCostings||[]).slice().sort(function(a,b){return String(b.updatedAt).localeCompare(String(a.updatedAt));})[0];
+    }catch(e){console.error('Help chat could not make the costing:',e);problems.push(esc(e.message||String(e)));}
+    finally{window.alert=nativeAlert;window.confirm=nativeConfirm;}
+    if(!rec){
+      say('⚠️ <b>'+L('The costing was not saved.','कॉस्टिंग सेव नहीं हुई।')+'</b><br>'+msgs.concat(asked).concat(problems).map(esc).join('<br>')
+        +'<br>'+L('What I filled is still on the Costing Sheet — check it and press 💾 Save.','जो मैंने भरा वो Costing Sheet पर है — देखें और 💾 Save दबाएँ।'));
+      return;
+    }
+    plan=null;
+    var id=rec.id;
+    say('✅ <b>'+esc(rec.costingNumber||'')+' · '+esc(rec.name||'')+'</b> '+L('is saved with '+plural(added,'item','items')+'.','सेव हो गई — '+added+' आइटम के साथ।')
+      +(problems.length?'<br><small>⚠️ '+L('Not added:','नहीं जुड़े:')+'<br>'+problems.join('<br>')+'</small>':'')
+      +(b.notes.length?'<br><small>'+b.notes.map(function(n){return '⚠️ '+esc(n);}).join('<br>')+'</small>':'')
+      +(p.notFound&&p.notFound.length?'<br><small>⚠️ '+L('Not in Saved Rates, not added: ','सेव रेट में नहीं, नहीं जोड़ा: ')+'<b>'+p.notFound.map(function(t){return esc(t.replace(/\b\w/g,function(c){return c.toUpperCase();}));}).join(', ')+'</b> — '+L('add it with ＋ Add Custom Service.','＋ Add Custom Service से जोड़ें।')+'</small>':'')
+      +(kept?'<br><small>📁 '+L('The costing that was open before (not saved) is kept in My Costings → Drafts.','पहले खुली (बिना सेव) कॉस्टिंग My Costings → Drafts में रखी है।')+'</small>':'')
+      +'<br><small>'+L('Add the hotels in the Costing Sheet (🏨 Hotel) if needed.','ज़रूरत हो तो Costing Sheet में होटल (🏨 Hotel) जोड़ें।')+'</small>',null,
+      [[L('✏️ Open costing','✏️ कॉस्टिंग खोलें'),function(){openCosting(id);closeChatOnPhone();},1],
+       [L('🗺️ Make itinerary','🗺️ इटिनरेरी बनाओ'),function(){itinFromCosting(id);closeChatOnPhone();}],
+       [L('🖨️ PDF','🖨️ PDF'),function(){printCosting(id);closeChatOnPhone();}],
+       [L('🔎 Check it','🔎 जाँचो'),function(){openCosting(id);setTimeout(function(){ask(hi()?'costing check karo':'check my costing');},300);}]]);
+    if(withItin){try{itinFromCosting(id);closeChatOnPhone();}catch(e){console.error(e);}}
+  }
+
+  /* ---- a day-by-day plan (advice only, nothing is changed) ---- */
+  function dayPlan(m){
+    var st=parseStops(m),tn=totalNights(m);
+    if(!st.length)return false;
+    if(st.length===1&&st[0].n==null&&tn!=null)st[0].n=tn;
+    if(st.some(function(s){return s.n==null;})){var c=cityById(st[0].city);st.forEach(function(s){if(s.n==null)s.n=parseInt((cityById(s.city)||c).en.stay,10)||2;});}
+    tours().then(function(list){
+      var out=[],dn=1;
+      st.forEach(function(s,i){
+        var tt=tourTitles(list,s.city);
+        var pick=[];tt.forEach(function(t){var k=tkey(t);if(!pick.some(function(x){return tkey(x)===k;}))pick.push(t);});
+        out.push('<li><b>'+L('Day','दिन')+' '+dn+'</b> — '+(i===0?L('Arrival in ','आगमन: ')+esc(s.city)+L(', transfer to hotel. Evening free.',', होटल ट्रांसफ़र। शाम खाली।'):L('Transfer ','ट्रांसफ़र ')+esc(st[i-1].city)+' → '+esc(s.city)+'.')+'</li>');dn++;
+        for(var k=1;k<s.n;k++){out.push('<li><b>'+L('Day','दिन')+' '+dn+'</b> — '+esc(pick[k-1]||L('Day at leisure / shopping','खाली दिन / शॉपिंग'))+' ('+esc(s.city)+')</li>');dn++;}
+      });
+      out.push('<li><b>'+L('Day','दिन')+' '+dn+'</b> — '+L('Check out, transfer to the airport.','चेक-आउट, एयरपोर्ट ट्रांसफ़र।')+'</li>');
+      var txt=st.map(function(s){return s.city+' '+s.n+'N';}).join(' ');
+      say('🗓️ <b>'+L('A day-by-day plan','दिन-ब-दिन प्लान')+'</b> ('+esc(txt)+')<ul class="hx-plan">'+out.join('')+'</ul><small>'+L('From our tour list. The order can change with boat times and weather.','हमारी टूर लिस्ट से। बोट टाइम और मौसम से क्रम बदल सकता है।')+'</small>',null,
+        [[L('🧾 Make the costing for this','🧾 इसकी कॉस्टिंग बनाओ'),function(){plan=readInto({wantTours:true},txt);showPlan();},1]]);
+    });
+    return true;
+  }
+
+  /* =================================================================
+     3. CHECKING THE COSTING / ITINERARY / WEBSITE
+     ================================================================= */
+  function closedOn(name,dateStr){
+    try{var cd=JSON.parse(localStorage.getItem('travelClosedDays')||'{}')||{},d=day0(dateStr);if(!d)return false;
+      var base=String(name||'').split(' • ')[0];
+      return ['sic','ticket'].some(function(k){var l=cd[k]&&cd[k][base];return Array.isArray(l)&&l.indexOf(d.getDay())!==-1;});}catch(e){return false;}
+  }
+  function checkCosting(){
+    var out=[],ok=[],sv=(typeof services!=='undefined'&&Array.isArray(services))?services:[];
+    var name=($('personName')&&$('personName').value||'').trim(),date=$('travelDate')&&$('travelDate').value||'';
+    if(!sv.length){
+      var mine=(typeof savedCostings!=='undefined'&&Array.isArray(savedCostings)?savedCostings:[]).filter(function(r){return r&&(window.canSeeCosting?canSeeCosting(r):true);})
+        .sort(function(a,b){return String(b.updatedAt||'').localeCompare(String(a.updatedAt||''));}).slice(0,4);
+      say(L('The Costing Sheet is empty right now. Which costing shall I check?','अभी Costing Sheet खाली है। कौन-सी कॉस्टिंग जाँचूँ?'),mine.map(function(r){return {html:'<b>'+esc(r.costingNumber||'')+' · '+esc(r.name||'—')+'</b><small>'+esc(fmtD(r.date))+'</small>',
+        btns:[[L('🔎 Check this','🔎 ये जाँचो'),function(){openCosting(r.id);setTimeout(checkCosting,350);},1]]};}));
+      return;
+    }
+    var a=+($('dashAdults')&&$('dashAdults').value)||0,c=+($('dashChildren')&&$('dashChildren').value)||0;
+    var nights=+($('sheetNights')&&$('sheetNights').value)||0,today=iso(new Date());
+    if(!name)out.push(L('The <b>client name</b> is empty.','<b>क्लाइंट का नाम</b> खाली है।'));
+    else if(/^(test|abc|xyz|asdf|client|name|untitled)/i.test(name))out.push(L('The client name looks like a test: “'+esc(name)+'”.','क्लाइंट का नाम टेस्ट जैसा लगता है: “'+esc(name)+'”।'));
+    if(!date)out.push(L('The <b>travel date</b> is empty.','<b>यात्रा की तारीख</b> खाली है।'));
+    else if(date<today)out.push(L('The travel date <b>'+esc(fmtD(date))+'</b> is in the past.','यात्रा की तारीख <b>'+esc(fmtD(date))+'</b> बीत चुकी है।'));
+    if(a+c===0)out.push(L('No adults or children.','कोई बड़ा या बच्चा नहीं है।'));
+    if(!sv.length)out.push(L('No items added yet.','अभी कोई आइटम नहीं जोड़ा।'));
+    var end=date&&nights?addD(date,nights):'';
+    var seen={},hotN=0,hasHotel=false;
+    sv.forEach(function(s){
+      if(!s||s.linked)return;
+      var nm=esc(String(s.name||'').split(' • ')[0]),d=s.type==='Hotel'?(s.checkIn||''):(s.date||'');
+      if(s.type==='Hotel'){hasHotel=true;hotN+=(+s.nights||0);
+        if(date&&s.checkIn&&s.checkIn<date)out.push(L('Hotel <b>'+nm+'</b> check-in is before the travel date.','होटल <b>'+nm+'</b> का चेक-इन यात्रा की तारीख से पहले है।'));
+        if(end&&s.checkOut&&s.checkOut>end)out.push(L('Hotel <b>'+nm+'</b> check-out is after the trip ends ('+esc(fmtD(end))+').','होटल <b>'+nm+'</b> का चेक-आउट ट्रिप खत्म होने ('+esc(fmtD(end))+') के बाद है।'));
+        var hp=(+s.adults||0)+(+s.childWithBed||0)+(+s.childNoBed||0);if(hp&&hp!==a+c)out.push(L('Hotel <b>'+nm+'</b> is for '+hp+' people, the client has '+(a+c)+'.','होटल <b>'+nm+'</b> '+hp+' लोगों के लिए है, क्लाइंट में '+(a+c)+' हैं।'));
+      }
+      if(d&&date&&d<date)out.push(L('<b>'+nm+'</b> is on '+esc(fmtD(d))+' — before the trip starts.','<b>'+nm+'</b> की तारीख '+esc(fmtD(d))+' — ट्रिप शुरू होने से पहले।'));
+      if(d&&end&&d>end&&s.type!=='Hotel')out.push(L('<b>'+nm+'</b> is on '+esc(fmtD(d))+' — after the trip ends.','<b>'+nm+'</b> की तारीख '+esc(fmtD(d))+' — ट्रिप खत्म होने के बाद।'));
+      if(d&&closedOn(s.name,d))out.push(L('<b>'+nm+'</b> is <b>closed on '+dayName(d)+'</b> ('+esc(fmtD(d))+').','<b>'+nm+'</b> '+esc(fmtD(d))+' ('+dayName(d)+') को <b>बंद</b> रहता है।'));
+      var q=(+s.adultQty||0)+(+s.childQty||0);
+      if((s.type==='Ticket'||s.perPerson)&&q&&q!==a+c)out.push(L('<b>'+nm+'</b> is for '+q+' people, the client has '+(a+c)+'.','<b>'+nm+'</b> '+q+' लोगों के लिए है, क्लाइंट में '+(a+c)+' हैं।'));
+      if(s.paxA!=null&&((+s.paxA||0)+(+s.paxC||0))!==a+c)out.push(L('<b>'+nm+'</b> was made for '+((+s.paxA||0)+(+s.paxC||0))+' passengers, the client has '+(a+c)+' — check the vehicles.','<b>'+nm+'</b> '+((+s.paxA||0)+(+s.paxC||0))+' यात्रियों के लिए बना था, क्लाइंट में '+(a+c)+' हैं — गाड़ियाँ जाँचें।'));
+      if(typeof lineTotal==='function'&&!(lineTotal(s)>0)&&!/free/i.test(s.name||''))out.push(L('<b>'+nm+'</b> has <b>no price</b> (0).','<b>'+nm+'</b> की <b>कीमत 0</b> है।'));
+      var k=(s.name||'')+'|'+d;if(seen[k])out.push(L('<b>'+nm+'</b> is added twice on the same day.','<b>'+nm+'</b> एक ही दिन दो बार जुड़ा है।'));seen[k]=1;
+    });
+    if(nights&&hasHotel&&hotN&&hotN!==nights)out.push(L('The hotels add up to '+hotN+' nights, the trip has '+nights+'.','होटल की रातें '+hotN+' हैं, ट्रिप में '+nights+' रातें हैं।'));
+    if(nights&&!hasHotel&&sv.length)ok.push(L('No hotel in this costing (fine if the client books it).','इस कॉस्टिंग में होटल नहीं है (अगर क्लाइंट खुद बुक करे तो ठीक)।'));
+    var arr=sv.some(function(s){return /airport\s*[-–→]/i.test(s.name||'');}),dep=sv.some(function(s){return /[-–→]\s*[^•]*airport/i.test(s.name||'');});
+    if(sv.length&&!arr)ok.push(L('No arrival (airport → hotel) transfer.','आगमन (एयरपोर्ट → होटल) ट्रांसफ़र नहीं है।'));
+    if(sv.length&&!dep)ok.push(L('No departure (hotel → airport) transfer.','वापसी (होटल → एयरपोर्ट) ट्रांसफ़र नहीं है।'));
+    var uniq=out.filter(function(x,i){return out.indexOf(x)===i;});
+    if(!uniq.length&&!ok.length){say('✅ '+L('I checked the open costing — I found no mistakes.','मैंने खुली कॉस्टिंग जाँची — कोई गलती नहीं मिली।'));return;}
+    say((uniq.length?'🔎 <b>'+L('Mistakes in the open costing','खुली कॉस्टिंग में गलतियाँ')+' ('+uniq.length+'):</b><ul>'+uniq.map(function(x){return '<li>❌ '+x+'</li>';}).join('')+'</ul>':'✅ '+L('No mistakes found.','कोई गलती नहीं मिली।')+'<br>')
+      +(ok.length?'<b>'+L('Please also look at:','इन पर भी ध्यान दें:')+'</b><ul>'+ok.map(function(x){return '<li>⚠️ '+x+'</li>';}).join('')+'</ul>':''),null,
+      [[L('✏️ Go to the Costing Sheet','✏️ Costing Sheet पर जाएँ'),function(){showPage('dashboard');closeChatOnPhone();},1]]);
+  }
+  function checkItinerary(){
+    var f=$('itinFrame'),d=null;try{d=f&&f.contentDocument;}catch(e){}
+    if(!d||!d.querySelector('[data-f="client"],#cn')){say(L('Open <b>Create Itinerary</b> first, then ask me again.','पहले <b>Create Itinerary</b> खोलें, फिर दोबारा पूछें।'),null,[[L('🗺️ Open Create Itinerary','🗺️ Create Itinerary खोलें'),function(){showPage('itinerary');closeChatOnPhone();},1]]);return;}
+    var out=[],cl=d.querySelector('[data-f="client"]')||d.getElementById('cn'),st=d.querySelector('[data-f="start"]');
+    if(cl&&!String(cl.value||'').trim())out.push(L('The <b>client name</b> is empty.','<b>क्लाइंट का नाम</b> खाली है।'));
+    if(st&&!st.value)out.push(L('The <b>start date</b> is empty.','<b>शुरू की तारीख</b> खाली है।'));
+    else if(st&&st.value<iso(new Date()))out.push(L('The start date is in the past.','शुरू की तारीख बीत चुकी है।'));
+    var titles=[].slice.call(d.querySelectorAll('[data-f^="days."][data-f$=".title"]')),empty=titles.filter(function(t){return !String(t.value||'').trim();}).length;
+    if(empty)out.push(L(empty+' day(s) have no title / tour.',empty+' दिन में टाइटल / टूर नहीं है।'));
+    var ad=d.getElementById('ad');if(ad&&!(+ad.value>0))out.push(L('Adults is 0.','बड़े 0 हैं।'));
+    say(out.length?'🔎 <b>'+L('In the itinerary:','इटिनरेरी में:')+'</b><ul>'+out.map(function(x){return '<li>❌ '+x+'</li>';}).join('')+'</ul>':'✅ '+L('The itinerary looks fine (client, date, days).','इटिनरेरी ठीक लग रही है (क्लाइंट, तारीख, दिन)।'));
+  }
+  function storageUse(){var n=0;try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);n+=(k.length+(localStorage.getItem(k)||'').length)*2;}}catch(e){return -1;}return n;}
+  function checkWebsite(){
+    var out=[],good=[];
+    if(navigator.onLine===false)out.push(L('📴 <b>No internet</b> on this device. Saving to the cloud waits until it is back.','📴 इस डिवाइस पर <b>इंटरनेट नहीं है</b>। क्लाउड में सेव इंटरनेट आने पर होगा।'));else good.push(L('Internet: on','इंटरनेट: चालू'));
+    var probs=(window.__siteProblems||[]).slice(-8);
+    if(probs.length)out.push(L('⚠️ The website had <b>'+probs.length+' problem(s)</b> since it was opened:','⚠️ खुलने के बाद वेबसाइट में <b>'+probs.length+' दिक्कत</b> आई:')+'<ul>'+probs.map(function(p){return '<li><small>'+esc(p.t)+'</small> '+esc(friendly(p))+'</li>';}).join('')+'</ul>'+L('Pressing <b>Refresh</b> usually fixes it. If it keeps coming, send a screenshot of this to the admin.','<b>Refresh</b> दबाने से आमतौर पर ठीक हो जाता है। बार-बार आए तो इसका स्क्रीनशॉट एडमिन को भेजें।'));
+    else good.push(L('No website errors since it was opened','खुलने के बाद वेबसाइट में कोई error नहीं'));
+    var used=storageUse();
+    if(used>=0){var pct=Math.round(used/(5*1024*1024)*100);if(pct>=80)out.push(L('💾 Browser storage is <b>'+pct+'% full</b> — download a backup (Settings) and delete old drafts.','💾 ब्राउज़र स्टोरेज <b>'+pct+'% भर</b> गया है — सेटिंग्स से बैकअप लें और पुराने ड्राफ़्ट हटाएँ।'));else good.push(L('Browser storage: '+pct+'% used','ब्राउज़र स्टोरेज: '+pct+'% भरा'));}
+    else out.push(L('💾 This browser blocks saving (private window?). Work is not kept after closing.','💾 ये ब्राउज़र सेव नहीं करने देता (प्राइवेट विंडो?)। बंद करने पर काम नहीं बचेगा।'));
+    var who='';try{who=localStorage.getItem('travelCurrentUserKey')||'';}catch(e){}
+    if(!who)out.push(L('🔒 You are not logged in.','🔒 आप लॉग इन नहीं हैं।'));else good.push(L('Logged in','लॉग इन है'));
+    var m=say('🩺 <b>'+L('Website check','वेबसाइट जाँच')+'</b>'+(out.length?'<ul>'+out.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>':'<br>')+'<small>✅ '+good.map(esc).join(' · ')+'</small>');
+    /* newer version? */
+    if(/^https?:$/.test(location.protocol))fetch('assets/version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(j){
+      if(!m||!j||!j.build)return;var d=document.createElement('div');d.className='hx-tours';
+      d.innerHTML=j.build!==window.SITE_BUILD?'🔄 '+L('A <b>newer version</b> of the website is out — press Refresh.','वेबसाइट का <b>नया वर्शन</b> आ गया है — Refresh दबाएँ।'):'✅ '+L('This is the newest version.','ये सबसे नया वर्शन है।');
+      m.appendChild(d);
+    }).catch(function(){});
+    seenProblems=(window.__siteProblems||[]).length;badge();
+  }
+  function friendly(p){
+    var t=String(p.m||'');
+    if(/network|fetch|internet|offline|failed to fetch/i.test(t))return L('Could not reach the internet / cloud.','इंटरनेट / क्लाउड तक नहीं पहुँच पाए।');
+    if(/permission|denied|unauth|403/i.test(t))return L('The cloud refused (login expired?). Log out and log in again.','क्लाउड ने मना किया (लॉग इन पुराना?)। लॉग आउट करके फिर लॉग इन करें।');
+    if(/quota|storage|setItem/i.test(t))return L('Browser storage is full.','ब्राउज़र स्टोरेज भर गया।');
+    if(p.k==='file')return L('A file did not load: ','एक फ़ाइल लोड नहीं हुई: ')+t;
+    return t.slice(0,140);
+  }
+
+  /* =================================================================
+     4. THE ASSISTANT
+     ================================================================= */
+  function handle(q){
+    var m=norm(q);
+    var how=/\b(kaise|kese|how|kya hota|meaning|matlab)\b|कैसे/.test(m);
+    /* a trip that is being made: answers to my questions / changes */
+    if(plan){
+      if(/^\s*(cancel|stop|nahi|nahin|no|rehne do|rahne do|chhodo|chodo|band karo|mat banao)\s*$/.test(m)){plan=null;say(L('OK, cancelled. Nothing was changed.','ठीक है, रद्द कर दिया। कुछ नहीं बदला।'));return true;}
+      if(/^\s*(yes|haan|han|ha|ok|okay|theek hai|thik hai|done|banao|bana do|create|make it|go|chalo|kar do|kardo)\s*$/.test(m)){if(!missing(plan).length){make(!!plan.wantItin);}else showPlan();return true;}
+      if(!thailandOnly(m)){
+        var before=JSON.stringify(plan);readInto(plan,q);
+        if(/^\s*(with )?(tours?|sightseeing) ?(bhi|also|add|daalo|dalo|karo|kro)?\s*$/.test(m))plan.wantTours=true;
+        /* only a name was asked for: “rahul sharma” */
+        if(!plan.name&&/^\s*[a-z]{2,}( [a-z]{2,}){1,3}\s*$/i.test(String(q).trim())&&!citiesIn(m).length&&!/\b(help|hello|hi|hey|ok|thanks|thank|dhanyawad|shukriya|open|kholo|khol|show|dikhao|batao|bata|kaise|kese|how|what|kya|kab|kahan|kaha|where|why|go|jao|chalo|check|dark|light|mode|theme|settings?|page|home|costing|costings|itinerary|voucher|pdf|word|rates?|price|help|login|logout|save|new|nayi|naya|delete|band|cancel|nahi|haan|yes|no|please|plz)\b/.test(m))plan.name=String(q).trim().split(/\s+/).map(function(w){return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase();}).join(' ');
+        if(JSON.stringify(plan)!==before){showPlan();return true;}
+      }
+    }
+    if(/\b(what can you do|kya kya kar|kya kar sakte|kya kar skte|aap kya karte|tum kya kar|your features|help me)\b/.test(m)){abilities();return true;}
+    /* checks */
+    var CHK=/\b(check|chek|galt|galat|galti|galtiyan|mistakes?|errors?|problems?|issues?|dikkat|gadbad|kharab|jaanch|janch|verify|review|sahi hai|thik hai kya|theek hai kya|not working|nahi chal|slow)\b|जाँच|गलती|गड़बड़/;
+    if(!how&&CHK.test(m)&&(/\b(website|site|app|web)\b|वेबसाइट/.test(m)||/^\s*(errors?|problems?|kya problem hai|kya dikkat hai|kuch gadbad hai)\s*$/.test(m))){checkWebsite();return true;}
+    if(!how&&CHK.test(m)&&/\b(itinerary|itenary|itinary|itinery|voucher)\b|इटिनरेरी/.test(m)){checkItinerary();return true;}
+    if(!how&&CHK.test(m)&&(/\b(costing|costings|quotation|quote|sheet|package)\b|कॉस्टिंग/.test(m)||/^\s*(check|check karo|check kro|galti batao|galtiyan batao|mistakes?|kya galat hai|kya galti hai)\s*$/.test(m))&&!looksLikeTrip(m)){checkCosting();return true;}
+    /* make a costing */
+    if(looksLikeTrip(m)){plan=readInto({},q);showPlan();return true;}
+    /* advice: a day-by-day plan */
+    if(/\b(plan|itinerary idea|kya kya kare|kya karen|kya kare|what to do|ghoomna|ghumna|ghume|ghoome|schedule)\b/.test(m)&&parseStops(m).length&&(parseStops(m).some(function(s){return s.n!=null;})||totalNights(m)!=null)&&!how){if(dayPlan(m))return true;}
+    return false;
+  }
+  function thailandOnly(m){
+    return TOPIC.some(function(t){return t.k.test(m);})&&!parsePax(m).a&&!parseDate(m)&&!parseStops(m).some(function(s){return s.n!=null;});
+  }
+  function abilities(){
+    say(L('I can <b>do</b> these for you — just type (or press 🎤 and speak):','मैं ये काम <b>खुद</b> कर सकता हूँ — बस लिखिए (या 🎤 दबाकर बोलिए):')+'<ul>'
+      +'<li>🧾 '+L('<b>Make a costing</b> + itinerary: “Rahul Sharma 2 adults 1 child 10 Dec Phuket 3N Krabi 2N Phi Phi tour”','<b>कॉस्टिंग</b> + इटिनरेरी बनाऊँ: “Rahul Sharma 2 adults 1 child 10 Dec Phuket 3N Krabi 2N Phi Phi tour”')+'</li>'
+      +'<li>🗓️ '+L('<b>Day-by-day plan</b>: “Phuket 4 night plan”','<b>दिन-ब-दिन प्लान</b>: “Phuket 4 night plan”')+'</li>'
+      +'<li>🇹🇭 '+L('<b>Thailand</b>: places, travel times, visa, baht, weather, SIM, food, rules, shopping …','<b>थाईलैंड</b>: जगहें, सफ़र का समय, वीज़ा, बाट, मौसम, सिम, खाना, नियम, शॉपिंग …')+'</li>'
+      +'<li>🔎 '+L('<b>Check my costing</b> / <b>check itinerary</b> — I find the mistakes','<b>costing check karo</b> / <b>itinerary check karo</b> — मैं गलतियाँ बताऊँ')+'</li>'
+      +'<li>🩺 '+L('<b>Website check</b> — what is wrong (internet, errors, storage, version)','<b>website check</b> — क्या गड़बड़ है (इंटरनेट, error, स्टोरेज, वर्शन)')+'</li>'
+      +'<li>📂 '+L('“open Sachin”, “COST-001 itinerary”, “Tiger Park price”, “upcoming trips”, “dark mode”','“Sachin kholo”, “COST-001 ka itinerary”, “Tiger Park ka rate”, “aane wale trips”, “dark mode”')+'</li>'
+      +'<li>❓ '+L('and every “how do I …?” question about the website','और वेबसाइट का हर “… kaise kare?” सवाल')+'</li></ul>'
+      +'<small>'+L('I work inside the website and know Thailand, our tours and your saved rates. I am not an internet AI, so for things outside these I may not have the answer.','मैं वेबसाइट के अंदर चलता हूँ और थाईलैंड, हमारे टूर और आपके सेव रेट जानता हूँ। मैं इंटरनेट वाला AI नहीं हूँ, इसलिए इनके बाहर की बातों का जवाब शायद न दे पाऊँ।')+'</small>',null,
+      [[L('🧾 Make a costing','🧾 कॉस्टिंग बनाओ'),function(){ask(hi()?'nayi costing banao':'make a new costing');},1],[L('🔎 Check my costing','🔎 कॉस्टिंग जाँचो'),function(){ask(hi()?'costing check karo':'check my costing');}],[L('🩺 Website check','🩺 वेबसाइट जाँच'),function(){ask('website check');}],[L('🇹🇭 Thailand','🇹🇭 थाईलैंड'),function(){ask('Thailand');}]]);
+  }
+  /* order: making / checking (here) → the older actions (open a costing, prices, pages, new costing) → Thailand → the help answers */
+  function inner(text){
+    var done=false,m=norm(text);
+    try{
+      done=handle(text);
+      /* a place asked about (“Phuket”, “Phuket ke bare me batao”) is a Thailand question, not a price search */
+      var cs=citiesIn(m),priceQ=/(price|rate|rates|kimat|keemat|daam|kitne ka|kitne ki|charges?|kitna hai|\s-\s|airport\s*-|hotel\s*-)/.test(m);
+      if(!done&&cs.length&&!priceQ&&(new RegExp('^\\s*('+cityById(cs[0].id).n.join('|')+')\\s*$').test(m)||/(about|bare|baare|batao|bataiye|jankari|jaankari|info|ghoom|ghum|places|jagah|dekh|famous|kaise ja|kese ja|best time|kab ja|mausam|weather|kitne din|kitni raat|how many|how long|how to (go|reach)|what to (see|do)|kya kare|kya karen|kya dekhe)/.test(m)||(cs.length>=2&&/(door|\bdur\b|distance|far|ghante|hours|kitna time|kitni der|how long|kaise|kese|how|travel|reach|pahunch)/.test(m))))done=thailand(text);
+      if(!done&&typeof window.chatbotAssistant==='function'){
+        var newC=/\b(new|nayi|naya|nai|fresh|start|shuru)\b.{0,15}\b(costing|quotation|quote)\b|\b(costing|quotation)\b.{0,10}\b(new|nayi|naya)\b/.test(m);
+        done=!!window.chatbotAssistant(text);
+        if(done&&newC)say('💡 '+L('Tip: tell me the whole trip in one line and I fill the Costing Sheet for you — e.g. “Rahul Sharma 2 adults 10 Dec Phuket 3N Krabi 2N”.','टिप: पूरी ट्रिप एक लाइन में बताइए, मैं Costing Sheet खुद भर दूँगा — जैसे “Rahul Sharma 2 adults 10 Dec Phuket 3N Krabi 2N”।'));
+      }
+      if(!done)done=thailand(text);
+    }catch(e){console.error('Help chat smart assistant failed:',e);}
+    if(!done&&aiOn()&&!(typeof window.chatbotRank==='function'&&window.chatbotRank(text).length)){askAI(text);return;}
+    if(!done)runPrev(text);
+    aiTurns.push({role:'user',content:String(text).slice(0,2000)});
+  }
+  /* ---- the AI server (only when HIPPO_AI_URL is set; see ai-worker/README.md) ---- */
+  var aiTurns=[];
+  function aiOn(){return !!window.HIPPO_AI_URL&&/^https:\/\//.test(window.HIPPO_AI_URL)&&navigator.onLine!==false&&typeof window.cloudToken==='function';}
+  function aiHtml(t){
+    var lines=esc(t).replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').split(/\n/),out=[],ul=false;
+    lines.forEach(function(l){var b=/^\s*(?:[-•*]|\d+[.)])\s+(.*)$/.exec(l);if(b){if(!ul){out.push('<ul>');ul=true;}out.push('<li>'+b[1]+'</li>');}else{if(ul){out.push('</ul>');ul=false;}if(l.trim())out.push(l+'<br>');}});
+    if(ul)out.push('</ul>');return out.join('').replace(/(<br>)+$/,'');
+  }
+  function askAI(text){
+    var body=$('chatbotBody'),dots=document.createElement('div');dots.className='chatbot-msg bot typing';dots.innerHTML='<i></i><i></i><i></i>';if(body){body.appendChild(dots);body.scrollTop=body.scrollHeight;}
+    var turns=aiTurns.concat([{role:'user',content:String(text).slice(0,2000)}]).slice(-10);
+    var ctl=window.AbortController?new AbortController():null,timer=setTimeout(function(){if(ctl)ctl.abort();},45000);
+    Promise.resolve(window.cloudToken()).then(function(id){
+      if(!id||!id.token)throw new Error('login');
+      return fetch(window.HIPPO_AI_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+id.token},body:JSON.stringify({messages:turns,lang:hi()?'hi':'en'}),signal:ctl?ctl.signal:undefined});
+    }).then(function(r){return r.json().catch(function(){return {};}).then(function(j){return {ok:r.ok,j:j};});}).then(function(x){
+      clearTimeout(timer);dots.remove();
+      if(!x.ok||!x.j||typeof x.j.text!=='string'){
+        runPrev(text);
+        say('<small>ℹ️ '+L('The AI could not answer just now','AI अभी जवाब नहीं दे पाया')+(x.j&&x.j.error?' — '+esc(x.j.error):'')+'</small>');
+        return;
+      }
+      var t=x.j.text.trim();
+      aiTurns=turns.concat([{role:'assistant',content:t.slice(0,2000)}]).slice(-10);
+      var pl=/^\s*PLAN:\s*(.+)$/im.exec(t);
+      if(pl){plan=readInto({},pl[1]);showPlan();return;}
+      say(aiHtml(t)+'<br><small class="hx-ai">✨ '+L('Answer by AI — please check important details.','AI का जवाब — ज़रूरी बातें एक बार जाँच लें।')+'</small>');
+    }).catch(function(e){
+      clearTimeout(timer);dots.remove();
+      runPrev(text);
+      if(!/login/.test(String(e&&e.message)))say('<small>ℹ️ '+L('The AI could not be reached, so this is the normal answer.','AI तक नहीं पहुँच पाए, इसलिए ये सामान्य जवाब है।')+'</small>');
+    });
+  }
+  /* the older assistant shows the question itself: give it the text without showing it twice */
+  function runPrev(text){
+    var add=window.chatbotAddMsg,skip=true;
+    window.chatbotAddMsg=function(h,cls){if(skip&&cls==='user'){skip=false;return null;}return add.apply(this,arguments);};
+    try{prevAsk(text);}finally{window.chatbotAddMsg=add;}
+  }
+  window.chatbotAsk=function(text){chatbotAddMsg(esc(text),'user',false);setTimeout(function(){inner(text);},120);};
+  window.chatbotAsk.__inner=inner;
+  window.chatbotQuickAsk=function(btn){var q=btn.getAttribute('data-kw')||btn.textContent;if(/what can you do/i.test(q)){chatbotAddMsg(esc(btn.textContent),'user',false);abilities();return;}prevQuick(btn);};
+  window.chatbotSmart={handle:handle,parse:function(t){return readInto({},t);},build:function(t){return build(readInto({},t));},check:checkCosting,site:checkWebsite,plan:function(){return plan;}};
+
+  /* quick buttons for the new things */
+  function chips(){
+    var q=$('chatbotQuick');if(!q||q.querySelector('.cb-smart'))return;
+    [[L('🧾 Make a costing','🧾 कॉस्टिंग बनाओ'),hi()?'nayi costing banao':'make a new costing'],[L('🔎 Check my costing','🔎 कॉस्टिंग जाँचो'),hi()?'costing check karo':'check my costing'],[L('🇹🇭 Thailand info','🇹🇭 थाईलैंड जानकारी'),'Thailand'],[L('🩺 Website check','🩺 वेबसाइट जाँच'),'website check']].forEach(function(c,i){
+      var b=document.createElement('button');b.type='button';b.className='cb-smart';b.textContent=c[0];
+      b.onclick=function(){ask(c[1]);};
+      var can=q.querySelector('.cb-can');q.insertBefore(b,can?can.nextSibling:q.firstChild);
+      if(can&&i>0){var prev=q.querySelectorAll('.cb-smart');q.insertBefore(b,prev[prev.length-1].nextSibling);}
+    });
+  }
+  var ps=window.chatbotSetLanguage;
+  if(typeof ps==='function')window.chatbotSetLanguage=function(){var r=ps.apply(this,arguments);[].forEach.call(document.querySelectorAll('#chatbotQuick .cb-smart'),function(x){x.remove();});chips();return r;};
+
+  /* =================================================================
+     5. 🎤 SPEAK THE QUESTION
+     ================================================================= */
+  (function(){
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition,row=$('chatbotInputRow'),inp=$('chatbotInput');
+    if(!SR||!row||!inp)return;
+    var b=document.createElement('button');b.type='button';b.className='hx-mic';b.setAttribute('aria-label','Speak your question');b.title='Speak / बोलिए';b.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg>';
+    row.insertBefore(b,row.lastElementChild);
+    var rec=null,on=false;
+    function stop(){on=false;b.classList.remove('on');try{rec&&rec.stop();}catch(e){}}
+    b.addEventListener('click',function(){
+      if(on){stop();return;}
+      try{try{speechSynthesis.cancel();}catch(e){}
+        rec=new SR();rec.lang=hi()?'hi-IN':'en-IN';rec.interimResults=true;rec.maxAlternatives=1;
+        var said='';
+        rec.onresult=function(e){said='';for(var i=0;i<e.results.length;i++)said+=e.results[i][0].transcript;inp.value=said;};
+        rec.onerror=function(e){stop();var w=e&&e.error;
+          say(w==='not-allowed'||w==='service-not-allowed'?L('🎤 The microphone is blocked. Allow it in the browser (the 🔒 next to the address), then try again.','🎤 माइक की अनुमति नहीं है। ब्राउज़र में (पते के पास 🔒) अनुमति दें, फिर दोबारा कोशिश करें।'):w==='no-speech'?L('🎤 I did not hear anything — please try again.','🎤 कुछ सुनाई नहीं दिया — दोबारा बोलिए।'):w==='network'?L('🎤 Speaking needs the internet in this browser.','🎤 इस ब्राउज़र में बोलकर पूछने के लिए इंटरनेट चाहिए।'):L('🎤 The microphone did not work here. Please type instead.','🎤 यहाँ माइक नहीं चला। कृपया लिखकर पूछें।'));};
+        rec.onend=function(){var was=on;stop();if(was&&said.trim()){inp.value='';chatbotAsk(said.trim());}};
+        rec.start();on=true;b.classList.add('on');
+      }catch(e){stop();say(L('🎤 The microphone did not work here. Please type instead.','🎤 यहाँ माइक नहीं चला। कृपया लिखकर पूछें।'));}
+    });
+  })();
+
+  /* =================================================================
+     6. THE ROUND CHAT BUTTON AT THE BOTTOM (like other chat bots)
+        It never sits on a button or a box: it moves to the edge then.
+     ================================================================= */
+  var fab=$('chatbotFab'),seenProblems=0;
+  function badge(){if(!fab)return;var n=(window.__siteProblems||[]).length-seenProblems;fab.classList.toggle('has-alert',n>0);fab.setAttribute('aria-label',n>0?L('Open the help chat — the website had a problem','हेल्प चैट खोलें — वेबसाइट में दिक्कत आई'):L('Open the help chat','हेल्प चैट खोलें'));}
+  window.__siteProblemAdded=badge;
+  if(fab){
+    fab.title='Help chat';
+    fab.innerHTML='<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 4v-4h0A1.5 1.5 0 0 1 4 14.5z"/><path d="M8.5 9.5h7M8.5 12.5h4.5"/></svg><i class="hx-dot" aria-hidden="true"></i>';
+    function appOpen(){
+      var g=$('loginGate');if(g){var cs=getComputedStyle(g);if(cs.display!=='none'&&cs.visibility!=='hidden'&&!g.classList.contains('hide'))return false;}
+      var lk=$('idleLock');if(lk&&lk.classList.contains('show'))return false;
+      var w=$('welcomeScreen');if(w&&getComputedStyle(w).display!=='none'&&getComputedStyle(w).visibility!=='hidden'&&+getComputedStyle(w).opacity>0.05)return false;
+      var p=$('chatbotPanel');if(p&&p.classList.contains('show'))return false;
+      return true;
+    }
+    function place(){
+      var on=appOpen();fab.classList.toggle('fab-on',on);
+      if(!on)return;
+      var bar=$('easyBar'),bh=0;
+      if(bar&&!bar.hidden){var cs=getComputedStyle(bar);if(cs.display!=='none'&&cs.visibility!=='hidden'){var r=bar.getBoundingClientRect();if(r.height>0&&r.top<innerHeight&&r.bottom>innerHeight-6)bh=innerHeight-r.top;}}
+      var ib=document.querySelector('.itin-bar,#itinBar');if(!bh&&ib&&ib.getClientRects().length){var r2=ib.getBoundingClientRect();if(r2.height>0&&r2.top<innerHeight&&r2.bottom>innerHeight-6)bh=innerHeight-r2.top;}
+      var base=innerWidth<=600?14:22;
+      fab.style.setProperty('bottom',(bh?Math.round(bh+12):base)+'px','important');
+      /* something to press under it: tuck it to the edge */
+      var T=fab.getBoundingClientRect(),over=false,pad=4;
+      if(!fab.classList.contains('fab-tuck')){
+        var scope=document.querySelector('.page.active')||document.body;
+        var cand=[].slice.call(scope.querySelectorAll('button,a[href],input,select,textarea,[role="button"],[contenteditable="true"]')).concat([].slice.call(document.querySelectorAll('.sitefooter a[href],.sitefooter .foot-version,.sitefooter b')));
+        for(var i=0;i<cand.length&&!over;i++){var e=cand[i];if(e===fab||fab.contains(e))continue;var r=e.getBoundingClientRect();
+          if(r.width<2||r.height<2||r.bottom<T.top-pad||r.top>T.bottom+pad||r.right<T.left-pad||r.left>T.right+pad)continue;
+          if(!e.getClientRects().length||getComputedStyle(e).visibility==='hidden')continue;over=true;}
+        fab.classList.toggle('fab-tuck',over);
+      }else{
+        /* tucked: come back when the spot is empty again */
+        fab.classList.remove('fab-tuck');var T2=fab.getBoundingClientRect();fab.classList.add('fab-tuck');
+        var scope2=document.querySelector('.page.active')||document.body,free=true;
+        [].slice.call(scope2.querySelectorAll('button,a[href],input,select,textarea,[role="button"]')).concat([].slice.call(document.querySelectorAll('.sitefooter a[href],.sitefooter .foot-version,.sitefooter b'))).some(function(e){if(e===fab)return false;var r=e.getBoundingClientRect();
+          if(r.width<2||r.height<2||r.bottom<T2.top-pad||r.top>T2.bottom+pad||r.right<T2.left-pad||r.left>T2.right+pad)return false;if(!e.getClientRects().length||getComputedStyle(e).visibility==='hidden')return false;free=false;return true;});
+        if(free)fab.classList.remove('fab-tuck');
+      }
+    }
+    window.__fabSpace=function(){return fab.classList.contains('fab-on')?fab.offsetHeight+12:0;};   /* also when it is tucked at the edge: the back-to-top button stays above it */
+    var pt=0;function soon(){clearTimeout(pt);pt=setTimeout(place,120);}
+    window.addEventListener('scroll',soon,{passive:true});window.addEventListener('resize',soon,{passive:true});
+    document.addEventListener('click',function(){setTimeout(place,380);},true);
+    ['showPage','finishLogin','logoutUser','toggleChatbot'].forEach(function(fn){var p=window[fn];if(typeof p==='function')window[fn]=function(){var r=p.apply(this,arguments);setTimeout(place,60);setTimeout(place,700);return r;};});
+    [$('loginGate'),$('chatbotPanel'),$('idleLock'),$('welcomeScreen')].forEach(function(n){if(n)new MutationObserver(soon).observe(n,{attributes:true,attributeFilter:['class','style']});});
+    fab.addEventListener('click',function(){seenProblems=(window.__siteProblems||[]).length;var had=fab.classList.contains('has-alert');setTimeout(function(){if(had&&$('chatbotPanel').classList.contains('show')){if(!chatbotLang)return;checkWebsite();}badge();},400);});
+    fab.addEventListener('focus',function(){fab.classList.remove('fab-tuck');});
+    setInterval(function(){if(!document.hidden)place();},1500);
+    setTimeout(place,300);
+  }
+  chips();
+})();}catch(err){console.error('Help chat smart assistant failed to start:',err);}
 </script>
 <script>
 /* =====================================================================
