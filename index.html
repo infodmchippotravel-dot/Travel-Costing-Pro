@@ -17775,14 +17775,20 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
     for(var a=0;a<p.length;a++)for(var c=a+1;c<p.length;c++){
       var key=(land?'L':'G')+a+'_'+c;
       if(!p[a]||!p[c]){touching[key]=false;continue;}
-      /* "meet" = the two planes pass very close (about one plane apart) */
-      var d=Math.hypot(p[a].x-p[c].x,p[a].y-p[c].y),near=d<Math.max((p[a].s+p[c].s)*0.42,62);
+      /* "meet" = a full hit: the middles of the two planes are on top of each other (passing close by is not a hit) */
+      var d=Math.hypot(p[a].x-p[c].x,p[a].y-p[c].y),near=d<Math.max(Math.min(p[a].s,p[c].s)*0.5,8);
       var mx=(p[a].x+p[c].x)/2,my=(p[a].y+p[c].y)/2,inside=mx>24&&mx<innerWidth-24&&my>24&&my<innerHeight-24&&!overCard(mx,my,land);
-      if(near&&inside&&!touching[key]&&!(now-(last[key]||0)<2500)){last[key]=now;burst(box,mx,my);}
+      if(near&&inside&&!touching[key]&&!(now-(last[key]||0)<2500)){last[key]=now;burst(box,mx,my,true);gone(els[a]);gone(els[c]);window.hippoFullHits=(window.hippoFullHits||0)+1;}
       touching[key]=near;
     }
   }
-  setInterval(check,70);
+  setInterval(check,40);
+  /* a plane that was hit is gone after the burst; a plane that flies in a loop comes back on its next trip */
+  function gone(e){
+    if(!e||e.getAnimations===undefined||e.closest('svg'))return;          /* planes on a line (logo orbit, route) keep flying their line */
+    e.style.visibility='hidden';var back=function(){e.style.visibility='';e.removeEventListener('animationiteration',back);clearTimeout(e.__hb);};
+    e.addEventListener('animationiteration',back);clearTimeout(e.__hb);e.__hb=setTimeout(back,40000);
+  }
 
   /* --- planes that fly along a line (logo orbit, Log in route, Welcome) keep flying after their screen was hidden and shown again
          (the browser stops redrawing them while hidden; giving their clock its own time again wakes them up) --- */
@@ -17860,7 +17866,7 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
       an.oncancel=an.onfinish;
     });
   }
-  setInterval(function(){if(rnd()<0.55)flyPair();},2200);
+  setInterval(function(){if(rnd()<0.8)flyPair();},1800);
 
   /* --- the old first-page planes get hit too: a plane comes from the right, straight at one of them, and both meet in a burst --- */
   var hitBusy=false;
@@ -17884,16 +17890,27 @@ body.dark #blockedPeopleBox{background:#2a1414;border-color:#6b2a2a}body.dark #b
         mx=cx;v2=vv;tm=tt;
       }
       if(mx===null){hitBusy=false;return;}
-      var lr=sky.getBoundingClientRect(),e=document.createElement('span');e.className='x-plane hit';e.setAttribute('aria-hidden','true');e.innerHTML=PLANE;sky.appendChild(e);
-      var from='translate('+(start-lr.left)+'px,'+(y-lr.top)+'px) rotate(180deg) scale(1,-1)',to='translate('+(mx-lr.left)+'px,'+(y-lr.top)+'px) rotate(180deg) scale(1,-1)';
-      var an=e.animate([{transform:from,opacity:0},{opacity:.9,offset:.05},{transform:to,opacity:.9}],{duration:tm*1000,easing:'linear',fill:'forwards'});
-      an.onfinish=an.oncancel=function(){
+      var e=document.createElement('span');e.className='x-plane hit';e.setAttribute('aria-hidden','true');e.innerHTML=PLANE;sky.appendChild(e);
+      /* the new plane flies at its own steady speed and turns towards the old plane all the time; the burst comes only when their middles meet */
+      var px=start,py=y,t0=performance.now(),prev=t0,ended=false;
+      function place(op){var lr=sky.getBoundingClientRect(),c=t.getBoundingClientRect(),ty=c.top+c.height/2,ang=Math.atan2(ty-py,(c.left+c.width/2)-px)*180/Math.PI;
+        e.style.transform='translate('+(px-lr.left)+'px,'+(py-lr.top)+'px) rotate('+ang+'deg) scale(1,-1)';e.style.opacity=op;}
+      function end(hit){if(ended)return;ended=true;
         var rr=t.getBoundingClientRect(),g=document.getElementById('loginGate');
-        if(g.classList.contains('lg-landing')&&!document.hidden&&rr.width){burst(hero,(rr.left+rr.width/2+mx)/2,rr.top+rr.height/2,true);window.hippoOldHits=(window.hippoOldHits||0)+1;
+        if(hit&&g.classList.contains('lg-landing')&&!document.hidden&&rr.width){burst(hero,rr.left+rr.width/2,rr.top+rr.height/2,true);window.hippoOldHits=(window.hippoOldHits||0)+1;
           /* the plane that was hit is gone after the burst; it flies again on its next trip from the left */
           t.style.visibility='hidden';var back=function(){t.style.visibility='';t.removeEventListener('animationiteration',back);clearTimeout(t.__hb);};t.addEventListener('animationiteration',back);t.__hb=setTimeout(back,40000);}
-        if(e.parentNode)e.parentNode.removeChild(e);setTimeout(function(){hitBusy=false;},2500);
-      };
+        if(e.parentNode)e.parentNode.removeChild(e);setTimeout(function(){hitBusy=false;},2500);}
+      place(0);
+      (function step(now){
+        if(ended)return;var g=document.getElementById('loginGate');
+        if(document.hidden||!g.classList.contains('lg-landing')||now-t0>tm*1000+4000){end(false);return;}
+        var c=t.getBoundingClientRect();if(!c.width||t.style.visibility==='hidden'){end(false);return;}
+        var tx=c.left+c.width/2,ty=c.top+c.height/2,dx=tx-px,dy=ty-py,dd=Math.hypot(dx,dy),mv=v2*Math.min(0.05,(now-prev)/1000);prev=now;
+        if(dd<=Math.max(mv,4)){px=tx;py=ty;place(.9);end(true);return;}
+        px+=dx/dd*mv;py+=dy/dd*mv;place(Math.min(.9,(now-t0)/300));
+        requestAnimationFrame(step);
+      })(t0);
     },250);
   }
   setInterval(function(){if(rnd()<0.6)hitOld();},1800);
