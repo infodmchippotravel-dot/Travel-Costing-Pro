@@ -4511,7 +4511,8 @@ function showWelcomeScreen(isNew){
          The voices are loaded when the page opens; if this phone has not loaded them yet, its own English voice speaks
          instead of waiting for them (waiting made the welcome come 2–3 seconds late on phones). */
       if(typeof chatbotPickFemaleVoice==='function'){let v=chatbotPickFemaleVoice('en-US');if(v){utter.voice=v;utter.lang=v.lang;}}
-      synth.speak(utter);
+      /* the website's own clear voice when it is chosen for this browser and already loaded */
+      if(!(window.hxSiteVoice&&window.hxSiteVoice.welcome(greeting+', '+name+'!')))synth.speak(utter);
     }catch(e){}
   }
 }
@@ -16326,7 +16327,7 @@ try{(function(){
   }
   function stop(){try{synth.cancel();}catch(e){}keep=[];speakingBtnText=null;}
   /* 🔊 reads the whole message as it is now (with the costing cards under it), not only its first line */
-  var lastMsg=null,lastAt=0;
+  var lastMsg=null,lastAt=0,curBtn=null;
   document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.chatbot-voice-btn');if(b){lastMsg=b.closest('.chatbot-msg');lastAt=Date.now();}},true);
   function msgText(){
     if(!lastMsg||Date.now()-lastAt>800)return null;
@@ -16337,15 +16338,16 @@ try{(function(){
   }
   window.chatbotSpeak=function(text){
     var whole=msgText();if(whole)text=whole;
-    if(speakingBtnText===text&&(synth.speaking||synth.pending)){stop();return;}
-    stop();
+    curBtn=lastMsg&&Date.now()-lastAt<800?lastMsg.querySelector('.chatbot-voice-btn'):null;
+    if(speakingBtnText===text&&(synth.speaking||synth.pending||SV.busy())){stop();return;}
+    stop();SV.prime();
     var wantHi=hi()||/[ऀ-ॿ]/.test(String(text||'').replace(/<[^>]*>/g,''));
     var t=clean(text,wantHi);if(!t)return;
     speakingBtnText=text;
     ready().then(function(){say(t,wantHi,text);});
   };
-  /* speak t: the best (or chosen) voice, short parts, a little slower than normal */
-  function say(t,wantHi,tag){
+  /* speak t with this device's voices: the best (or chosen) voice, short parts, a little slower than normal */
+  function sayDevice(t,wantHi,tag){
     var voice=null,lang='en-US',romanised=false,pool;
     if(wantHi){
       voice=pick('hi');lang='hi-IN';
@@ -16378,7 +16380,161 @@ try{(function(){
     }
     go(0,voice);
   }
-  window.chatbotVoiceTest={clean:clean,roman:roman,parts:parts,best:best,pick:pick,score:score};
+  /* ---------- the website's own voice: the same clear voice in every browser (Brave, Firefox …) ----------
+     Kokoro-82M (Apache-2.0) runs on this device in a background worker (assets/voice). Nothing is sent anywhere.
+     It is downloaded once (about 105 MB) and then kept by the browser. */
+  var SV=(function(){
+    var ws=[],ready=[],state='off',pct=0,why='',gen=0,ac=null,srcs=[],nextAt=0,left=0,onDone=null,cached=null,subs=[],pend={},want=0;
+    var URL_W='assets/voice/hx-voice-worker.mjs?v='+encodeURIComponent(window.SITE_BUILD||'1');
+    var MODEL_URL=new URL('assets/voice/model/kokoro-q8.onnx',location.href).href;
+    var mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'')||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    var can=typeof Worker==='function'&&typeof WebAssembly==='object'&&!!(window.AudioContext||window.webkitAudioContext)&&location.protocol!=='file:';
+    /* a computer with 4+ cores and enough memory makes the next sentence on a second helper, so there are fewer pauses */
+    var two=!mobile&&(navigator.hardwareConcurrency||2)>=4&&!(navigator.deviceMemory&&navigator.deviceMemory<4);
+    function tell(){subs.forEach(function(f){try{f();}catch(e){}});}
+    function isCached(){
+      if(cached!==null)return Promise.resolve(cached);
+      try{return caches.open('hx-voice-v1').then(function(c){return c.match(MODEL_URL);}).then(function(r){cached=!!r;return cached;},function(){cached=false;return false;});}
+      catch(e){cached=false;return Promise.resolve(false);}
+    }
+    function fail(m){state='failed';why=String(m||'');ws.forEach(function(w){try{w.terminate();}catch(e){}});ws=[];ready=[];tell();console.warn('Website voice is not available here:',why);}
+    function start(first){
+      var w;
+      try{w=new Worker(URL_W,{type:'module'});}catch(e){if(first)fail(e&&e.message);return;}
+      ws.push(w);
+      w.onmessage=function(e){
+        var d=e.data||{};
+        if(d.type==='progress'){if(first){pct=d.total?Math.round(d.loaded*100/d.total):0;tell();}}
+        else if(d.type==='ready'){
+          ready.push(w);
+          if(first){state='ready';cached=true;pct=100;tell();if(two)start(false);}
+        }
+        else if(d.type==='failed'){if(first)fail(d.message);else{ws=ws.filter(function(x){return x!==w;});try{w.terminate();}catch(_){}}}
+        else if(d.type==='audio'){if(d.gen===gen)got(d.i,d.pcm);}
+        else if(d.type==='error'){if(d.gen===gen&&onDone){var f=onDone.err;stopAudio();if(f)f(d.i,d.message);}}
+      };
+      w.onerror=function(e){if(first&&state!=='ready')fail((e&&e.message)||'the voice could not start');};
+      w.postMessage({type:'load'});
+    }
+    function load(){
+      if(!can){state='failed';why='not supported';return;}
+      if(ws.length||state==='failed')return;
+      state='loading';pct=0;tell();
+      start(true);
+    }
+    /* sound may only start after a tap: the sound player is made / woken up during the tap */
+    function prime(){
+      try{if(!ac){var A=window.AudioContext||window.webkitAudioContext;ac=new A();}if(ac.state==='suspended')ac.resume();}catch(e){}
+    }
+    /* parts can be ready out of turn (two helpers): they are played in order */
+    function got(i,pcm){pend[i]=pcm;while(pend[want]!==undefined){var x=pend[want];delete pend[want];want++;play(x);}}
+    function play(pcm){
+      if(!ac||!pcm||!pcm.length){part();return;}
+      try{
+        var buf=ac.createBuffer(1,pcm.length,24000);buf.getChannelData(0).set(pcm);
+        var s=ac.createBufferSource();s.buffer=buf;s.connect(ac.destination);
+        var at=Math.max(ac.currentTime+0.05,nextAt);s.start(at);nextAt=at+buf.duration+0.18;   /* a short pause between parts */
+        if(onDone&&onDone.start){var f0=onDone.start;onDone.start=null;f0();}
+        srcs.push(s);s.onended=function(){srcs=srcs.filter(function(x){return x!==s;});part();};
+      }catch(e){part();}
+    }
+    function part(){if(--left<=0&&onDone){var f=onDone.end;onDone=null;if(f)f();}}
+    function stopAudio(){
+      ws.forEach(function(w){w.postMessage({type:'cancel',gen:gen});});
+      gen++;srcs.forEach(function(s){try{s.onended=null;s.stop();}catch(e){}});srcs=[];nextAt=0;left=0;onDone=null;pend={};want=0;
+    }
+    /* say these parts; end() when all are said, err(i) when part i could not be made, start() when the sound begins */
+    function speak(bits,lang,rate,end,err,begin){
+      stopAudio();prime();
+      var g=gen;left=bits.length;onDone={end:end,err:err,start:begin};
+      bits.forEach(function(b,i){ready[i%ready.length].postMessage({type:'say',gen:g,i:i,text:b,lang:lang,speed:rate});});
+    }
+    return {
+      can:function(){return can&&state!=='failed';},state:function(){return state;},pct:function(){return pct;},why:function(){return why;},
+      mobile:mobile,load:load,prime:prime,speak:speak,stop:stopAudio,isCached:isCached,helpers:function(){return ready.length;},
+      busy:function(){return !!onDone||srcs.length>0;},on:function(f){subs.push(f);}
+    };
+  })();
+  /* which voice to use: the person's choice, else the website's voice when this browser has no clear one
+     (Brave, Firefox, a Windows PC with only the old voices). Phones keep their own voices (Google / Apple are clear). */
+  function devGood(key){var l=list(key);return !!(l[0]&&score(l[0])>=20);}
+  function engine(key){
+    var e=pref().engine;
+    if(e==='device'||!SV.can())return 'device';
+    if(e==='site')return 'site';
+    return (!SV.mobile&&!devGood(key))?'site':'device';
+  }
+  var dlNote=null;
+  function dlText(){
+    var H=hi(),s=SV.state();
+    if(s==='ready')return H?'✅ वेबसाइट की साफ़ आवाज़ तैयार है — अब यही आवाज़ बोलेगी।':'✅ The website’s clear voice is ready — it speaks from now on.';
+    if(s==='failed')return H?'⚠️ वेबसाइट की साफ़ आवाज़ इस ब्राउज़र में नहीं चल पाई, इसलिए इस डिवाइस की आवाज़ बोल रही है।':'⚠️ The website’s clear voice could not run in this browser, so this device’s voice is speaking.';
+    return (H?'🔊 इस ब्राउज़र में साफ़ आवाज़ नहीं है, इसलिए वेबसाइट की अपनी साफ़ आवाज़ आ रही है (सिर्फ़ पहली बार, लगभग 105 MB): ':'🔊 This browser has no clear voice, so the website’s own clear voice is being downloaded (first time only, about 105 MB): ')
+      +SV.pct()+'%'+(H?' — तब तक इस डिवाइस की आवाज़।':' — until then, this device’s voice.');
+  }
+  SV.on(function(){
+    if(dlNote&&document.body.contains(dlNote)){dlNote.innerHTML='<small>'+dlText()+'</small>';if(SV.state()!=='loading')dlNote=null;}
+    if(panel){var st=panel.querySelector('.hx-vst');if(st)st.textContent=siteStatus();}
+  });
+  function showDl(){
+    if(dlNote)return;
+    try{dlNote=chatbotAddMsg('<small>'+dlText()+'</small>','bot system')||null;}catch(e){}
+  }
+  /* speak t: the website's voice or this device's voice */
+  function say(t,wantHi,tag){
+    var key=wantHi?'hi':'en';
+    if(engine(key)!=='site')return sayDevice(t,wantHi,tag);
+    var st=SV.state();
+    if(st==='ready')return saySite(t,wantHi,tag);
+    if(st==='off'||st==='loading'){
+      SV.load();
+      SV.isCached().then(function(c){
+        if(SV.state()==='ready')return saySite(t,wantHi,tag);
+        if(c&&SV.state()==='loading'){   /* already downloaded: it is ready in a moment */
+          var tries=0;(function w(){if(speakingBtnText!==tag)return;if(SV.state()==='ready')return saySite(t,wantHi,tag);if(SV.state()==='failed'||++tries>40)return sayDevice(t,wantHi,tag);setTimeout(w,150);})();
+          return;
+        }
+        if(SV.state()==='loading')showDl();
+        sayDevice(t,wantHi,tag);
+      });
+      return;
+    }
+    sayDevice(t,wantHi,tag);
+  }
+  var waiting=null;
+  function saySite(t,wantHi,tag){
+    if(speakingBtnText!==tag)return;
+    /* one sentence at a time (the next one is made while this one plays); a short first part, so the sound starts sooner */
+    var bits=[];
+    t.replace(/([.!?।:;])\s+/g,'$1\n').split('\n').forEach(function(b){
+      b=b.trim();
+      while(b.length>120){var k=b.lastIndexOf(',',110);if(k<40)k=b.lastIndexOf(' ',110);if(k<40)k=110;bits.push(b.slice(0,k+1));b=b.slice(k+1).trim();}
+      if(b)bits.push(b);
+    });
+    bits=bits.filter(function(x){return /[\wऀ-ॿ]/.test(x);});
+    if(bits.length&&bits[0].length>55){var b0=bits[0],k=b0.lastIndexOf(',',50);if(k<20)k=b0.lastIndexOf(' ',45);if(k>=20)bits.splice(0,1,b0.slice(0,k+1),b0.slice(k+1).trim());}
+    if(!bits.length)return;
+    var rate=(wantHi?0.95:1)*speed();
+    /* ⏳ on the 🔊 button while the first words are being made */
+    var btn=tag===speakingBtnText?curBtn:null;
+    function unwait(){if(btn&&btn.classList.contains('hx-wait')){btn.classList.remove('hx-wait');btn.textContent='🔊';btn.removeAttribute('aria-busy');}}
+    if(btn){btn.classList.add('hx-wait');btn.textContent='⏳';btn.setAttribute('aria-busy','true');}
+    waiting=unwait;
+    SV.speak(bits,wantHi?'hi':'en',rate,function(){unwait();if(speakingBtnText===tag)speakingBtnText=null;},
+      function(i,msg){unwait();console.warn('Website voice: part could not be made, this device speaks the rest:',msg);if(speakingBtnText===tag)sayDevice(bits.slice(i).join(' '),wantHi,tag);},
+      unwait);
+  }
+  /* every "stop speaking" in the website (chat closed, sounds off, logout, microphone) also stops the website's voice */
+  try{var oc=synth.cancel.bind(synth);synth.cancel=function(){SV.stop();if(waiting){var w=waiting;waiting=null;w();}return oc();};}catch(e){}
+  window.hxSiteVoice={
+    engine:engine,state:SV.state,
+    /* the welcome after login: the website's voice when it is chosen and already loaded on this page */
+    welcome:function(text){
+      if(engine('en')!=='site'||SV.state()!=='ready')return false;
+      var t=clean(text,false);speakingBtnText='__welcome';saySite(t,false,'__welcome');return true;
+    }
+  };
+  window.chatbotVoiceTest={clean:clean,roman:roman,parts:parts,best:best,pick:pick,score:score,engine:engine,site:SV};
   /* ---------- 🔊 voice settings in the chat: the person can choose the voice and the speed ---------- */
   var SPEEDS=[[0.85,'Slow','धीमा'],[1,'Normal','सामान्य'],[1.15,'Fast','तेज़']];
   function short(v){
@@ -16396,23 +16552,44 @@ try{(function(){
     var cur=noHi?(chosen('hi',pool)||best('en','en-in',true)||pool[0]):pick(key),id=pref()[key]||'';
     panel=document.createElement('div');panel.className='hx-vset';panel.id='hxVoiceSet';panel.setAttribute('role','group');panel.setAttribute('aria-label',H?'आवाज़ की सेटिंग':'Voice settings');
     var opts='<option value="">'+esc((H?'अपने आप — सबसे साफ़: ':'Automatic — clearest: ')+(pool[0]?short(pool[0]):'-'))+'</option>'+pool.map(function(v){var k=v.voiceURI||v.name;return '<option value="'+esc(k)+'"'+(k===id?' selected':'')+'>'+esc(short(v))+'</option>';}).join('');
+    var en=pref().engine||'auto',inUse=engine(key);
+    var engOpts=[['auto',(H?'अपने आप — अभी: ':'Automatic — now: ')+(inUse==='site'?(H?'वेबसाइट की आवाज़':'website voice'):(H?'डिवाइस की आवाज़':'device voice'))],
+      ['site',H?'वेबसाइट की साफ़ आवाज़':'Website’s clear voice'],
+      ['device',H?'इस डिवाइस की आवाज़':'This device’s voice']];
     panel.innerHTML='<b class="hx-vt">'+(H?'आवाज़ की सेटिंग':'Voice settings')+'</b>'
-      +(pool.length?'<label class="hx-vl">'+(H?'आवाज़':'Voice')+'<select class="hx-vsel">'+opts+'</select></label>'
+      +(SV.can()?'<label class="hx-vl">'+(H?'कौन-सी आवाज़':'Which voice')+'<select class="hx-veng">'+engOpts.map(function(o){return '<option value="'+o[0]+'"'+(o[0]===en?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select></label>'
+        +'<p class="hx-vn hx-vst" aria-live="polite">'+esc(siteStatus())+'</p>':'')
+      +(inUse==='site'?'':pool.length?'<label class="hx-vl">'+(H?'आवाज़':'Voice')+'<select class="hx-vsel">'+opts+'</select></label>'
         :'<p class="hx-vn">'+(H?'इस फ़ोन / ब्राउज़र में कोई आवाज़ नहीं है।':'This phone / browser has no voice.')+'</p>')
-      +(noHi?'<p class="hx-vn">'+'इस फ़ोन / ब्राउज़र में हिंदी आवाज़ नहीं है, इसलिए हिंदी ऊपर चुनी Indian-English आवाज़ में बोली जाती है। साफ़ हिंदी आवाज़ (एक बार): <b>Android</b> — Settings → Text-to-speech → Google → Install voice data → Hindi. <b>Windows</b> — Settings → Time &amp; language → Speech → Add voices → Hindi, या Microsoft Edge में खोलें. <b>iPhone</b> — Settings → Accessibility → Spoken Content → Voices → Hindi.'+'</p>':'')
+      +(noHi&&inUse!=='site'?'<p class="hx-vn">'+'इस फ़ोन / ब्राउज़र में हिंदी आवाज़ नहीं है, इसलिए हिंदी ऊपर चुनी Indian-English आवाज़ में बोली जाती है। साफ़ हिंदी आवाज़ (एक बार): <b>Android</b> — Settings → Text-to-speech → Google → Install voice data → Hindi. <b>Windows</b> — Settings → Time &amp; language → Speech → Add voices → Hindi, या Microsoft Edge में खोलें. <b>iPhone</b> — Settings → Accessibility → Spoken Content → Voices → Hindi.'+'</p>':'')
       +'<div class="hx-vl" role="group" aria-label="'+(H?'बोलने की रफ़्तार':'Speed')+'"><span>'+(H?'रफ़्तार':'Speed')+'</span><div class="hx-vsp">'+SPEEDS.map(function(x){return '<button type="button" data-s="'+x[0]+'" aria-pressed="'+(Math.abs(speed()-x[0])<0.01)+'">'+(H?x[2]:x[1])+'</button>';}).join('')+'</div></div>'
       +'<div class="hx-vact"><button type="button" class="hx-vtest">'+(H?'सुनकर देखें':'Test the voice')+'</button><button type="button" class="hx-vdone">'+(H?'ठीक है':'Done')+'</button></div>';
     var head=document.querySelector('#chatbotPanel .chatbot-head');head.insertAdjacentElement('afterend',panel);
     if(vbtn)vbtn.setAttribute('aria-expanded','true');
     var sel=panel.querySelector('.hx-vsel');
-    if(sel)sel.addEventListener('change',function(){var p=pref();if(sel.value)p[key]=sel.value;else delete p[key];savePref(p);test();});
+    if(sel)sel.addEventListener('change',function(){var p=pref();if(sel.value){p[key]=sel.value;p.engine='device';}else delete p[key];savePref(p);var e2=panel.querySelector('.hx-veng');if(e2)e2.value=p.engine||'auto';test();});   /* a voice picked from this list = this device's voice */
+    var eng=panel.querySelector('.hx-veng');
+    if(eng)eng.addEventListener('change',function(){
+      var p=pref();if(eng.value==='auto')delete p.engine;else p.engine=eng.value;savePref(p);
+      if(engine(key)==='site')SV.load();
+      openSet();var e3=panel&&panel.querySelector('.hx-veng');if(e3)e3.focus();   /* shown again: the device voice list only with the device voice */
+      test();
+    });
     [].forEach.call(panel.querySelectorAll('.hx-vsp button'),function(b){b.addEventListener('click',function(){var p=pref();p.speed=+b.getAttribute('data-s');savePref(p);[].forEach.call(panel.querySelectorAll('.hx-vsp button'),function(x){x.setAttribute('aria-pressed',String(x===b));});test();});});
     panel.querySelector('.hx-vtest').addEventListener('click',test);
     panel.querySelector('.hx-vdone').addEventListener('click',function(){closeSet();try{vbtn.focus();}catch(e){}});
-    (sel||panel.querySelector('.hx-vtest')).focus();
+    (sel||panel.querySelector('.hx-veng')||panel.querySelector('.hx-vtest')).focus();
   }
+  function siteStatus(){
+    var H=hi(),s=SV.state();
+    if(s==='ready')return H?'वेबसाइट की आवाज़ तैयार है ✅ (हर ब्राउज़र में एक जैसी)।':'Website voice ready ✅ (the same in every browser).';
+    if(s==='loading')return (H?'वेबसाइट की आवाज़ डाउनलोड हो रही है: ':'Downloading the website voice: ')+SV.pct()+'%'+(H?' (सिर्फ़ पहली बार)।':' (first time only).');
+    if(s==='failed')return H?'वेबसाइट की आवाज़ इस ब्राउज़र में नहीं चलती, इसलिए डिवाइस की आवाज़ बोलेगी।':'The website voice does not run in this browser, so the device voice speaks.';
+    return H?'वेबसाइट की आवाज़: पहली बार लगभग 105 MB, फिर ब्राउज़र में सेव। आवाज़ इसी डिवाइस पर बनती है।':'Website voice: about 105 MB the first time, then saved. Made on this device; nothing is sent.';
+  }
+
   function test(){
-    stop();var H=hi();
+    stop();SV.prime();curBtn=null;var H=hi();
     var t=clean(H?'नमस्ते! मैं आपकी कॉस्टिंग ऐसे पढ़ूँगा: फुकेत 3N, 10 Dec (Thu), ₹4,800.':'Hello! This is how I will read your costing: Phuket 3N, 10 Dec (Thu), ₹4,800.',H);
     speakingBtnText='__test';ready().then(function(){say(t,H,'__test');});
   }
@@ -16426,7 +16603,10 @@ try{(function(){
     }
     /* another language or the chat closed: close the settings */
     var ps=window.chatbotSetLanguage;if(typeof ps==='function')window.chatbotSetLanguage=function(){var r=ps.apply(this,arguments);closeSet();return r;};
-    var tc=window.toggleChatbot;if(typeof tc==='function')window.toggleChatbot=function(){var r=tc.apply(this,arguments);var pn=document.getElementById('chatbotPanel');if(pn&&!pn.classList.contains('show'))closeSet();return r;};
+    var tc=window.toggleChatbot;if(typeof tc==='function')window.toggleChatbot=function(){var r=tc.apply(this,arguments);var pn=document.getElementById('chatbotPanel');if(pn&&!pn.classList.contains('show'))closeSet();
+      /* chat opened: get the website's voice ready when it is already saved in this browser (nothing is downloaded here) */
+      else if(pn&&engine(hi()?'hi':'en')==='site'&&SV.state()==='off')SV.isCached().then(function(c){if(c)SV.load();});
+      return r;};
   }catch(e){}
   /* the welcome voice after login uses the same, clearest (or chosen) English voice */
   window.chatbotPickFemaleVoice=function(code){var c=String(code||'en-US').toLowerCase();return c.indexOf('hi')===0?pick('hi'):pick('en');};
@@ -16459,6 +16639,10 @@ try{(function(){
 .hx-vset .hx-vsp button[aria-pressed="true"]{background:var(--navy,#0B1F3A);border-color:var(--navy,#0B1F3A);color:#fff}
 .hx-vset .hx-vtest{flex:1 1 auto;background:linear-gradient(135deg,var(--blue),#38b6e0)!important;color:#fff!important;border:0!important}
 .hx-vset button:focus-visible,.hx-vset select:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+/* ⏳ while the website's voice makes the first words */
+.chatbot-msg .chatbot-voice-btn.hx-wait{animation:hxWait 1.2s ease-in-out infinite}
+@keyframes hxWait{50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.chatbot-msg .chatbot-voice-btn.hx-wait{animation:none}}
 /* 🎤 */
 #chatbotInputRow .hx-mic{flex:0 0 auto;width:44px;min-height:44px;padding:0;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:18px;cursor:pointer}
 #chatbotInputRow .hx-mic{display:grid;place-items:center}
