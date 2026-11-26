@@ -17292,9 +17292,82 @@ try{(function(){
       +'<small>'+L('I work inside the website and know Thailand, our tours and your saved rates. I am not an internet AI, so for things outside these I may not have the answer.','मैं वेबसाइट के अंदर चलता हूँ और थाईलैंड, हमारे टूर और आपके सेव रेट जानता हूँ। मैं इंटरनेट वाला AI नहीं हूँ, इसलिए इनके बाहर की बातों का जवाब शायद न दे पाऊँ।')+'</small>',null,
       [[L('🧾 Make a costing','🧾 कॉस्टिंग बनाओ'),function(){ask(hi()?'nayi costing banao':'make a new costing');},1],[L('🔎 Check my costing','🔎 कॉस्टिंग जाँचो'),function(){ask(hi()?'costing check karo':'check my costing');}],[L('🩺 Website check','🩺 वेबसाइट जाँच'),function(){ask('website check');}],[L('🇹🇭 Thailand','🇹🇭 थाईलैंड'),function(){ask('Thailand');}]]);
   }
+  /* ---- normal talk: hi, hello, how are you, thanks, bye, who are you … (English, Hinglish, Hindi) ---- */
+  function firstName(){
+    try{var k=localStorage.getItem('travelCurrentUserKey')||'';var u=(JSON.parse(localStorage.getItem('travelLoginUsers')||'{}')||{})[k];
+      var n=String(u&&u.name||'').trim().split(/\s+/)[0]||'';if(!n&&/^admin/.test(k))n='';return n.length>1&&n.length<25?n:'';}catch(e){return '';}
+  }
+  function partOfDay(){var h=new Date().getHours();return h<12?0:h<17?1:2;}
+  var GREET='(hi+|hii+|hello+|helo+|hellow|hallo|hey+|hiya|heya|yo|namaste|namastey|namaskar|namaskaar|pranam|parnam|ram ram|jai shri krishna|jai shree krishna|radhe radhe|jai shri ram|jai shree ram|salam|salaam|assalamualaikum|asalam alaikum|sat sri akal|good ?morning|good ?afternoon|good ?evening|gm|नमस्ते|नमस्कार|प्रणाम|राम राम|हाय|हेलो|हैलो)';
+  var ADDR='(\\s+(sir|ji|jee|bhai|bhaiya|dost|friend|bot|hippo|assistant|there|madam|mam|maam|dear|buddy|yaar|everyone|all|सर|जी|भाई))*';
+  var RX={
+    greet:new RegExp('^'+GREET+ADDR+'$'),
+    greetLead:new RegExp('^'+GREET+ADDR+'\\s+'),
+    how:/^((and |aur )?(how are you|how r u|how are u|how ru|hru|how are you doing|how r you|how you doing|how is it going|hows it going|how is everything|how do you do|whats up|what s up|wassup|sup|kaise ho|kaise hain|kaise hai|kaise ho aap|aap kaise ho|aap kaise hain|aap kaise hai|tum kaise ho|kaisi ho|kese ho|kaisa hai|kya haal hai|kya hal hai|kya haal|kya hal|kya haal chaal|haal chaal|kaisa chal raha hai|kya chal raha hai|sab theek|sab thik|sab badhiya|sab badiya|all good|aap theek ho|आप कैसे हैं|आप कैसे हो|कैसे हो|कैसे हैं|क्या हाल है|सब ठीक)(\s+(hai|ho|na|ji|sir|bhai|yaar|aap|today|aaj|\?))*)$/,
+    fine:/^((i am|i m|im|main|mai|me|mein|hum)\s+)?(also\s+|bhi\s+)?(fine|good|great|well|very good|very well|doing good|doing well|doing great|all good|badhiya|badiya|mast|theek|thik|thik thak|theek thaak|accha|achha|acha|ekdum badhiya|bilkul theek|ठीक|बढ़िया|अच्छा)(\s+(hoon|hu|hun|hai|hain|too|also|bhi|thanks|thank you|and you|aur aap|aap batao|tum batao|ji|sir|ho))*$/,
+    thanks:/^(ok\s+|okay\s+|achha\s+|accha\s+)?(thank you|thank u|thankyou|thanku|thanks|thanx|thnx|thx|tnx|ty|tysm|thank you so much|thanks a lot|many thanks|shukriya|shukria|dhanyavad|dhanyawad|dhanyabad|dhanywad|bahut shukriya|meherbani|धन्यवाद|शुक्रिया)(\s+(so much|a lot|sir|ji|bhai|yaar|dost|bot|hippo|very much|again|for help|for the help|aapka|bahut))*$/,
+    bye:/^(ok\s+|okay\s+|achha\s+|accha\s+|chalo\s+)?(bye+|bye bye|goodbye|good bye|see you|see ya|see you later|cya|tata|ta ta|alvida|phir milenge|fir milenge|good night|gn|shubh ratri|फिर मिलेंगे|अलविदा|शुभ रात्रि)(\s+(sir|ji|bhai|yaar|dost|then|tab|now|ab))*$/,
+    who:/(who are you|who r u|what is your name|whats your name|what s your name|your name|tum kaun ho|aap kaun ho|aap kon ho|tum kon ho|kaun ho|kon ho|tumhara naam|aapka naam|apka naam|tera naam|naam kya hai|आप कौन|तुम कौन|आपका नाम|तुम्हारा नाम)/,
+    robot:/(are you (a |an )?(robot|bot|human|person|machine|real|ai|chatgpt|computer)|r u (a )?(robot|bot|human)|kya (tum|aap) (robot|insaan|insan|ai|machine|bot) ho|robot ho|insaan ho|insan ho|real ho)/,
+    doing:/^(what are you doing|wyd|kya kar rahe ho|kya kar rahe hain|kya kar rhe ho|kya karte ho|क्या कर रहे हो)$/,
+    okay:/^(ok+|okay|okey|k|kk|hmm+|hm+|achha|accha|acha|achcha|theek hai|thik hai|thik h|theek h|cool|nice|great|good|super|wow|awesome|perfect|badhiya|badiya|mast|done|got it|samjha|samajh gaya|samajh gayi|samaj gaya|samjh gaya|alright|fine|ठीक है|अच्छा)(\s+(hai|ji|sir|thanks|yaar|bhai|good|ok|okay))*$/,
+    sorry:/^(sorry|so sorry|i am sorry|maaf karna|maaf kijiye|maafi|sorry yaar|sorry sir|माफ़ करना|सॉरी)$/,
+    praise:/(you are (so |very |really )?(good|great|nice|smart|awesome|best|amazing|helpful|clever)|you're (good|great|awesome|smart)|good job|well done|great job|nice work|bahut (accha|achha|badhiya|badiya|mast) (hai|ho|kaam)|very good|very nice|love you|i love you|you are cute|tum acche ho|aap acche ho)/,
+    angry:/(useless|bekar|bekaar|bakwas|bakvas|stupid|idiot|faltu|worst|pagal|dumb|bad bot|kuch nahi aata|kuch nhi aata|you dont know|you don t know|not helpful|no use|bekar hai|बेकार|बकवास)/,
+    joke:/(\bjoke\b|jokes|chutkula|chutkule|majak|mazak|mazaak|funny|hasao|hasaao|चुटकुला)/,
+    time:/(what time|time kya|kitne baje|kitna baja|samay kya|time batao|current time|time now)/,
+    date:/(today'?s? date|todays date|what is the date|what date|aaj (ki )?(date|tarikh|tareekh)|aaj kya (date|din|tarikh)|what day is (it|today)|aaj kaun sa din|which day is today|date batao|tarikh batao)/
+  };
+  function talkClean(t){return String(t||'').toLowerCase().replace(/[’`]/g,"'").replace(/[.,!?;:"“”()…~*]+/g,' ').replace(/'/g,'').replace(/\s+/g,' ').trim();}
+  var JOKES=[
+    ['Why did the suitcase go to Thailand? It needed a little <i>pad thai</i> after being packed so long! 😄','सूटकेस थाईलैंड क्यों गया? इतने दिन पैक रहकर उसे भी थोड़ा आराम चाहिए था! 😄'],
+    ['I told my client the Phi Phi tour leaves at 7 AM. He asked, “Can the island come at 10?” 😄','मैंने क्लाइंट से कहा Phi Phi टूर सुबह 7 बजे निकलेगा। बोले — “आइलैंड को 10 बजे बुला लो ना!” 😄'],
+    ['Why do travel agents never get lost? Because they always have an <b>itinerary</b>! 😄','ट्रैवल एजेंट कभी रास्ता क्यों नहीं भूलते? क्योंकि उनके पास हमेशा <b>इटिनरेरी</b> होती है! 😄'],
+    ['A tourist asked the elephant for a selfie. The elephant said, “Only with my trunk in it!” 🐘','एक टूरिस्ट ने हाथी से सेल्फ़ी माँगी। हाथी बोला — “सूंड के बिना नहीं!” 🐘']
+  ];
+  var helpBtns=function(){return [[L('🤖 What can you do?','🤖 आप क्या कर सकते हो?'),function(){abilities();},1],[L('🧾 Make a costing','🧾 कॉस्टिंग बनाओ'),function(){ask(hi()?'nayi costing banao':'make a new costing');}]];};
+  /* true = answered; a string = the rest of the message after “hi …” (answered by the other parts) */
+  function smallTalk(text){
+    var t=talkClean(text);if(!t)return false;
+    var n=firstName(),nm=n?' '+esc(n):'',pd=partOfDay();
+    var hello=[['Good morning','सुप्रभात'],['Good afternoon','नमस्ते'],['Good evening','शुभ संध्या']][pd];
+    if(RX.greet.test(t)){
+      var gm=/morning|gm/.test(t)?['Good morning','सुप्रभात']:/afternoon/.test(t)?['Good afternoon','नमस्ते']:/evening/.test(t)?['Good evening','शुभ संध्या']:/namaste|namaskar|pranam|parnam|नमस्ते|नमस्कार|प्रणाम/.test(t)?['Namaste','नमस्ते']:/ram ram|राम राम/.test(t)?['Ram Ram','राम राम']:/radhe/.test(t)?['Radhe Radhe','राधे राधे']:/krishna/.test(t)?['Jai Shri Krishna','जय श्री कृष्ण']:/jai shr[ie]+ ram/.test(t)?['Jai Shri Ram','जय श्री राम']:/sat sri/.test(t)?['Sat Sri Akal','सत श्री अकाल']:/salam|salaam|alaikum/.test(t)?['Walaikum Assalam','वालेकुम अस्सलाम']:['Hello','नमस्ते'];
+      say('👋 '+L(gm[0]+nm+'! Nice to see you. How can I help you today?<br>You can ask me to <b>make a costing</b>, <b>check a costing</b>, or anything about <b>Thailand</b> or this website.',gm[1]+nm+'! आपसे मिलकर अच्छा लगा। आज मैं आपकी क्या मदद करूँ?<br>आप मुझसे <b>कॉस्टिंग बनवा</b> सकते हैं, <b>कॉस्टिंग जँचवा</b> सकते हैं, या <b>थाईलैंड</b> और इस वेबसाइट के बारे में कुछ भी पूछ सकते हैं।'),null,helpBtns());
+      return true;
+    }
+    /* “hi, how are you” / “hello how do I add a hotel” */
+    var lead=RX.greetLead.exec(t);if(lead){var rest=t.slice(lead[0].length).trim();if(rest&&!RX.how.test(rest))return String(text).replace(new RegExp('^\\s*'+GREET+ADDR+'[\\s,!.]*','i'),'').trim()||rest;t=rest;}
+    if(RX.how.test(t)){
+      say('😊 '+L('I am fine, thank you'+nm+'! I am always ready to help. How are you?<br>Tell me what you need — a costing, an itinerary, or any Thailand question.','मैं बिल्कुल ठीक हूँ, धन्यवाद'+nm+'! आपकी मदद के लिए हमेशा तैयार हूँ। आप कैसे हैं?<br>बताइए क्या चाहिए — कॉस्टिंग, इटिनरेरी या थाईलैंड का कोई सवाल।'));
+      return true;
+    }
+    if(plan&&(RX.okay.test(t)||RX.fine.test(t)))return false;   /* “ok” while a costing is being made = yes, make it */
+    var aboutMe=/^(i am|i m|im|main|mai|me|mein|hum)\b|\b(hoon|hu|hun)\b|^(fine|very good|very well|doing)/.test(t);
+    if(RX.fine.test(t)&&(aboutMe||!RX.okay.test(t))){say('😊 '+L('Great to hear that! What shall we do now?','ये सुनकर अच्छा लगा! अब क्या करें?'),null,helpBtns());return true;}
+    if(RX.thanks.test(t)){say('🙏 '+L('You are most welcome'+nm+'! Happy to help — ask me anytime.','आपका स्वागत है'+nm+'! मदद करके खुशी हुई — कभी भी पूछिए।'));return true;}
+    if(RX.bye.test(t)){var night=/night|gn|ratri|रात्रि/.test(t)||pd===2&&new Date().getHours()>=21;say('👋 '+L(night?'Good night'+nm+'! Sleep well. I am here whenever you need me.':'Bye'+nm+'! Have a nice day. I am here whenever you need me.',night?'शुभ रात्रि'+nm+'! आराम से सोइए। जब भी ज़रूरत हो, मैं यहीं हूँ।':'फिर मिलेंगे'+nm+'! आपका दिन अच्छा रहे। जब भी ज़रूरत हो, मैं यहीं हूँ।'));return true;}
+    if(RX.robot.test(t)){say('🤖 '+L('I am not a person — I am the <b>Hippo Help Assistant</b>, a helper program inside this website. I work offline inside your browser, so I do not send your questions anywhere. For anything I cannot answer, please call our team.','मैं कोई इंसान नहीं हूँ — मैं <b>हिप्पो हेल्प असिस्टेंट</b> हूँ, इस वेबसाइट के अंदर का एक मददगार प्रोग्राम। मैं आपके ब्राउज़र के अंदर ही चलता हूँ, आपके सवाल कहीं नहीं भेजता। जो मैं न बता पाऊँ, उसके लिए हमारी टीम को कॉल करें।'));return true;}
+    if(RX.who.test(t)){say('🤖 '+L('I am the <b>Hippo Help Assistant</b> of Hippo Travel. I can make costings and itineraries, find mistakes, tell you about Thailand and help with this website.','मैं हिप्पो ट्रैवल का <b>हिप्पो हेल्प असिस्टेंट</b> हूँ। मैं कॉस्टिंग और इटिनरेरी बना सकता हूँ, गलतियाँ ढूँढ सकता हूँ, थाईलैंड के बारे में बता सकता हूँ और इस वेबसाइट में मदद कर सकता हूँ।'),null,helpBtns());return true;}
+    if(RX.doing.test(t)){say('😊 '+L('Waiting to help you! Shall I make a costing or answer a Thailand question?','आपकी मदद के लिए तैयार बैठा हूँ! कॉस्टिंग बनाऊँ या थाईलैंड का कोई सवाल?'),null,helpBtns());return true;}
+    if(RX.sorry.test(t)){say('😊 '+L('No problem at all! How can I help?','कोई बात नहीं! बताइए क्या मदद करूँ?'));return true;}
+    if(RX.okay.test(t)){say('👍 '+L('Okay! Anything else I can do for you?','ठीक है! और कुछ मदद करूँ?'),null,helpBtns());return true;}
+    if(RX.angry.test(t)&&t.split(' ').length<=8){say('🙏 '+L('Sorry that I could not help properly. Please tell me in simple words what you need, or check the website for problems. You can also call our team:','माफ़ कीजिए, मैं ठीक से मदद नहीं कर पाया। आसान शब्दों में बताइए क्या चाहिए, या वेबसाइट की जाँच कर लें। आप हमारी टीम को कॉल भी कर सकते हैं:')+' 📞 063506 06267 / +91 91166 06780',null,[[L('🩺 Website check','🩺 वेबसाइट जाँच'),function(){checkWebsite();},1],[L('🤖 What can you do?','🤖 आप क्या कर सकते हो?'),function(){abilities();}]]);return true;}
+    if(RX.praise.test(t)&&t.split(' ').length<=8){say('😊 '+L('Thank you so much! That makes me happy. What next?','बहुत-बहुत धन्यवाद! सुनकर खुशी हुई। अब क्या करें?'));return true;}
+    if(RX.joke.test(t)&&t.split(' ').length<=6){var j=JOKES[Math.floor(Math.random()*JOKES.length)];say(L(j[0],j[1]));return true;}
+    if(RX.time.test(t)&&t.split(' ').length<=6){var d=new Date();say('🕒 '+L('It is ','अभी ')+d.toLocaleTimeString(hi()?'hi-IN':'en-IN',{hour:'numeric',minute:'2-digit'})+L(' now (on this device).',' बजे हैं (इस डिवाइस के समय से)।'));return true;}
+    if(RX.date.test(t)&&t.split(' ').length<=7){say('📅 '+L('Today is ','आज ')+new Date().toLocaleDateString(hi()?'hi-IN':'en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+L('.',' है।'));return true;}
+    return false;
+  }
   /* order: making / checking (here) → the older actions (open a costing, prices, pages, new costing) → Thailand → the help answers */
   function inner(text){
-    var done=false,m=norm(text);
+    var done=false,m;
+    try{
+      var st=smallTalk(text);
+      if(st===true){aiTurns.push({role:'user',content:String(text).slice(0,2000)});return;}
+      if(typeof st==='string'&&st.trim())text=st;
+    }catch(e){console.error('Help chat small talk failed:',e);}
+    m=norm(text);
     try{
       done=handle(text);
       /* a place asked about (“Phuket”, “Phuket ke bare me batao”) is a Thailand question, not a price search */
