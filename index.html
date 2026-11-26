@@ -4510,7 +4510,7 @@ function showWelcomeScreen(isNew){
       /* spoken at once, while the Start/Login press still counts (phones only allow speech right after a tap).
          The voices are loaded when the page opens; if this phone has not loaded them yet, its own English voice speaks
          instead of waiting for them (waiting made the welcome come 2–3 seconds late on phones). */
-      if(typeof chatbotPickFemaleVoice==='function'){let v=chatbotPickFemaleVoice('en-US');if(v)utter.voice=v;}
+      if(typeof chatbotPickFemaleVoice==='function'){let v=chatbotPickFemaleVoice('en-US');if(v){utter.voice=v;utter.lang=v.lang;}}
       synth.speak(utter);
     }catch(e){}
   }
@@ -16187,33 +16187,80 @@ try{(function(){
       try{synth.addEventListener('voiceschanged',function f(){synth.removeEventListener('voiceschanged',f);clearInterval(iv);res(voices());});}catch(e){}
     });
   }
-  /* the best voice for a language: natural voices first, then Google / Apple / Microsoft, women's voices a little first */
-  var GOOD=['natural','neural','online','premium','enhanced','google','swara','madhur','lekha','kiyara','neerja','prabhat','heera','kalpana','hemant','aria','jenny','guy','samantha','daniel','karen','moira','rishi','veena'];
-  function best(prefix,region,only){
-    var all=voices().filter(function(v){var l=v.lang&&v.lang.toLowerCase().replace('_','-');return l&&(only?l===region:l.indexOf(prefix)===0);});
-    if(!all.length)return null;
-    var sc=all.map(function(v){
-      var n=(v.name||'').toLowerCase(),l=v.lang.toLowerCase().replace('_','-'),s=0;
-      if(/natural|neural/.test(n))s+=8;
-      if(/online|premium|enhanced/.test(n))s+=3;
-      if(/google/.test(n))s+=5;
-      GOOD.forEach(function(g){if(n.indexOf(g)!==-1)s+=1;});
-      if(/female|woman|swara|lekha|neerja|kiyara|heera|kalpana|aria|jenny|samantha|karen|moira|veena|zira/.test(n))s+=1;
-      if(/espeak|compact|novelty|whisper|bad news|bells|bubbles|cellos|zarvox|trinoids|albert|organ|jester|wobble|superstar|boing/.test(n))s-=20;
-      if(region&&l===region)s+=4;
-      return {v:v,s:s};
-    });
-    sc.sort(function(a,b){return b.s-a.s;});
-    return sc[0].v;
+  /* the clearest voice of a language on this device.
+     Best: the new "Natural" voices (Edge, Windows 11), then Google's voices (Chrome, Android), then Apple's Enhanced / Premium voices.
+     The old robot-like voices (eSpeak, Apple's fun voices) come last. */
+  var JOKE=/espeak|compact|novelty|whisper|bad news|bells|bubbles|cellos|zarvox|trinoids|albert|organ|jester|wobble|superstar|boing|fred|junior|ralph|kathy|grandma|grandpa|eddy|flo\b|reed|rocko|sandy|shelley|good news|hysterical|deranged|pipe/;
+  function score(v){
+    var n=(v.name||'').toLowerCase(),l=(v.lang||'').toLowerCase().replace('_','-'),s=10,nat=/natural|neural/.test(n);
+    if(JOKE.test(n))s-=30;
+    if(nat)s+=20;else if(/online/.test(n))s+=14;
+    if(/premium/.test(n))s+=14;else if(/enhanced/.test(n))s+=10;
+    if(/^google|google /.test(n))s+=12;
+    if(/microsoft/.test(n)&&!nat&&!/online/.test(n))s-=2;   /* the old Windows voices: clear but robot-like */
+    if(v.localService===false)s+=2;
+    if(l==='hi-in')s+=4;
+    if(l==='en-in'&&(nat||/online|premium|enhanced/.test(n)))s+=4;   /* a natural Indian-English voice is the easiest to follow here */
+    if(l==='en-us'||l==='en-gb')s+=1;
+    if(/female|swara|neerja|lekha|kiyara|heera|kalpana|aria|jenny|samantha|karen|moira|veena|zira|sonia|ava|emma/.test(n))s+=1;
+    return s;
+  }
+  function langOf(v){return (v.lang||'').toLowerCase().replace('_','-');}
+  function list(prefix,only){
+    return voices().filter(function(v){var l=langOf(v);return l&&(only?l===only:l.indexOf(prefix)===0);})
+      .map(function(v){return {v:v,s:score(v)};}).sort(function(a,b){return b.s-a.s;}).map(function(x){return x.v;});
+  }
+  function best(prefix,region,only){var l=list(prefix,only?region:null);return l[0]||null;}
+  /* the voice and speed the person chose (🔊 settings in the chat), kept in this browser */
+  var PREF='hxVoicePref';
+  function pref(){try{return JSON.parse(localStorage.getItem(PREF)||'{}')||{};}catch(e){return {};}}
+  function savePref(p){try{localStorage.setItem(PREF,JSON.stringify(p));}catch(e){}}
+  function speed(){var x=+pref().speed;return x>=0.7&&x<=1.3?x:1;}
+  function chosen(key,pool){var id=pref()[key];if(!id)return null;for(var i=0;i<pool.length;i++)if((pool[i].voiceURI||pool[i].name)===id)return pool[i];return null;}
+  /* 'hi' or 'en': the voice to use (the person's choice if it is still on this device, else the best one) */
+  function pick(key){
+    var pool=key==='hi'?list('hi'):list('en');
+    return chosen(key,pool)||pool[0]||null;
   }
   /* text a voice reads well */
-  function clean(t){
-    return String(t||'')
-      .replace(/<br\s*\/?>|<\/(p|li|div)>/gi,'. ').replace(/<[^>]*>/g,' ')
-      .replace(/&nbsp;/g,' ').replace(/&amp;/g,' and ').replace(/&lt;|&gt;|&quot;|&#39;/g,' ')
+  var DAY={Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday'};
+  var DAYH={Mon:'सोमवार',Tue:'मंगलवार',Wed:'बुधवार',Thu:'गुरुवार',Fri:'शुक्रवार',Sat:'शनिवार',Sun:'रविवार'};
+  var MON={Jan:'January',Feb:'February',Mar:'March',Apr:'April',Jun:'June',Jul:'July',Aug:'August',Sep:'September',Sept:'September',Oct:'October',Nov:'November',Dec:'December'};
+  var MONH={January:'जनवरी',February:'फ़रवरी',March:'मार्च',April:'अप्रैल',May:'मई',June:'जून',July:'जुलाई',August:'अगस्त',September:'सितंबर',October:'अक्टूबर',November:'नवंबर',December:'दिसंबर'};
+  var MONN=['','January','February','March','April','May','June','July','August','September','October','November','December'];
+  var AIR={BKK:'Suvarnabhumi',DMK:'Don Mueang',HKT:'Phuket',KBV:'Krabi',USM:'Samui',CNX:'Chiang Mai',UTP:'U-Tapao'};
+  /* short forms said as words: 3N → 3 nights, ₹4,800 → 4800 rupees, 10 Dec (Thu) → 10 December, Thursday */
+  function words(t,h){
+    return t
+      .replace(/\b(20\d\d)-(\d\d)-(\d\d)\b/g,function(m,y,mo,d){return (+d)+' '+(MONN[+mo]||mo)+' '+y;})
+      .replace(/\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec)\b\.?/g,function(m,d,mo){return d+' '+MON[mo];})
+      .replace(/\b(\d{1,2}) (January|February|March|April|May|June|July|August|September|October|November|December)\b/g,function(m,d,mo){return h?d+' '+MONH[mo]:m;})
+      .replace(/\bItems?\s*\((\d+)\)/g,h?'$1 आइटम':'$1 items').replace(/\s=\s/g,', ').replace(/\s\+\s/g,h?' और ':' and ')
+      .replace(/\s*↔\s*/g,h?' से ':' to ')
+      .replace(/\s*\((Mon|Tue|Wed|Thu|Fri|Sat|Sun)\)/g,function(m,d){return ', '+(h?DAYH[d]:DAY[d])+',';})
+      .replace(/\b(\d+)\s*N\s*\/\s*(\d+)\s*D\b/g,h?'$1 रात, $2 दिन':'$1 nights, $2 days')
+      .replace(/\b(\d+)\s*N\b/g,function(m,n){return h?n+' रात':n+(n==='1'?' night':' nights');})
+      .replace(/\b(\d+)\s*D\b/g,function(m,n){return h?n+' दिन':n+(n==='1'?' day':' days');})
+      .replace(/(\d)\s*(→|⇒|➜|➝)\s*(?=\d)/g,h?'$1 से ':'$1 to ')
+      .replace(/\s*(→|⇒|➜|➝)\s*/g,h?', फिर ':', then ')
+      .replace(/(Airport|Hotel|Pier|Station|Terminal)\s+[-–]\s+(?=[A-Z])/g,h?'$1 से ':'$1 to ')
+      .replace(/₹\s?([\d,]+(?:\.\d+)?)(\s*\/-)?/g,h?'$1 रुपये':'$1 rupees').replace(/\bINR\s?([\d,]+)/g,h?'$1 रुपये':'$1 rupees').replace(/\bRs\.?\s?([\d,]+)/g,h?'$1 रुपये':'$1 rupees')
+      .replace(/฿\s?([\d,]+)/g,'$1 baht').replace(/([\d,]+)\s*THB\b/g,'$1 baht')
+      .replace(/\b(\d+)\s*km\b/gi,h?'$1 किलोमीटर':'$1 kilometres').replace(/\b(\d+)\s*hrs?\b/gi,h?'$1 घंटे':'$1 hours').replace(/\b(\d+)\s*mins?\b/gi,h?'$1 मिनट':'$1 minutes')
+      .replace(/\be\.g\.,?\s*/gi,h?'जैसे ':'for example, ').replace(/\bi\.e\.,?\s*/gi,'that is, ').replace(/\bapprox\.?\s*/gi,h?'लगभग ':'about ').replace(/\betc\.?/gi,h?'वगैरह':'and so on')
+      .replace(/\b(BKK|DMK|HKT|KBV|USM|CNX|UTP)\b/g,function(m){return AIR[m];})
+      .replace(/\bPvt\b\.?/g,'private').replace(/\bSIC\b/g,h?'शेयर्ड':'shared').replace(/\bpax\b/gi,h?'लोग':'people').replace(/\bw\/\s?/g,'with ')
+      .replace(/\+91[\s-]?/g,'plus 9 1, ')
+      .replace(/\d[\d\s-]{8,}\d/g,function(m){var d=m.replace(/\D/g,'');return d.length>=10?d.split('').join(' ')+',':m;})   /* phone numbers: one digit at a time */
+      .replace(/\s&\s/g,h?' और ':' and ');
+  }
+  function clean(t,h){
+    return words(String(t||'')
+      .replace(/<br\s*\/?>|<\/(p|li|div|h\d|tr)>/gi,'. ').replace(/<[^>]*>/g,' ')
+      .replace(/&nbsp;/g,' ').replace(/&amp;/g,' & ').replace(/&lt;|&gt;|&quot;|&#39;/g,' '),!!h)
       .replace(/[\u{1F000}-\u{1FAFF}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{2460}-\u{27BF}\u{2900}-\u{2BFF}\u{FE0F}\u{200D}]/gu,' ')
       .replace(/[＋+]\s/g,' ').replace(/\s[·•|]\s?/g,', ').replace(/[·•]/g,', ').replace(/\s[—–]\s/g,', ').replace(/[“”"«»]/g,'')
-      .replace(/\b(COST|CST)-0*(\d+)\b/gi,'costing $2').replace(/\bHT-0*(\d+)\b/g,'voucher $1')
+      .replace(/\b(COST|CST)-0*(\d+)\b/gi,'costing number $2').replace(/\bHT-0*(\d+)\b/g,'voucher $1')
       .replace(/(\d),(?=\d{3}\b)/g,'$1').replace(/\s*\/\s*/g,' or ')
       .replace(/([.!?।])\s*[.]+/g,'$1')
       .replace(/\s+([,.!?])/g,'$1').replace(/([,.!?])(?=[^\s\d])/g,'$1 ').replace(/(,\s*){2,}/g,', ').replace(/\s+/g,' ').replace(/([.!?।])(\s*[.,])+/g,'$1').trim();
@@ -16261,10 +16308,10 @@ try{(function(){
   }
   /* short parts (long text is cut off half-way in some browsers) */
   function parts(t){
-    var bits=t.replace(/([.!?।])\s+/g,'$1\n').split('\n'),out=[],cur='';
+    var bits=t.replace(/([.!?।:;])\s+/g,'$1\n').split('\n'),out=[],cur='';
     bits.forEach(function(b){
-      if((cur+' '+b).length>180&&cur){out.push(cur);cur=b;}else cur=cur?cur+' '+b:b;
-      while(cur.length>220){var k=cur.lastIndexOf(',',200);if(k<60)k=cur.lastIndexOf(' ',200);if(k<60)k=200;out.push(cur.slice(0,k+1));cur=cur.slice(k+1).trim();}
+      if((cur+' '+b).length>140&&cur){out.push(cur);cur=b;}else cur=cur?cur+' '+b:b;
+      while(cur.length>170){var k=cur.lastIndexOf(',',150);if(k<50)k=cur.lastIndexOf(' ',150);if(k<50)k=150;out.push(cur.slice(0,k+1));cur=cur.slice(k+1).trim();}
     });
     if(cur)out.push(cur);
     return out.filter(function(x){return /[\wऀ-ॿ]/.test(x);});
@@ -16292,29 +16339,97 @@ try{(function(){
     var whole=msgText();if(whole)text=whole;
     if(speakingBtnText===text&&(synth.speaking||synth.pending)){stop();return;}
     stop();
-    var t=clean(text);if(!t)return;
+    var wantHi=hi()||/[ऀ-ॿ]/.test(String(text||'').replace(/<[^>]*>/g,''));
+    var t=clean(text,wantHi);if(!t)return;
     speakingBtnText=text;
-    ready().then(function(){
-      var wantHi=hi()||/[ऀ-ॿ]/.test(t),voice=null,lang='en-US',romanised=false;
-      if(wantHi){
-        voice=best('hi','hi-in');lang='hi-IN';
-        if(!voice){t=roman(t);romanised=true;voice=best('en','en-in',true)||best('en','en-in');lang=voice?voice.lang:'en-IN';note();}   /* an Indian-English voice says Hindi words best */
-      }else{voice=best('en','en-us')||best('en');lang=voice?voice.lang:'en-US';}
-      var list=parts(t);
-      list.forEach(function(p,i){
-        var u=new SpeechSynthesisUtterance(p);
-        u.lang=lang;if(voice)u.voice=voice;
-        u.rate=wantHi?(romanised?0.9:0.95):0.95;u.pitch=1;u.volume=1;   /* a little slower: clearer */
-        if(i===list.length-1)u.onend=function(){if(speakingBtnText===text)speakingBtnText=null;keep=[];};
-        u.onerror=function(){};
+    ready().then(function(){say(t,wantHi,text);});
+  };
+  /* speak t: the best (or chosen) voice, short parts, a little slower than normal */
+  function say(t,wantHi,tag){
+    var voice=null,lang='en-US',romanised=false,pool;
+    if(wantHi){
+      voice=pick('hi');lang='hi-IN';
+      if(!voice){   /* no Hindi voice on this device: an Indian-English voice says Hindi words best */
+        t=roman(t);romanised=true;pool=list('en');
+        voice=chosen('hi',pool)||best('en','en-in',true)||pool[0]||null;lang=voice?voice.lang:'en-IN';note();
+      }
+    }else{voice=pick('en');lang=voice?voice.lang:'en-US';}
+    var rate=(wantHi?(romanised?0.9:0.92):0.92)*speed();
+    var bits=parts(t);
+    function go(from,v){
+      for(var i=from;i<bits.length;i++)(function(i){
+        var u=new SpeechSynthesisUtterance(bits[i]);
+        u.lang=v?v.lang:lang;if(v)u.voice=v;
+        u.rate=rate;u.pitch=1;u.volume=1;
+        if(i===bits.length-1)u.onend=function(){if(speakingBtnText===tag)speakingBtnText=null;keep=[];};
+        u.onerror=function(e){
+          var er=e&&e.error;
+          /* an internet voice (Google / Natural) failed, e.g. the internet is slow: say the rest with this device's own voice */
+          if(v&&v.localService===false&&er&&er!=='interrupted'&&er!=='canceled'&&speakingBtnText===tag&&!u.__retried){
+            u.__retried=true;
+            var off=(wantHi&&!romanised?list('hi'):list('en')).filter(function(x){return x.localService!==false;});
+            try{synth.cancel();}catch(_){}keep=[];
+            if(off[0])go(i,off[0]);
+          }
+        };
         keep.push(u);   /* kept, so the browser does not drop it half-way */
         synth.speak(u);
-      });
-    });
-  };
-  window.chatbotVoiceTest={clean:clean,roman:roman,parts:parts,best:best};
-  /* the welcome voice after login uses the same, clearest voice */
-  window.chatbotPickFemaleVoice=function(code){var c=String(code||'en-US').toLowerCase(),pre=c.split('-')[0];return best(pre,c)||null;};
+      })(i);
+    }
+    go(0,voice);
+  }
+  window.chatbotVoiceTest={clean:clean,roman:roman,parts:parts,best:best,pick:pick,score:score};
+  /* ---------- 🔊 voice settings in the chat: the person can choose the voice and the speed ---------- */
+  var SPEEDS=[[0.85,'Slow','धीमा'],[1,'Normal','सामान्य'],[1.15,'Fast','तेज़']];
+  function short(v){
+    var n=String(v.name||'').replace(/^(Microsoft|Google|Apple)\s+/i,'').replace(/\s*Online\s*\(Natural\)/i,' (natural)').replace(/\s+-\s+.*$/,'').trim();
+    var r=langOf(v).split('-')[1]||'',reg={in:'India',us:'USA',gb:'UK',au:'Australia',ca:'Canada',ie:'Ireland',nz:'New Zealand',za:'South Africa',sg:'Singapore'}[r]||r.toUpperCase();
+    return n+(reg&&n.indexOf(reg)===-1?' · '+reg:'')+(v.localService===false?' · internet':'');
+  }
+  function esc(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var panel=null,vbtn=null;
+  function closeSet(){if(panel){panel.remove();panel=null;}if(vbtn)vbtn.setAttribute('aria-expanded','false');}
+  function openSet(){
+    closeSet();
+    var H=hi(),key=H?'hi':'en',pool=list(key),noHi=H&&!pool.length;
+    if(noHi)pool=list('en');
+    var cur=noHi?(chosen('hi',pool)||best('en','en-in',true)||pool[0]):pick(key),id=pref()[key]||'';
+    panel=document.createElement('div');panel.className='hx-vset';panel.id='hxVoiceSet';panel.setAttribute('role','group');panel.setAttribute('aria-label',H?'आवाज़ की सेटिंग':'Voice settings');
+    var opts='<option value="">'+esc((H?'अपने आप — सबसे साफ़: ':'Automatic — clearest: ')+(pool[0]?short(pool[0]):'-'))+'</option>'+pool.map(function(v){var k=v.voiceURI||v.name;return '<option value="'+esc(k)+'"'+(k===id?' selected':'')+'>'+esc(short(v))+'</option>';}).join('');
+    panel.innerHTML='<b class="hx-vt">'+(H?'आवाज़ की सेटिंग':'Voice settings')+'</b>'
+      +(pool.length?'<label class="hx-vl">'+(H?'आवाज़':'Voice')+'<select class="hx-vsel">'+opts+'</select></label>'
+        :'<p class="hx-vn">'+(H?'इस फ़ोन / ब्राउज़र में कोई आवाज़ नहीं है।':'This phone / browser has no voice.')+'</p>')
+      +(noHi?'<p class="hx-vn">'+'इस फ़ोन / ब्राउज़र में हिंदी आवाज़ नहीं है, इसलिए हिंदी ऊपर चुनी Indian-English आवाज़ में बोली जाती है। साफ़ हिंदी आवाज़ (एक बार): <b>Android</b> — Settings → Text-to-speech → Google → Install voice data → Hindi. <b>Windows</b> — Settings → Time &amp; language → Speech → Add voices → Hindi, या Microsoft Edge में खोलें. <b>iPhone</b> — Settings → Accessibility → Spoken Content → Voices → Hindi.'+'</p>':'')
+      +'<div class="hx-vl" role="group" aria-label="'+(H?'बोलने की रफ़्तार':'Speed')+'"><span>'+(H?'रफ़्तार':'Speed')+'</span><div class="hx-vsp">'+SPEEDS.map(function(x){return '<button type="button" data-s="'+x[0]+'" aria-pressed="'+(Math.abs(speed()-x[0])<0.01)+'">'+(H?x[2]:x[1])+'</button>';}).join('')+'</div></div>'
+      +'<div class="hx-vact"><button type="button" class="hx-vtest">'+(H?'सुनकर देखें':'Test the voice')+'</button><button type="button" class="hx-vdone">'+(H?'ठीक है':'Done')+'</button></div>';
+    var head=document.querySelector('#chatbotPanel .chatbot-head');head.insertAdjacentElement('afterend',panel);
+    if(vbtn)vbtn.setAttribute('aria-expanded','true');
+    var sel=panel.querySelector('.hx-vsel');
+    if(sel)sel.addEventListener('change',function(){var p=pref();if(sel.value)p[key]=sel.value;else delete p[key];savePref(p);test();});
+    [].forEach.call(panel.querySelectorAll('.hx-vsp button'),function(b){b.addEventListener('click',function(){var p=pref();p.speed=+b.getAttribute('data-s');savePref(p);[].forEach.call(panel.querySelectorAll('.hx-vsp button'),function(x){x.setAttribute('aria-pressed',String(x===b));});test();});});
+    panel.querySelector('.hx-vtest').addEventListener('click',test);
+    panel.querySelector('.hx-vdone').addEventListener('click',function(){closeSet();try{vbtn.focus();}catch(e){}});
+    (sel||panel.querySelector('.hx-vtest')).focus();
+  }
+  function test(){
+    stop();var H=hi();
+    var t=clean(H?'नमस्ते! मैं आपकी कॉस्टिंग ऐसे पढ़ूँगा: फुकेत 3N, 10 Dec (Thu), ₹4,800.':'Hello! This is how I will read your costing: Phuket 3N, 10 Dec (Thu), ₹4,800.',H);
+    speakingBtnText='__test';ready().then(function(){say(t,H,'__test');});
+  }
+  try{
+    var head=document.querySelector('#chatbotPanel .chatbot-head'),cl=head&&head.querySelector('.chatbot-close');
+    if(head&&cl){
+      vbtn=document.createElement('button');vbtn.type='button';vbtn.className='hx-vbtn';vbtn.setAttribute('aria-label','Voice settings');vbtn.title='Voice settings';vbtn.setAttribute('aria-expanded','false');vbtn.setAttribute('aria-controls','hxVoiceSet');
+      vbtn.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18.3 6.3a8 8 0 0 1 0 11.4"/></svg>';
+      vbtn.addEventListener('click',function(){if(panel)closeSet();else openSet();});
+      head.insertBefore(vbtn,cl);
+    }
+    /* another language or the chat closed: close the settings */
+    var ps=window.chatbotSetLanguage;if(typeof ps==='function')window.chatbotSetLanguage=function(){var r=ps.apply(this,arguments);closeSet();return r;};
+    var tc=window.toggleChatbot;if(typeof tc==='function')window.toggleChatbot=function(){var r=tc.apply(this,arguments);var pn=document.getElementById('chatbotPanel');if(pn&&!pn.classList.contains('show'))closeSet();return r;};
+  }catch(e){}
+  /* the welcome voice after login uses the same, clearest (or chosen) English voice */
+  window.chatbotPickFemaleVoice=function(code){var c=String(code||'en-US').toLowerCase();return c.indexOf('hi')===0?pick('hi'):pick('en');};
 })();}catch(err){console.error('Help chat voice failed to start:',err);}
 </script>
 <style id="helpChatSmartCss">
@@ -16328,6 +16443,22 @@ try{(function(){
 #chatbotFab:focus-visible{outline:3px solid #0B1F3A;outline-offset:3px}
 @media (max-width:600px){#chatbotFab{width:52px;height:52px;right:14px;font-size:23px}}
 @media (prefers-reduced-motion:reduce){#chatbotFab{transition:none}}
+/* 🔊 voice settings */
+#chatbotPanel .hx-vbtn{margin-left:auto;width:44px;height:44px;border-radius:10px;border:0;background:transparent;color:#fff;opacity:.85;cursor:pointer;display:grid;place-items:center;flex:0 0 auto;padding:0}
+#chatbotPanel .hx-vbtn:hover,#chatbotPanel .hx-vbtn[aria-expanded="true"]{opacity:1;background:rgba(255,255,255,.14)}
+#chatbotPanel .hx-vbtn:focus-visible{outline:3px solid #fff;outline-offset:-3px}
+#chatbotPanel .chatbot-head .chatbot-close{margin-left:0}
+.hx-vset{display:grid;gap:9px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--card);color:var(--text);font-size:13px;max-height:55%;overflow:auto;flex:0 0 auto}
+.hx-vset .hx-vt{font-size:13.5px}
+.hx-vset .hx-vl{display:grid;gap:4px;font-weight:700;font-size:13px;text-transform:none;letter-spacing:0;color:var(--text);margin:0}
+.hx-vset select{width:100%;min-height:40px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--text);font:inherit;font-weight:500;padding:0 8px}
+.hx-vset .hx-vn{margin:0;font-size:12px;line-height:1.45;color:var(--muted,#64748b)}
+.hx-vset .hx-vsp,.hx-vset .hx-vact{display:flex;gap:6px;flex-wrap:wrap}
+.hx-vset button{min-height:38px;padding:0 12px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit;font-weight:700;cursor:pointer}
+.hx-vset .hx-vsp button{flex:1 1 0}
+.hx-vset .hx-vsp button[aria-pressed="true"]{background:var(--navy,#0B1F3A);border-color:var(--navy,#0B1F3A);color:#fff}
+.hx-vset .hx-vtest{flex:1 1 auto;background:linear-gradient(135deg,var(--blue),#38b6e0)!important;color:#fff!important;border:0!important}
+.hx-vset button:focus-visible,.hx-vset select:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 /* 🎤 */
 #chatbotInputRow .hx-mic{flex:0 0 auto;width:44px;min-height:44px;padding:0;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:18px;cursor:pointer}
 #chatbotInputRow .hx-mic{display:grid;place-items:center}
