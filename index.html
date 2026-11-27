@@ -39,7 +39,7 @@ try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.cla
     setTimeout(function(){bo.classList.remove('boot-out');},4000);}   /* never stays hidden */
 }catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-27-4';   /* change with every new version */
+window.SITE_BUILD='2026-11-27-5';   /* change with every new version */
 /* Help chat AI server (ai-worker/ in this repository). Empty = the AI is off and nothing is sent anywhere.
    When it is set, also add the same address to connect-src in the Content-Security-Policy above. */
 window.HIPPO_AI_URL=window.HIPPO_AI_URL||'';
@@ -11006,7 +11006,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 27 Nov 2026 (4)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 27 Nov 2026 (5)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -16327,7 +16327,7 @@ try{(function(){
   }
   function stop(){try{synth.cancel();}catch(e){}keep=[];speakingBtnText=null;}
   /* 🔊 reads the whole message as it is now (with the costing cards under it), not only its first line */
-  var lastMsg=null,lastAt=0,curBtn=null;
+  var lastMsg=null,lastAt=0,curBtn=null,pressAt=0,lastWait=null;
   document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.chatbot-voice-btn');if(b){lastMsg=b.closest('.chatbot-msg');lastAt=Date.now();}},true);
   function msgText(){
     if(!lastMsg||Date.now()-lastAt>800)return null;
@@ -16344,7 +16344,10 @@ try{(function(){
     var wantHi=hi()||/[ऀ-ॿ]/.test(String(text||'').replace(/<[^>]*>/g,''));
     var t=clean(text,wantHi);if(!t)return;
     speakingBtnText=text;
-    ready().then(function(){say(t,wantHi,text);});
+    pressAt=Date.now();
+    /* the website's voice does not need this device's voice list: no waiting for it */
+    if(engine(wantHi?'hi':'en')==='site')say(t,wantHi,text);
+    else ready().then(function(){say(t,wantHi,text);});
   };
   /* speak t with this device's voices: the best (or chosen) voice, short parts, a little slower than normal */
   function sayDevice(t,wantHi,tag){
@@ -16531,9 +16534,11 @@ try{(function(){
       pump();next();
     }
     /* the newest answer is made early (its first parts), so 🔊 can start at once */
-    function early(bits,lang,rate){
-      if(st[lang]!=='ready'||job)return;
-      var keys=reg(bits.slice(0,lang==='hi'?4:8),lang,rate);
+    /* groups: [{bits, lang, rate}], the newest answer first */
+    function early(groups){
+      if(job)return;
+      var keys=[];
+      groups.forEach(function(g){if(st[g.lang]==='ready')keys=keys.concat(reg(g.bits,g.lang,g.rate));});
       list=[];cancelHi(keys);keys.forEach(function(k){want(k,true);});
       pump();
     }
@@ -16564,7 +16569,7 @@ try{(function(){
   function waitOn(tag){
     var btn=tag===speakingBtnText?curBtn:null;
     if(btn){btn.classList.add('hx-wait');btn.textContent='⏳';btn.setAttribute('aria-busy','true');}
-    var off=function(){if(btn&&btn.classList.contains('hx-wait')){btn.classList.remove('hx-wait');btn.textContent='🔊';btn.removeAttribute('aria-busy');}if(waiting===off)waiting=null;};
+    var off=function(){if(pressAt){lastWait=Date.now()-pressAt;pressAt=0;}if(btn&&btn.classList.contains('hx-wait')){btn.classList.remove('hx-wait');btn.textContent='🔊';btn.removeAttribute('aria-busy');}if(waiting===off)waiting=null;};
     waiting=off;return off;
   }
   /* speak t: the website's voice or this device's voice */
@@ -16620,17 +16625,21 @@ try{(function(){
   }
   function earlyNewest(){
     try{
-      var ms=document.querySelectorAll('#chatbotBody .chatbot-msg.bot:not(.system):not(.typing)'),m=ms[ms.length-1];
-      if(!m||!m.querySelector('.chatbot-voice-btn'))return;
-      var html=msgHtml(m),wantHi=hi()||/[ऀ-ॿ]/.test(html.replace(/<[^>]*>/g,''));
-      if(engine(wantHi?'hi':'en')!=='site'||SV.state(wantHi?'hi':'en')!=='ready')return;
-      var t=clean(html,wantHi);if(!t)return;
-      SV.early(siteBits(t,wantHi),wantHi?'hi':'en',rateFor(wantHi));
+      var ms=[].slice.call(document.querySelectorAll('#chatbotBody .chatbot-msg.bot:not(.system):not(.typing)')).filter(function(m){return m.querySelector('.chatbot-voice-btn');}).slice(-3).reverse();
+      var groups=[];
+      ms.forEach(function(m,n){
+        var html=msgHtml(m),wantHi=hi()||/[ऀ-ॿ]/.test(html.replace(/<[^>]*>/g,'')),L=wantHi?'hi':'en';
+        if(engine(L)!=='site'||SV.state(L)!=='ready')return;
+        var t=clean(html,wantHi);if(!t)return;
+        groups.push({bits:siteBits(t,wantHi).slice(0,n?2:(L==='hi'?4:8)),lang:L,rate:rateFor(wantHi)});
+      });
+      if(groups.length)SV.early(groups);
     }catch(e){}
   }
+
   try{
     var eT=0,body=document.getElementById('chatbotBody');
-    if(body&&window.MutationObserver)new MutationObserver(function(){clearTimeout(eT);eT=setTimeout(earlyNewest,500);}).observe(body,{childList:true,subtree:true});
+    if(body&&window.MutationObserver)new MutationObserver(function(){clearTimeout(eT);eT=setTimeout(earlyNewest,250);}).observe(body,{childList:true,subtree:true});
   }catch(e){}
   /* every "stop speaking" in the website (chat closed, sounds off, logout, microphone) also stops the website's voice */
   try{var oc=synth.cancel.bind(synth);synth.cancel=function(){SV.stop();if(waiting){var w=waiting;waiting=null;w();}return oc();};}catch(e){}
@@ -16699,9 +16708,15 @@ try{(function(){
       SV.isCached(L).then(function(c){if(c||!sd)SV.load(L);});
     }catch(e){}
   }
+  /* the website opened: a voice already saved in this browser is made ready at once (nothing is downloaded here),
+     so 🔊 speaks at once even right after opening the chat */
+  try{
+    var warm=function(){['en','hi'].forEach(function(L){if(engine(L)==='site'&&SV.state(L)==='off')SV.isCached(L).then(function(c){if(c)SV.load(L);});});};
+    if(document.readyState==='complete')setTimeout(warm,1500);else window.addEventListener('load',function(){setTimeout(warm,1500);});
+  }catch(e){}
   function siteStatus(){
     var H=hi(),L=H?'hi':'en',s=SV.state(L);
-    if(s==='ready')return (H?'वेबसाइट की आवाज़ तैयार है ✅ (हर ब्राउज़र में एक जैसी)। ':'Website voice ready ✅ (the same in every browser).')+'';
+    if(s==='ready')return (H?'वेबसाइट की आवाज़ तैयार है ✅ (हर ब्राउज़र में एक जैसी)।':'Website voice ready ✅ (the same in every browser).')+(lastWait!=null?(H?' पिछली बार 🔊 के बाद आवाज़ ':' Last time the sound came ')+(lastWait/1000).toFixed(1)+(H?' सेकंड में आई।':' s after 🔊.'):'');
     if(s==='loading')return (H?'वेबसाइट की आवाज़ डाउनलोड हो रही है: ':'Downloading the website voice: ')+SV.pct(L)+'%'+(H?' (सिर्फ़ पहली बार)।':' (first time only).');
     if(s==='failed')return H?'वेबसाइट की आवाज़ इस ब्राउज़र में नहीं चलती, इसलिए डिवाइस की आवाज़ बोलेगी।':'The website voice does not run in this browser, so the device voice speaks.';
     return H?'वेबसाइट की हिंदी आवाज़: पहली बार लगभग 180 MB, फिर ब्राउज़र में सेव। आवाज़ इसी डिवाइस पर बनती है।':'Website voice: about 65 MB the first time, then saved. Made on this device; nothing is sent.';
