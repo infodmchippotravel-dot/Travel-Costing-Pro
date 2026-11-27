@@ -39,7 +39,7 @@ try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.cla
     setTimeout(function(){bo.classList.remove('boot-out');},4000);}   /* never stays hidden */
 }catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-27-1';   /* change with every new version */
+window.SITE_BUILD='2026-11-27-2';   /* change with every new version */
 /* Help chat AI server (ai-worker/ in this repository). Empty = the AI is off and nothing is sent anywhere.
    When it is set, also add the same address to connect-src in the Content-Security-Policy above. */
 window.HIPPO_AI_URL=window.HIPPO_AI_URL||'';
@@ -11006,7 +11006,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 27 Nov 2026 (1)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 27 Nov 2026 (2)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -16384,7 +16384,7 @@ try{(function(){
      Kokoro-82M (Apache-2.0) runs on this device in a background worker (assets/voice). Nothing is sent anywhere.
      It is downloaded once (about 105 MB) and then kept by the browser. */
   var SV=(function(){
-    var ws=[],idle=[],nReady=0,state='off',pct=0,why='',ac=null,srcs=[],nextAt=0,cached=null,subs=[];
+    var gpu=false,gpuWhy='',ws=[],idle=[],nReady=0,state='off',pct=0,why='',ac=null,srcs=[],nextAt=0,cached=null,subs=[];
     var cache=new Map(),info={},run={},list=[],job=null;   /* made parts, parts being made (key → helper), parts waiting, the speech now playing */
     var URL_W='assets/voice/hx-voice-worker.mjs?v='+encodeURIComponent(window.SITE_BUILD||'1');
     var MODEL_URL=new URL('assets/voice/model/kokoro-q8.onnx',location.href).href;
@@ -16407,7 +16407,7 @@ try{(function(){
       w.onmessage=function(e){
         var d=e.data||{};
         if(d.type==='progress'){if(first){pct=d.total?Math.round(d.loaded*100/d.total):0;tell();}}
-        else if(d.type==='ready'){nReady++;idle.push(w);if(first||state!=='ready'){state='ready';cached=true;pct=100;tell();while(ws.length<nW)start(false);}pump();}
+        else if(d.type==='ready'){nReady++;idle.push(w);if(first||state!=='ready'){gpu=!!d.gpu;gpuWhy=d.why||'';state='ready';cached=true;pct=100;tell();if(!gpu)while(ws.length<nW)start(false);}pump();}
         else if(d.type==='failed'){if(first&&state!=='ready')fail(d.message);else{ws=ws.filter(function(x){return x!==w;});try{w.terminate();}catch(_){}}}
         else if(d.type==='audio'){delete run[d.key];idle.push(w);put(d.key,d.pcm);pump();}
         else if(d.type==='error'){delete run[d.key];idle.push(w);
@@ -16420,9 +16420,7 @@ try{(function(){
       if(!can){state='failed';why='not supported';return;}
       if(ws.length||state==='failed')return;
       state='loading';pct=0;tell();
-      start(true);
-      /* already saved in this browser: all helpers start together (else they start once the download is done) */
-      isCached().then(function(c){if(c&&state==='loading')while(ws.length<nW)start(false);});
+      start(true);   /* the other helpers start when this one is ready (with the graphics card, one is enough) */
     }
     /* sound may only start after a tap: the sound player is made / woken up during the tap */
     function prime(){
@@ -16491,7 +16489,7 @@ try{(function(){
     }
     return {
       can:function(){return can&&state!=='failed';},state:function(){return state;},pct:function(){return pct;},why:function(){return why;},
-      mobile:mobile,load:load,prime:prime,speak:speak,early:early,stop:stopAudio,isCached:isCached,helpers:function(){return nReady;},
+      mobile:mobile,load:load,prime:prime,speak:speak,early:early,stop:stopAudio,isCached:isCached,helpers:function(){return nReady;},gpu:function(){return gpu;},gpuWhy:function(){return gpuWhy;},
       made:function(){return cache.size;},busy:function(){return !!job||srcs.length>0;},on:function(f){subs.push(f);}
     };
   })();
@@ -16640,10 +16638,10 @@ try{(function(){
   }
   function siteStatus(){
     var H=hi(),s=SV.state();
-    if(s==='ready')return H?'वेबसाइट की आवाज़ तैयार है ✅ (हर ब्राउज़र में एक जैसी)।':'Website voice ready ✅ (the same in every browser).';
+    if(s==='ready')return (H?'वेबसाइट की आवाज़ तैयार है ✅ (हर ब्राउज़र में एक जैसी)। ':'Website voice ready ✅ (the same in every browser). ')+(SV.gpu()?(H?'ग्राफ़िक्स कार्ड से बन रही है (तेज़)।':'Made by the graphics card (fast).'):(H?'प्रोसेसर से बन रही है।':'Made by the processor.'));
     if(s==='loading')return (H?'वेबसाइट की आवाज़ डाउनलोड हो रही है: ':'Downloading the website voice: ')+SV.pct()+'%'+(H?' (सिर्फ़ पहली बार)।':' (first time only).');
     if(s==='failed')return H?'वेबसाइट की आवाज़ इस ब्राउज़र में नहीं चलती, इसलिए डिवाइस की आवाज़ बोलेगी।':'The website voice does not run in this browser, so the device voice speaks.';
-    return H?'वेबसाइट की आवाज़: पहली बार लगभग 105 MB, फिर ब्राउज़र में सेव। आवाज़ इसी डिवाइस पर बनती है।':'Website voice: about 105 MB the first time, then saved. Made on this device; nothing is sent.';
+    return H?'वेबसाइट की आवाज़: पहली बार लगभग 105–185 MB, फिर ब्राउज़र में सेव। आवाज़ इसी डिवाइस पर बनती है।':'Website voice: about 105–185 MB the first time, then saved. Made on this device; nothing is sent.';
   }
 
   function test(){

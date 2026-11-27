@@ -1,21 +1,27 @@
 /* Hippo Travel — the website's own voice (Kokoro-82M, Apache-2.0), made on this device in a background worker.
    Nothing is sent anywhere: the text is turned into sound inside this browser.
    Messages in : {type:'load'} | {type:'say', key, text, lang:'en'|'hi', speed}   (one at a time)
-   Messages out: {type:'progress', loaded, total} | {type:'ready'} | {type:'audio', key, pcm (Float32Array, 24 kHz)}
+   Messages out: {type:'progress', loaded, total} | {type:'ready', gpu, why} | {type:'audio', key, pcm (Float32Array, 24 kHz)}
                  {type:'error', key, message} | {type:'failed', message} */
-import * as ort from './vendor/ort.wasm.min.mjs';
 import { phonemize } from './vendor/phonemizer.js';
 import './hx-g2p-hi.js';
 
 const BASE = new URL('./', import.meta.url).href;
-const MODEL = 'model/kokoro-q8.onnx', MODEL_SIZE = 92361116;
+const MODEL = 'model/kokoro-q8.onnx', MODEL_SIZE = 92361116;   /* for the processor */
+/* for the graphics card (GPU): half-precision model in two files (GitHub takes files up to 100 MB) */
+const GPU_PARTS = [['model/kokoro-fp16.1.bin', 81617370], ['model/kokoro-fp16.2.bin', 81617370]], GPU_SIZE = 163234740;
 const VOICE = { en: 'af_heart', hi: 'hf_alpha' };
 const CACHE = 'hx-voice-v1';
-let session = null, vocab = null, loading = null;
+let session = null, vocab = null, loading = null, ort = null, gpu = false, gpuWhy = '';
 const styles = {};
 
-ort.env.wasm.wasmPaths = BASE + 'vendor/';
-ort.env.wasm.numThreads = 1;   /* more threads need special server headers that GitHub Pages does not send */
+async function useOrt(path) {
+  if (ort) return;
+  ort = await import(path);
+  ort.env.wasm.wasmPaths = BASE + 'vendor/';
+  ort.env.wasm.numThreads = 1;   /* more threads need special server headers that GitHub Pages does not send */
+  ort.env.logLevel = 'error';
+}
 
 /* a file, from this browser's saved copy when there is one (the voice is downloaded only once) */
 async function file(path, onProgress, size) {
@@ -38,16 +44,53 @@ async function file(path, onProgress, size) {
   return buf;
 }
 
+/* several files, downloaded one after the other with one progress, joined into one */
+async function joined(parts, total) {
+  let done = 0; const bufs = [];
+  for (const [p, size] of parts) { bufs.push(new Uint8Array(await file(p, (l) => postMessage({ type: 'progress', loaded: done + l, total }), size))); done += size; }
+  const u = new Uint8Array(total); let o = 0; for (const b of bufs) { u.set(b, o); o += b.length; }
+  return u;
+}
+/* a graphics card that can run the half-precision model */
+async function gpuCan() {
+  try {
+    if (!self.navigator || !navigator.gpu) { gpuWhy = 'no WebGPU'; return false; }
+    const a = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+    if (!a) { gpuWhy = 'no graphics adapter'; return false; }
+    if (!a.features.has('shader-f16')) { gpuWhy = 'no half-precision on this graphics card'; return false; }
+    return true;
+  } catch (e) { gpuWhy = String(e && e.message || e); return false; }
+}
 async function load() {
   if (session) return;
   if (!loading) loading = (async () => {
-    const [m, v] = await Promise.all([
-      file(MODEL, (l, t) => postMessage({ type: 'progress', loaded: l, total: t }), MODEL_SIZE),
-      file('model/tokenizer.json'),
-    ]);
-    vocab = JSON.parse(new TextDecoder().decode(v)).model.vocab;
-    session = await ort.InferenceSession.create(new Uint8Array(m), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+    vocab = JSON.parse(new TextDecoder().decode(await file('model/tokenizer.json'))).model.vocab;
     await Promise.all([style(VOICE.en), style(VOICE.hi)]);
+    /* 1. the graphics card (much faster), only when it makes a real sound faster than it is spoken */
+    if (await gpuCan()) {
+      try {
+        await useOrt('./vendor/ort.webgpu.min.mjs');
+        const m = await joined(GPU_PARTS, GPU_SIZE);
+        session = await ort.InferenceSession.create(m, { executionProviders: ['webgpu'] });
+        await make('Hello.', 'en', 1);   /* the first run also prepares the graphics card */
+        const t0 = performance.now(), pcm = await make('Hello, this is a short test of the voice.', 'en', 1), ms = performance.now() - t0;
+        let bad = 0, peak = 0; for (const v of pcm) { if (!Number.isFinite(v)) bad++; else if (Math.abs(v) > peak) peak = Math.abs(v); }
+        const secs = pcm.length / 24000;
+        if (bad || peak < 0.05 || peak > 2 || secs < 1) throw new Error('the graphics card did not make a clear sound');
+        if (ms > secs * 1000) throw new Error('the graphics card is slower than speaking (' + Math.round(ms) + ' ms for ' + secs.toFixed(1) + ' s)');
+        gpu = true;
+      } catch (e) {
+        gpuWhy = String(e && e.message || e); gpu = false;
+        try { session && (await session.release()); } catch (_) {}
+        session = null;
+      }
+    }
+    /* 2. else the processor */
+    if (!session) {
+      await useOrt('./vendor/ort.wasm.min.mjs');
+      const m = await file(MODEL, (l, t) => postMessage({ type: 'progress', loaded: l, total: t }), MODEL_SIZE);
+      session = await ort.InferenceSession.create(new Uint8Array(m), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+    }
   })().catch((e) => { loading = null; throw e; });
   return loading;
 }
@@ -93,6 +136,9 @@ function ids(ph) {
 }
 async function say(text, lang, speed) {
   await load();
+  return make(text, lang, speed);
+}
+async function make(text, lang, speed) {
   const ph = lang === 'hi' ? await hiPhon(text) : await enPhon(text);
   const tok = ids(ph);
   if (tok.length < 3) return new Float32Array(0);
@@ -110,7 +156,7 @@ async function say(text, lang, speed) {
 self.onmessage = (e) => {
   const d = e.data || {};
   if (d.type === 'load') {
-    load().then(() => postMessage({ type: 'ready' }), (er) => postMessage({ type: 'failed', message: String((er && er.message) || er) }));
+    load().then(() => postMessage({ type: 'ready', gpu, why: gpuWhy }), (er) => postMessage({ type: 'failed', message: String((er && er.message) || er) }));
   } else if (d.type === 'say') {
     say(String(d.text || ''), d.lang, d.speed).then(
       (pcm) => postMessage({ type: 'audio', key: d.key, pcm }, [pcm.buffer]),
