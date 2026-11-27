@@ -39,7 +39,7 @@ try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.cla
     setTimeout(function(){bo.classList.remove('boot-out');},4000);}   /* never stays hidden */
 }catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-27-6';   /* change with every new version */
+window.SITE_BUILD='2026-11-27-7';   /* change with every new version */
 /* Help chat AI server (ai-worker/ in this repository). Empty = the AI is off and nothing is sent anywhere.
    When it is set, also add the same address to connect-src in the Content-Security-Policy above. */
 window.HIPPO_AI_URL=window.HIPPO_AI_URL||'';
@@ -11006,7 +11006,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 27 Nov 2026 (6)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 27 Nov 2026 (7)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -16685,6 +16685,7 @@ try{(function(){
         :'<p class="hx-vn">'+(H?'इस फ़ोन / ब्राउज़र में कोई आवाज़ नहीं है।':'This phone / browser has no voice.')+'</p>')
       +(noHi&&inUse!=='site'?'<p class="hx-vn">'+'इस फ़ोन / ब्राउज़र में हिंदी आवाज़ नहीं है, इसलिए हिंदी ऊपर चुनी Indian-English आवाज़ में बोली जाती है। साफ़ हिंदी आवाज़ (एक बार): <b>Android</b> — Settings → Text-to-speech → Google → Install voice data → Hindi. <b>Windows</b> — Settings → Time &amp; language → Speech → Add voices → Hindi, या Microsoft Edge में खोलें. <b>iPhone</b> — Settings → Accessibility → Spoken Content → Voices → Hindi.'+'</p>':'')
       +'<div class="hx-vl" role="group" aria-label="'+(H?'बोलने की रफ़्तार':'Speed')+'"><span>'+(H?'रफ़्तार':'Speed')+'</span><div class="hx-vsp">'+SPEEDS.map(function(x){return '<button type="button" data-s="'+x[0]+'" aria-pressed="'+(Math.abs(speed()-x[0])<0.01)+'">'+(H?x[2]:x[1])+'</button>';}).join('')+'</div></div>'
+      +'<div class="hx-vl" role="group" aria-label="'+(H?'चैट की भाषा':'Chat language')+'"><span>'+(H?'चैट की भाषा':'Chat language')+'</span><div class="hx-vsp hx-vlang"><button type="button" data-l="en" aria-pressed="'+(!H)+'">English</button><button type="button" data-l="hi" aria-pressed="'+H+'">हिंदी</button></div></div>'
       +'<div class="hx-vact"><button type="button" class="hx-vtest">'+(H?'सुनकर देखें':'Test the voice')+'</button><button type="button" class="hx-vdone">'+(H?'ठीक है':'Done')+'</button></div>'
       /* credit for the voices (their licences ask for it) */
       +(SV.can()?'<p class="hx-vn hx-vcr">'+(H?'आवाज़ें: अंग्रेज़ी — Piper “Kristin” (public domain)। हिंदी — Indus Pocket TTS “Inaya”, Indus Labs (Kyutai Pocket TTS पर आधारित), ':'Voices: English — Piper “Kristin” (public domain). Hindi — Indus Pocket TTS “Inaya” by Indus Labs, based on Kyutai Pocket TTS, ')+'<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.</p>':'');
@@ -16701,6 +16702,7 @@ try{(function(){
     });
     [].forEach.call(panel.querySelectorAll('.hx-vsp button'),function(b){b.addEventListener('click',function(){var p=pref();p.speed=+b.getAttribute('data-s');savePref(p);[].forEach.call(panel.querySelectorAll('.hx-vsp button'),function(x){x.setAttribute('aria-pressed',String(x===b));});test();});});
     panel.querySelector('.hx-vtest').addEventListener('click',test);
+    [].forEach.call(panel.querySelectorAll('.hx-vlang button'),function(b){b.addEventListener('click',function(){var l=b.getAttribute('data-l');if((l==='hi')!==hi()){window.chatbotSetLanguage(l);}else closeSet();});});
     panel.querySelector('.hx-vdone').addEventListener('click',function(){closeSet();try{vbtn.focus();}catch(e){}});
     (sel||panel.querySelector('.hx-veng')||panel.querySelector('.hx-vtest')).focus();
   }
@@ -16749,11 +16751,20 @@ try{(function(){
       head.insertBefore(vbtn,cl);
     }
     /* another language or the chat closed: close the settings */
-    var ps=window.chatbotSetLanguage;if(typeof ps==='function')window.chatbotSetLanguage=function(){var r=ps.apply(this,arguments);closeSet();readyLang();return r;};
+    /* the chat language is remembered in this browser (it was asked again after every refresh / page change, and the chat then spoke English) */
+    var ps=window.chatbotSetLanguage;if(typeof ps==='function')window.chatbotSetLanguage=function(l){var r=ps.apply(this,arguments);try{if(l==='hi'||l==='en')localStorage.setItem('hxChatLang',l);}catch(e){}closeSet();readyLang();return r;};
     var tc=window.toggleChatbot;if(typeof tc==='function')window.toggleChatbot=function(){var r=tc.apply(this,arguments);var pn=document.getElementById('chatbotPanel');if(pn&&!pn.classList.contains('show'))closeSet();
       /* chat opened: get the website's voice ready in the background (downloaded once), so 🔊 speaks at once.
          With "Data saver" on, only when 🔊 is pressed */
-      else if(pn)readyLang();
+      else if(pn){
+        /* opened for the first time on this page: use the remembered language, or Hindi when the website is shown in Hindi */
+        if(document.querySelector('#chatbotBody .chatbot-lang-choice')){
+          var L=null;try{L=localStorage.getItem('hxChatLang');}catch(e){}
+          if(L!=='hi'&&L!=='en'){var m=/(?:^|;\s*)googtrans=\/(?:en|auto)\/([^;]+)/.exec(document.cookie);if(m&&/^hi/.test(decodeURIComponent(m[1])))L='hi';}
+          if(L==='hi'||L==='en')window.chatbotSetLanguage(L);
+        }
+        readyLang();
+      }
       return r;};
   }catch(e){}
   /* the welcome voice after login uses the same, clearest (or chosen) English voice */
@@ -16778,6 +16789,7 @@ try{(function(){
 #chatbotPanel .chatbot-head .chatbot-close{margin-left:0}
 .hx-vset{display:grid;gap:9px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--card);color:var(--text);font-size:13px;max-height:55%;overflow:auto;flex:0 0 auto}
 .hx-vset .hx-vt{font-size:13.5px}
+@media (max-width:600px){.hx-vset{max-height:72%;gap:7px;padding:10px 12px}.hx-vset .hx-vn{font-size:11.5px}.hx-vset button{min-height:36px}}
 .hx-vset .hx-vl{display:grid;gap:4px;font-weight:700;font-size:13px;text-transform:none;letter-spacing:0;color:var(--text);margin:0}
 .hx-vset select{width:100%;min-height:40px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--text);font:inherit;font-weight:500;padding:0 8px}
 .hx-vset .hx-vn{margin:0;font-size:12px;line-height:1.45;color:var(--muted,#64748b)}
