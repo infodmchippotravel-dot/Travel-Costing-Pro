@@ -1,34 +1,35 @@
 # Website voice (Help chat)
 
-The Help chat reads answers aloud with the voice in this folder, so it sounds the same in every browser and on every phone and computer (Chrome, Edge, Brave, Firefox …). In the chat's 🔊 settings, a person can choose this device's own voice instead.
+The Help chat reads answers aloud with the voices in this folder, so the voice sounds the same in every browser and on every phone and computer (Chrome, Edge, Brave, Firefox …). In the chat's 🔊 settings, a person can choose this device's own voice instead.
 
-- The sound is made **on the person's device**, in a background worker (`hx-voice-worker.mjs`). No text is sent anywhere.
-- **English:** Piper voice "Kristin" (small and fast, about 4× faster than speaking even on a slow computer). **Hindi:** Kokoro-82M (clear, but heavier, so slower on a slow computer).
-- **Hindi on the graphics card first.** When the browser has WebGPU and the graphics card can run half-precision (`shader-f16`), the voice is made on the graphics card, which is faster. The worker first makes one short test sentence there. If that sound is not clear (silent or broken), or the card is slower than speaking, the processor is used instead.
-- **Download, once:** English about 65 MB. Hindi, only when the chat is used in Hindi: about 185 MB with the graphics card (`kokoro-fp16.1.bin` + `kokoro-fp16.2.bin` + the WebGPU runtime), or about 105 MB with the processor. The browser then keeps the files in its storage (Cache Storage `hx-voice-v1`).
-- A person can choose the voice in the chat: 🔊 → *Which voice*. The choices are Automatic, the website's voice, or the device's voice.
+- The sound is made **on the person's device**, in background workers. No text is sent anywhere.
+- **English:** Piper voice "Kristin" (`hx-voice-worker.mjs`). It is small and fast, about 4× faster than speaking even on a slow computer.
+- **Hindi:** Indus Pocket TTS, voice "Inaya". It also says English words inside Hindi (Hinglish). Two helpers work at the same time:
+  - `hx-hindi-gen.mjs` turns the text into voice frames, 80 ms each;
+  - `hx-hindi-dec.mjs` turns the frames into sound.
+  - The sound plays while it is being made, so it starts within a moment.
+- **Download, once:** English about 65 MB. Hindi about 180 MB, only when the chat is used in Hindi. The browser then keeps the files (Cache Storage `hx-voice-v1`).
 
 ## Files and licences
 
 | File | What it is | Licence |
 |---|---|---|
-| `model/en_US-kristin-medium.onnx` + `.onnx.json` (English) | Piper voice "Kristin" (Hugging Face `rhasspy/piper-voices`), trained on LibriVox recordings | The recordings are public domain (model card). Piper voices are made with Piper (MIT). |
-| `model/kokoro-q8.onnx`, `model/tokenizer.json`, `model/voices/hf_alpha.bin` (Hindi) | Kokoro-82M by hexgrad, ONNX version by onnx-community (Hugging Face `onnx-community/Kokoro-82M-v1.0-ONNX`) | Apache-2.0, see `model/LICENSE-kokoro.txt` |
-| `model/kokoro-fp16.1.bin` + `model/kokoro-fp16.2.bin` | `onnx/model_fp16.onnx` of the same Kokoro ONNX version, cut into two files (GitHub takes files up to 100 MB). The worker joins them again. | Apache-2.0 |
-| `vendor/ort.wasm.min.mjs`, `vendor/ort-wasm-simd-threaded.*`, `vendor/ort.webgpu.min.mjs`, `vendor/ort-wasm-simd-threaded.jsep.*` | ONNX Runtime Web 1.22.0, Microsoft (processor and graphics-card versions) | MIT, see `vendor/LICENSE-onnxruntime-web.txt` |
-| `vendor/phonemizer.js` | phonemizer 1.2.1 (English sounds for both voices), by Xenova; it contains eSpeak NG | The package is Apache-2.0 (see `vendor/LICENSE-phonemizer.txt`). eSpeak NG is GPL-3.0 and its source is at https://github.com/espeak-ng/espeak-ng |
-| `hx-g2p-hi.js`, `hx-voice-worker.mjs` | Written for this website. They turn Hindi into sounds and run the voice. | Part of this website |
+| `model/en_US-kristin-medium.onnx` + `.onnx.json` (English) | Piper voice "Kristin" (Hugging Face `rhasspy/piper-voices`), trained on LibriVox recordings | The recordings are public domain (model card). Piper is MIT. |
+| `hindi/*.onnx`, `hindi/inaya.safetensors`, `hindi/bundle.json` | **Indus Pocket TTS Hindi, voice Inaya.** Model by **Indus Labs** (`Indus-Labs/indus-pocket-tts`), based on **Kyutai Pocket TTS**. ONNX version (INT8 weights) by Scribe Animator / OHO Tech (`sanjuoo7/indus-pocket-tts-hindi-onnx-inaya-weight8`). | **CC BY 4.0.** See `hindi/LICENSE.md`, `hindi/NOTICE.txt` and `hindi/ATTRIBUTION.md`. Kyutai's terms also apply: no voice impersonation or cloning without consent, and no fraudulent or deceptive use. |
+| `hindi/tokenizer.json` | The same tokenizer as `tokenizer.model` of that release, written as JSON (pieces and scores) for the browser | CC BY 4.0 (as above) |
+| `vendor/ort.wasm.min.mjs`, `vendor/ort-wasm-simd-threaded.*` | ONNX Runtime Web 1.22.0, Microsoft | MIT, see `vendor/LICENSE-onnxruntime-web.txt` |
+| `vendor/phonemizer.js` | phonemizer 1.2.1 (English sounds), by Xenova. It contains eSpeak NG. | The package is Apache-2.0, see `vendor/LICENSE-phonemizer.txt`. eSpeak NG is GPL-3.0; its source is at https://github.com/espeak-ng/espeak-ng |
+| `hx-spm.js`, `hx-g2p-hi.js`, `hx-voice-worker.mjs`, `hx-hindi-gen.mjs`, `hx-hindi-dec.mjs` | Written for this website: tokenizer, Hindi numbers in words, and the voice helpers | Part of this website |
 
-Checks of the downloaded files (SHA-256):
+Checks of the downloaded files:
 
-- `en_US-kristin-medium.onnx`: MD5 the same as listed in `voices.json` of `rhasspy/piper-voices`
-- `kokoro-q8.onnx`: `fbae9257e1e05ffc727e951ef9b9c98418e6d79f1c9b6b13bd59f5c9028a1478` (the same as on Hugging Face)
-- `kokoro-fp16.1.bin` + `kokoro-fp16.2.bin` joined: `ba4527a874b42b21e35f468c10d326fdff3c7fc8cac1f85e9eb6c0dfc35c334a` (the same as `model_fp16.onnx` on Hugging Face)
+- `en_US-kristin-medium.onnx`: MD5 the same as listed in `voices.json` of `rhasspy/piper-voices`.
+- Hindi files: SHA-256 the same as in `SHA256SUMS` of the ONNX release.
+- `hindi/tokenizer.json`: gives the same token numbers as the original SentencePiece on the test sentences (Hindi, English, Hinglish, nukta letters).
 
 ## Limits
 
-- The graphics-card way could not be tried on a real graphics card while it was being made. The full-precision model gave the same sound on a software graphics card and on the processor. The half-precision model is checked on each device with the test sentence.
-- With the processor, on an old or slow computer, the first words can take a few seconds. Long answers are spoken part by part, and the next part is made while the first is playing.
-- The Hindi voice is clear, but less natural than the English voice.
-- Hindi words are turned into sounds by simple rules (`hx-g2p-hi.js`). A rare word may be said a little differently.
-- If the browser cannot run the voice (very old browsers), the device's voice speaks instead.
+- On a slow computer or phone, long Hindi answers can have short pauses. This is because the sound is made a little slower than it is spoken there.
+- The Hindi voice says numbers as words. The website turns digits into Hindi words first.
+- The speed setting (Slow / Normal / Fast) changes the English voice only.
+- If the browser cannot run the voices (very old browsers), the device's voice speaks instead.
