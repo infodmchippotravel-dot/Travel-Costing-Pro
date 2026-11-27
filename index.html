@@ -16498,23 +16498,11 @@ try{(function(){
     if(e==='device'||!SV.can())return 'device';
     return 'site';
   }
-  var dlNote=null,dlTag=null;
-  function dlText(){
-    var H=hi(),s=SV.state();
-    if(s==='ready')return H?'✅ वेबसाइट की साफ़ आवाज़ तैयार है — अब हर जगह यही आवाज़ बोलेगी।':'✅ The website’s clear voice is ready — it is the same voice everywhere.';
-    if(s==='failed')return H?'⚠️ वेबसाइट की साफ़ आवाज़ इस ब्राउज़र में नहीं चल पाई, इसलिए इस डिवाइस की आवाज़ बोल रही है।':'⚠️ The website’s clear voice could not run in this browser, so this device’s voice is speaking.';
-    return (H?'🔊 वेबसाइट की साफ़ आवाज़ डाउनलोड हो रही है (सिर्फ़ पहली बार, लगभग 105 MB): ':'🔊 Downloading the website’s clear voice (first time only, about 105 MB): ')
-      +SV.pct()+'%'+(H?' — तैयार होते ही यही आवाज़ पढ़ेगी।':' — it reads as soon as it is ready.');
-  }
+  var dlTag=null;
   SV.on(function(){
-    if(dlNote&&document.body.contains(dlNote)){dlNote.innerHTML='<small>'+dlText()+'</small>';if(SV.state()!=='loading')dlNote=null;}
     if(panel){var st=panel.querySelector('.hx-vst');if(st)st.textContent=siteStatus();}
     if(SV.state()==='ready')earlyNewest();
   });
-  function showDl(){
-    if(dlNote)return;
-    try{dlNote=chatbotAddMsg('<small>'+dlText()+'</small>','bot system')||null;}catch(e){}
-  }
   /* ⏳ on the pressed 🔊 while the voice is being got ready */
   function waitOn(tag){
     var btn=tag===speakingBtnText?curBtn:null;
@@ -16528,8 +16516,7 @@ try{(function(){
     if(SV.state()==='ready')return saySite(t,wantHi,tag);
     /* not ready yet: wait for it (the same voice every time), with ⏳ and, the first time, the download in % */
     SV.load();
-    var off=waitOn(tag);dlTag=tag;
-    SV.isCached().then(function(c){if(!c&&SV.state()==='loading')showDl();});
+    var off=waitOn(tag);dlTag=tag;   /* no message in the chat: only ⏳ on the 🔊 until the voice is ready */
     (function w(){
       if(speakingBtnText!==tag){off();return;}
       if(SV.state()==='ready'){off();return saySite(t,wantHi,tag);}
@@ -16663,11 +16650,11 @@ try{(function(){
     /* another language or the chat closed: close the settings */
     var ps=window.chatbotSetLanguage;if(typeof ps==='function')window.chatbotSetLanguage=function(){var r=ps.apply(this,arguments);closeSet();return r;};
     var tc=window.toggleChatbot;if(typeof tc==='function')window.toggleChatbot=function(){var r=tc.apply(this,arguments);var pn=document.getElementById('chatbotPanel');if(pn&&!pn.classList.contains('show'))closeSet();
-      /* chat opened: get the website's voice ready. A computer downloads it now (once); a phone only when it is already saved
-         or 🔊 is pressed (phone data), and never with "Data saver" on */
+      /* chat opened: get the website's voice ready in the background (downloaded once), so 🔊 speaks at once.
+         With "Data saver" on, only when 🔊 is pressed */
       else if(pn&&engine(hi()?'hi':'en')==='site'&&SV.state()==='off'){
         var sd=false;try{sd=!!(navigator.connection&&navigator.connection.saveData);}catch(_){}
-        SV.isCached().then(function(c){if(c||(!SV.mobile&&!sd))SV.load();});
+        SV.isCached().then(function(c){if(c||!sd)SV.load();});
       }
       return r;};
   }catch(e){}
