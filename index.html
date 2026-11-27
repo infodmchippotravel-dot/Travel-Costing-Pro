@@ -16384,13 +16384,13 @@ try{(function(){
      Kokoro-82M (Apache-2.0) runs on this device in a background worker (assets/voice). Nothing is sent anywhere.
      It is downloaded once (about 105 MB) and then kept by the browser. */
   var SV=(function(){
-    var ws=[],ready=[],rr=0,state='off',pct=0,why='',ac=null,srcs=[],nextAt=0,cached=null,subs=[];
-    var cache=new Map(),fly={},info={},job=null;   /* made parts (key → sound), parts being made, the speech now playing */
+    var ws=[],idle=[],nReady=0,state='off',pct=0,why='',ac=null,srcs=[],nextAt=0,cached=null,subs=[];
+    var cache=new Map(),info={},run={},list=[],job=null;   /* made parts, parts being made (key → helper), parts waiting, the speech now playing */
     var URL_W='assets/voice/hx-voice-worker.mjs?v='+encodeURIComponent(window.SITE_BUILD||'1');
     var MODEL_URL=new URL('assets/voice/model/kokoro-q8.onnx',location.href).href;
     var mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'')||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
     var can=typeof Worker==='function'&&typeof WebAssembly==='object'&&!!(window.AudioContext||window.webkitAudioContext)&&location.protocol!=='file:';
-    /* helpers that make the sound at the same time (one sentence each): more on a computer with more cores and memory */
+    /* helpers that make the sound at the same time (one part each): more on a computer with more cores and memory */
     var cores=navigator.hardwareConcurrency||2,mem=navigator.deviceMemory||8;
     var nW=mobile?(cores>=6&&mem>=6?2:1):Math.max(1,Math.min(3,cores-1));if(!mobile&&mem<8)nW=Math.min(nW,2);if(mem<4)nW=1;
     function tell(){subs.forEach(function(f){try{f();}catch(e){}});}
@@ -16399,7 +16399,7 @@ try{(function(){
       try{return caches.open('hx-voice-v1').then(function(c){return c.match(MODEL_URL);}).then(function(r){cached=!!r;return cached;},function(){cached=false;return false;});}
       catch(e){cached=false;return Promise.resolve(false);}
     }
-    function fail(m){state='failed';why=String(m||'');ws.forEach(function(w){try{w.terminate();}catch(e){}});ws=[];ready=[];fly={};tell();console.warn('Website voice is not available here:',why);}
+    function fail(m){state='failed';why=String(m||'');ws.forEach(function(w){try{w.terminate();}catch(e){}});ws=[];idle=[];run={};list=[];tell();console.warn('Website voice is not available here:',why);}
     function start(first){
       var w;
       try{w=new Worker(URL_W,{type:'module'});}catch(e){if(first)fail(e&&e.message);return;}
@@ -16407,11 +16407,11 @@ try{(function(){
       w.onmessage=function(e){
         var d=e.data||{};
         if(d.type==='progress'){if(first){pct=d.total?Math.round(d.loaded*100/d.total):0;tell();}}
-        else if(d.type==='ready'){ready.push(w);if(first){state='ready';cached=true;pct=100;tell();while(ws.length<nW)start(false);}}
-        else if(d.type==='failed'){if(first)fail(d.message);else{ws=ws.filter(function(x){return x!==w;});try{w.terminate();}catch(_){}}}
-        else if(d.type==='audio')put(d.key,d.pcm);
-        else if(d.type==='dropped'){delete fly[d.key];if(job&&job.keys.indexOf(d.key,job.i)>=0)ask(d.key,false);}
-        else if(d.type==='error'){delete fly[d.key];if(job){var at=job.keys.indexOf(d.key,job.i);if(at>=0){var f=job.err;stopAudio();if(f)f(at,d.message);}}}
+        else if(d.type==='ready'){nReady++;idle.push(w);if(first||state!=='ready'){state='ready';cached=true;pct=100;tell();while(ws.length<nW)start(false);}pump();}
+        else if(d.type==='failed'){if(first&&state!=='ready')fail(d.message);else{ws=ws.filter(function(x){return x!==w;});try{w.terminate();}catch(_){}}}
+        else if(d.type==='audio'){delete run[d.key];idle.push(w);put(d.key,d.pcm);pump();}
+        else if(d.type==='error'){delete run[d.key];idle.push(w);
+          if(job){var at=job.keys.indexOf(d.key,job.i);if(at>=0){var f=job.err;stopAudio();if(f)f(at,d.message);}}pump();}
       };
       w.onerror=function(e){if(first&&state!=='ready')fail((e&&e.message)||'the voice could not start');};
       w.postMessage({type:'load'});
@@ -16429,18 +16429,25 @@ try{(function(){
       try{if(!ac){var A=window.AudioContext||window.webkitAudioContext;ac=new A();}if(ac.state==='suspended')ac.resume();}catch(e){}
     }
     function key(text,lang,rate){return lang+'|'+rate.toFixed(2)+'|'+text;}
-    /* make one part (or move it to the front when it was being made early) */
-    function ask(k,pre){
-      if(cache.has(k))return;
-      var f=fly[k];
-      if(f){if(f.pre&&!pre){f.pre=false;f.w.postMessage({type:'need',keys:[k]});}return;}
-      if(!ready.length)return;
-      var w=ready[rr++%ready.length],x=info[k];
-      fly[k]={pre:pre,w:w};
-      w.postMessage({type:'say',key:k,text:x.text,lang:x.lang,speed:x.rate,pre:pre});
+    /* the waiting list: parts of the speech now playing first (in order), then parts made early */
+    function want(k,pre){
+      if(cache.has(k)||run[k])return;
+      var at=-1;for(var i=0;i<list.length;i++)if(list[i].k===k){at=i;break;}
+      if(at>=0){if(!pre&&list[at].pre){list.splice(at,1);at=-1;}else return;}
+      var item={k:k,pre:pre};
+      if(pre)list.push(item);
+      else{var j=0;while(j<list.length&&!list[j].pre)j++;list.splice(j,0,item);}
+    }
+    function pump(){
+      while(idle.length&&list.length){
+        var it=list.shift(),w=idle.shift(),x=info[it.k];
+        if(cache.has(it.k)||run[it.k]){idle.unshift(w);continue;}
+        run[it.k]=w;
+        w.postMessage({type:'say',key:it.k,text:x.text,lang:x.lang,speed:x.rate});
+      }
     }
     function put(k,pcm){
-      delete fly[k];cache.set(k,pcm);
+      cache.set(k,pcm);
       if(cache.size>80){var old=cache.keys().next().value;cache.delete(old);}
       next();
     }
@@ -16461,30 +16468,30 @@ try{(function(){
       }catch(e){}
     }
     function stopAudio(){
-      var had=!!job;job=null;
+      job=null;
       srcs.forEach(function(s){try{s.onended=null;s.stop();}catch(e){}});srcs=[];nextAt=0;
-      if(had)ws.forEach(function(w){w.postMessage({type:'drop',which:'now'});});
+      list=list.filter(function(it){return it.pre;});   /* parts of the stopped speech are not made any more */
     }
     function reg(bits,lang,rate){return bits.map(function(b){var k=key(b,lang,rate);info[k]={text:b,lang:lang,rate:rate};return k;});}
     /* say these parts; end() when all are said, err(i) when part i could not be made, begin() when the sound starts */
     function speak(bits,lang,rate,end,err,begin){
       stopAudio();prime();
       var keys=reg(bits,lang,rate);
+      list=[];   /* only this speech is made now */
       job={keys:keys,i:0,end:end,err:err,begin:begin};
-      keys.forEach(function(k){ask(k,false);});
-      next();
+      keys.forEach(function(k){want(k,false);});
+      pump();next();
     }
     /* the newest answer is made early (its first parts), so 🔊 can start at once */
     function early(bits,lang,rate){
-      if(state!=='ready')return;
+      if(state!=='ready'||job)return;
       var keys=reg(bits.slice(0,8),lang,rate);
-      ws.forEach(function(w){w.postMessage({type:'drop',which:'pre',keys:keys});});
-      Object.keys(fly).forEach(function(k){if(fly[k].pre&&keys.indexOf(k)<0)delete fly[k];});
-      keys.forEach(function(k){ask(k,true);});
+      list=[];keys.forEach(function(k){want(k,true);});
+      pump();
     }
     return {
       can:function(){return can&&state!=='failed';},state:function(){return state;},pct:function(){return pct;},why:function(){return why;},
-      mobile:mobile,load:load,prime:prime,speak:speak,early:early,stop:stopAudio,isCached:isCached,helpers:function(){return ready.length;},
+      mobile:mobile,load:load,prime:prime,speak:speak,early:early,stop:stopAudio,isCached:isCached,helpers:function(){return nReady;},
       made:function(){return cache.size;},busy:function(){return !!job||srcs.length>0;},on:function(f){subs.push(f);}
     };
   })();
@@ -16533,9 +16540,14 @@ try{(function(){
       if(b)bits.push(b);
     });
     bits=bits.filter(function(x){return /[\wऀ-ॿ]/.test(x);});
-    var F=wantHi?40:50;
-    if(bits.length&&bits[0].length>F+5){var b0=bits[0],k=b0.lastIndexOf(',',F);if(k<15)k=b0.lastIndexOf(' ',F);if(k>=15)bits.splice(0,1,b0.slice(0,k+1),b0.slice(k+1).trim());}
-    return bits;
+    /* the first two parts are short (they are needed first), the later ones longer */
+    function cut(i,F){
+      var b0=bits[i];if(!b0||b0.length<=F+8)return;
+      var k=b0.lastIndexOf(',',F);if(k<12)k=b0.lastIndexOf(' ',F);
+      if(k>=12)bits.splice(i,1,b0.slice(0,k+1).trim(),b0.slice(k+1).trim());
+    }
+    cut(0,wantHi?26:32);cut(1,wantHi?50:60);
+    return bits.filter(function(x){return /[\wऀ-ॿ]/.test(x);});
   }
   function rateFor(wantHi){return (wantHi?0.95:1)*speed();}
   var waiting=null;

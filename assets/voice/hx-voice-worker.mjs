@@ -1,8 +1,8 @@
 /* Hippo Travel — the website's own voice (Kokoro-82M, Apache-2.0), made on this device in a background worker.
    Nothing is sent anywhere: the text is turned into sound inside this browser.
-   Messages in : {type:'load'} | {type:'say', key, text, lang:'en'|'hi', speed, pre} | {type:'need', keys} | {type:'drop', which:'pre'|'now'|'all', keys (kept)}
+   Messages in : {type:'load'} | {type:'say', key, text, lang:'en'|'hi', speed}   (one at a time)
    Messages out: {type:'progress', loaded, total} | {type:'ready'} | {type:'audio', key, pcm (Float32Array, 24 kHz)}
-                 {type:'error', key, message} | {type:'dropped', key} | {type:'failed', message} */
+                 {type:'error', key, message} | {type:'failed', message} */
 import * as ort from './vendor/ort.wasm.min.mjs';
 import { phonemize } from './vendor/phonemizer.js';
 import './hx-g2p-hi.js';
@@ -106,37 +106,14 @@ async function say(text, lang, speed) {
   return r.waveform.data;
 }
 
-/* jobs: what the person asked to hear comes first; "made early" jobs (the newest answer, before 🔊 is pressed) after */
-const jobs = [];
-let busy = false;
-function pump() {
-  if (busy) return;
-  let k = jobs.findIndex((j) => !j.pre);
-  if (k < 0) k = 0;
-  const j = jobs.splice(k, 1)[0];
-  if (!j) return;
-  busy = true;
-  say(String(j.text || ''), j.lang, j.speed).then(
-    (pcm) => postMessage({ type: 'audio', key: j.key, pcm }, [pcm.buffer]),
-    (er) => postMessage({ type: 'error', key: j.key, message: String((er && er.message) || er) })
-  ).then(() => { busy = false; pump(); });
-}
+/* one part at a time: the page keeps the list of parts and gives each helper the next one when it is free */
 self.onmessage = (e) => {
   const d = e.data || {};
   if (d.type === 'load') {
     load().then(() => postMessage({ type: 'ready' }), (er) => postMessage({ type: 'failed', message: String((er && er.message) || er) }));
   } else if (d.type === 'say') {
-    if (!jobs.some((j) => j.key === d.key)) jobs.push({ key: d.key, text: d.text, lang: d.lang, speed: d.speed, pre: !!d.pre });
-    pump();
-  } else if (d.type === 'need') {
-    /* 🔊 pressed for parts that were waiting as "made early": they now come first */
-    for (const j of jobs) if (d.keys.indexOf(j.key) >= 0) j.pre = false;
-  } else if (d.type === 'drop') {
-    /* jobs no longer wanted (speech stopped, or a newer answer): not made */
-    const keep = d.keys || [];
-    for (let k = jobs.length - 1; k >= 0; k--) {
-      const j = jobs[k];
-      if ((d.which === 'all' || (d.which === 'pre') === j.pre) && keep.indexOf(j.key) < 0) { postMessage({ type: 'dropped', key: j.key }); jobs.splice(k, 1); }
-    }
+    say(String(d.text || ''), d.lang, d.speed).then(
+      (pcm) => postMessage({ type: 'audio', key: d.key, pcm }, [pcm.buffer]),
+      (er) => postMessage({ type: 'error', key: d.key, message: String((er && er.message) || er) }));
   }
 };
