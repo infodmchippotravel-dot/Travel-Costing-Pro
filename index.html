@@ -39,7 +39,7 @@ try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.cla
     setTimeout(function(){bo.classList.remove('boot-out');},4000);}   /* never stays hidden */
 }catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-27-5';   /* change with every new version */
+window.SITE_BUILD='2026-11-27-6';   /* change with every new version */
 /* Help chat AI server (ai-worker/ in this repository). Empty = the AI is off and nothing is sent anywhere.
    When it is set, also add the same address to connect-src in the Content-Security-Policy above. */
 window.HIPPO_AI_URL=window.HIPPO_AI_URL||'';
@@ -11006,7 +11006,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 27 Nov 2026 (5)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 27 Nov 2026 (6)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -16389,7 +16389,7 @@ try{(function(){
   var SV=(function(){
     /* per language: 'off' | 'loading' | 'ready' | 'failed'.
        English = Piper "Kristin" (one helper, fast). Hindi = Indus Pocket TTS "Inaya" (two helpers: frames → sound, played while it is made) */
-    var st={en:'off',hi:'off'},pcts={en:0,hi:0},why='';
+    var st={en:'off',hi:'off'},pcts={en:0,hi:0},why='',whyL={en:'',hi:''},t0={},loadMs={},keep=null,was={};
     var EN=null,enIdle=false,HG=null,HD=null,hiOk={g:false,d:false},hiIdle=false,hiCur=null;
     var ac=null,srcs=[],nextAt=0,cached={},subs=[];
     var cache=new Map(),info={},run={},list=[],job=null;   /* made sound per part {chunks,rate,done}, parts being made, parts waiting, the speech now playing */
@@ -16405,12 +16405,12 @@ try{(function(){
       catch(e){cached[lang]=false;return Promise.resolve(false);}
     }
     function failLang(lang,m){
-      st[lang]='failed';why=String(m||'');
+      st[lang]='failed';why=String(m||'');whyL[lang]=why;
       list=list.filter(function(it){return info[it.k].lang!==lang;});
       if(job&&job.lang===lang){var f=job.err,at=job.i;stopAudio();if(f)f(at,why);}
       tell();console.warn('Website voice ('+lang+') is not available here:',why);
     }
-    function ready(lang){st[lang]='ready';cached[lang]=true;pcts[lang]=100;tell();pump();}
+    function ready(lang){st[lang]='ready';loadMs[lang]=Date.now()-(t0[lang]||Date.now());cached[lang]=true;pcts[lang]=100;tell();pump();}
     function worker(file){try{return new Worker('assets/voice/'+file+V,{type:'module'});}catch(e){return null;}}
     function loadEn(){
       EN=worker('hx-voice-worker.mjs');
@@ -16458,7 +16458,10 @@ try{(function(){
       lang=lang==='hi'?'hi':'en';
       if(!can){st[lang]='failed';why='not supported';return;}
       if(st[lang]!=='off')return;
-      st[lang]='loading';pcts[lang]=0;tell();
+      st[lang]='loading';pcts[lang]=0;t0[lang]=Date.now();tell();
+      /* ask the browser to keep the voice files (so they are not downloaded again) */
+      try{if(keep===null&&navigator.storage&&navigator.storage.persist){keep=false;navigator.storage.persist().then(function(v){keep=v;tell();},function(){});}}catch(e){}
+      isCached(lang).then(function(v){was[lang]=v;tell();});   /* saved before this visit? */
       if(lang==='hi')loadHi();else loadEn();
     }
     function partFailed(k,msg){if(job){var at=job.keys.indexOf(k,job.i);if(at>=0){var f=job.err;stopAudio();if(f)f(at,msg);}}}
@@ -16547,7 +16550,9 @@ try{(function(){
       state:function(lang){return st[lang==='hi'?'hi':'en'];},pct:function(lang){return pcts[lang==='hi'?'hi':'en'];},why:function(){return why;},
       mobile:mobile,load:load,prime:prime,speak:speak,early:early,stop:stopAudio,isCached:isCached,
       helpers:function(){return (EN?1:0)+(HG?2:0);},gpu:function(){return false;},gpuWhy:function(){return '';},
-      made:function(){return cache.size;},busy:function(){return !!job||srcs.length>0;},on:function(f){subs.push(f);}
+      made:function(){return cache.size;},busy:function(){return !!job||srcs.length>0;},on:function(f){subs.push(f);},
+      /* for the check line in the voice settings */
+      diag:function(){return {st:st,pct:pcts,why:whyL,saved:was,ms:loadMs,keep:keep,cacheApi:typeof caches==='object',cores:navigator.hardwareConcurrency||0,mem:navigator.deviceMemory||0};}
     };
   })();
   /* which voice to use: the person's choice, else the website's voice when this browser has no clear one
@@ -16562,7 +16567,7 @@ try{(function(){
   }
   var dlTag=null;
   SV.on(function(){
-    if(panel){var st=panel.querySelector('.hx-vst');if(st)st.textContent=siteStatus();}
+    if(panel){var st=panel.querySelector('.hx-vst');if(st)st.textContent=siteStatus();var dg=panel.querySelector('.hx-vdiag');if(dg)dg.textContent=diagText();}
     earlyNewest();
   });
   /* ⏳ on the pressed 🔊 while the voice is being got ready */
@@ -16675,7 +16680,7 @@ try{(function(){
       ['device',H?'इस डिवाइस की आवाज़':'This device’s voice']];
     panel.innerHTML='<b class="hx-vt">'+(H?'आवाज़ की सेटिंग':'Voice settings')+'</b>'
       +(SV.can()?'<label class="hx-vl">'+(H?'कौन-सी आवाज़':'Which voice')+'<select class="hx-veng">'+engOpts.map(function(o){return '<option value="'+o[0]+'"'+(o[0]===en?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select></label>'
-        +'<p class="hx-vn hx-vst" aria-live="polite">'+esc(siteStatus())+'</p>':'')
+        +'<p class="hx-vn hx-vst" aria-live="polite">'+esc(siteStatus())+'</p><p class="hx-vn hx-vdiag">'+esc(diagText())+'</p>':'')
       +(inUse==='site'?'':pool.length?'<label class="hx-vl">'+(H?'आवाज़':'Voice')+'<select class="hx-vsel">'+opts+'</select></label>'
         :'<p class="hx-vn">'+(H?'इस फ़ोन / ब्राउज़र में कोई आवाज़ नहीं है।':'This phone / browser has no voice.')+'</p>')
       +(noHi&&inUse!=='site'?'<p class="hx-vn">'+'इस फ़ोन / ब्राउज़र में हिंदी आवाज़ नहीं है, इसलिए हिंदी ऊपर चुनी Indian-English आवाज़ में बोली जाती है। साफ़ हिंदी आवाज़ (एक बार): <b>Android</b> — Settings → Text-to-speech → Google → Install voice data → Hindi. <b>Windows</b> — Settings → Time &amp; language → Speech → Add voices → Hindi, या Microsoft Edge में खोलें. <b>iPhone</b> — Settings → Accessibility → Spoken Content → Voices → Hindi.'+'</p>':'')
@@ -16714,6 +16719,13 @@ try{(function(){
     var warm=function(){['en','hi'].forEach(function(L){if(engine(L)==='site'&&SV.state(L)==='off')SV.isCached(L).then(function(c){if(c)SV.load(L);});});};
     if(document.readyState==='complete')setTimeout(warm,1500);else window.addEventListener('load',function(){setTimeout(warm,1500);});
   }catch(e){}
+  /* a short check line (to tell us what happens on this device): state, saved or not, load time, last wait */
+  function diagText(){
+    try{
+      var d=SV.diag(),one=function(L,n){var x=d.st[L];return n+': '+(x==='ready'?'ready':x==='loading'?'loading '+d.pct[L]+'%':x==='failed'?'FAILED ('+String(d.why[L]).slice(0,60)+')':'not loaded')+(d.saved[L]===true?' · was saved':d.saved[L]===false?' · downloaded now':'')+(d.ms[L]!=null?' · '+(d.ms[L]/1000).toFixed(1)+' s':'');};
+      return 'Check — '+one('en','EN')+' | '+one('hi','HI')+' | keep files: '+(d.keep===true?'yes':d.keep===false?'no':'-')+(d.cacheApi?'':' | NO cache storage')+(lastWait!=null?' | last 🔊 → sound '+(lastWait/1000).toFixed(1)+' s':'')+' | cores '+d.cores;
+    }catch(e){return '';}
+  }
   function siteStatus(){
     var H=hi(),L=H?'hi':'en',s=SV.state(L);
     if(s==='ready')return (H?'वेबसाइट की आवाज़ तैयार है ✅ (हर ब्राउज़र में एक जैसी)।':'Website voice ready ✅ (the same in every browser).')+(lastWait!=null?(H?' पिछली बार 🔊 के बाद आवाज़ ':' Last time the sound came ')+(lastWait/1000).toFixed(1)+(H?' सेकंड में आई।':' s after 🔊.'):'');
