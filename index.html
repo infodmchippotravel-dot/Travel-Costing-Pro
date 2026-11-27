@@ -39,7 +39,7 @@ try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.cla
     setTimeout(function(){bo.classList.remove('boot-out');},4000);}   /* never stays hidden */
 }catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-27-2';   /* change with every new version */
+window.SITE_BUILD='2026-11-27-3';   /* change with every new version */
 /* Help chat AI server (ai-worker/ in this repository). Empty = the AI is off and nothing is sent anywhere.
    When it is set, also add the same address to connect-src in the Content-Security-Policy above. */
 window.HIPPO_AI_URL=window.HIPPO_AI_URL||'';
@@ -11006,7 +11006,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 27 Nov 2026 (2)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 27 Nov 2026 (3)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -16384,43 +16384,59 @@ try{(function(){
      Kokoro-82M (Apache-2.0) runs on this device in a background worker (assets/voice). Nothing is sent anywhere.
      It is downloaded once (about 105 MB) and then kept by the browser. */
   var SV=(function(){
-    var gpu=false,gpuWhy='',ws=[],idle=[],nReady=0,state='off',pct=0,why='',ac=null,srcs=[],nextAt=0,cached=null,subs=[];
+    /* per language: 'off' | 'loading' | 'ready' | 'failed'. English = Piper (fast), Hindi = Kokoro */
+    var st={en:'off',hi:'off'},pcts={en:0,hi:0},why='',gpu=false,gpuWhy='';
+    var ws=[],has=new Map(),idle=[],ac=null,srcs=[],nextAt=0,cached={},subs=[];
     var cache=new Map(),info={},run={},list=[],job=null;   /* made parts, parts being made (key → helper), parts waiting, the speech now playing */
     var URL_W='assets/voice/hx-voice-worker.mjs?v='+encodeURIComponent(window.SITE_BUILD||'1');
-    var MODEL_URL=new URL('assets/voice/model/kokoro-q8.onnx',location.href).href;
+    var FILE={en:'assets/voice/model/en_US-kristin-medium.onnx',hi:'assets/voice/model/kokoro-q8.onnx'};
     var mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'')||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
     var can=typeof Worker==='function'&&typeof WebAssembly==='object'&&!!(window.AudioContext||window.webkitAudioContext)&&location.protocol!=='file:';
-    /* helpers that make the sound at the same time (one part each): more on a computer with more cores and memory */
+    /* Hindi (the bigger voice) is made by more helpers at the same time on a computer with more cores and memory */
     var cores=navigator.hardwareConcurrency||2,mem=navigator.deviceMemory||8;
     var nW=mobile?(cores>=6&&mem>=6?2:1):Math.max(1,Math.min(3,cores-1));if(!mobile&&mem<8)nW=Math.min(nW,2);if(mem<4)nW=1;
     function tell(){subs.forEach(function(f){try{f();}catch(e){}});}
-    function isCached(){
-      if(cached!==null)return Promise.resolve(cached);
-      try{return caches.open('hx-voice-v1').then(function(c){return c.match(MODEL_URL);}).then(function(r){cached=!!r;return cached;},function(){cached=false;return false;});}
-      catch(e){cached=false;return Promise.resolve(false);}
+    function isCached(lang){
+      lang=lang||'en';
+      if(cached[lang]!==undefined)return Promise.resolve(cached[lang]);
+      try{return caches.open('hx-voice-v1').then(function(c){return c.match(new URL(FILE[lang],location.href).href);}).then(function(r){cached[lang]=!!r;return cached[lang];},function(){cached[lang]=false;return false;});}
+      catch(e){cached[lang]=false;return Promise.resolve(false);}
     }
-    function fail(m){state='failed';why=String(m||'');ws.forEach(function(w){try{w.terminate();}catch(e){}});ws=[];idle=[];run={};list=[];tell();console.warn('Website voice is not available here:',why);}
-    function start(first){
+    function failLang(lang,m){st[lang]='failed';why=String(m||'');list=list.filter(function(it){return info[it.k].lang!==lang;});tell();console.warn('Website voice ('+lang+') is not available here:',why);}
+    function start(){
       var w;
-      try{w=new Worker(URL_W,{type:'module'});}catch(e){if(first)fail(e&&e.message);return;}
-      ws.push(w);
+      try{w=new Worker(URL_W,{type:'module'});}catch(e){return null;}
+      ws.push(w);has.set(w,{});
       w.onmessage=function(e){
-        var d=e.data||{};
-        if(d.type==='progress'){if(first){pct=d.total?Math.round(d.loaded*100/d.total):0;tell();}}
-        else if(d.type==='ready'){nReady++;idle.push(w);if(first||state!=='ready'){gpu=!!d.gpu;gpuWhy=d.why||'';state='ready';cached=true;pct=100;tell();if(!gpu)while(ws.length<nW)start(false);}pump();}
-        else if(d.type==='failed'){if(first&&state!=='ready')fail(d.message);else{ws=ws.filter(function(x){return x!==w;});try{w.terminate();}catch(_){}}}
-        else if(d.type==='audio'){delete run[d.key];idle.push(w);put(d.key,d.pcm);pump();}
+        var d=e.data||{},h=has.get(w)||{};
+        if(d.type==='progress'){pcts[d.lang]=d.total?Math.round(d.loaded*100/d.total):0;tell();}
+        else if(d.type==='ready'){
+          var first=!h.any;h[d.lang]=true;h.any=true;
+          if(first)idle.push(w);
+          if(st[d.lang]!=='ready'){
+            st[d.lang]='ready';cached[d.lang]=true;pcts[d.lang]=100;
+            if(d.lang==='hi'){gpu=!!d.gpu;gpuWhy=d.why||'';if(!gpu)while(ws.length<nW){var x=start();if(!x)break;x.postMessage({type:'load',lang:'hi'});}}
+            tell();
+          }
+          pump();
+        }
+        else if(d.type==='failed'){if(w===ws[0]||st[d.lang]!=='ready')failLang(d.lang,d.message);}
+        else if(d.type==='audio'){delete run[d.key];idle.push(w);put(d.key,d.pcm,d.rate);pump();}
         else if(d.type==='error'){delete run[d.key];idle.push(w);
           if(job){var at=job.keys.indexOf(d.key,job.i);if(at>=0){var f=job.err;stopAudio();if(f)f(at,d.message);}}pump();}
       };
-      w.onerror=function(e){if(first&&state!=='ready')fail((e&&e.message)||'the voice could not start');};
-      w.postMessage({type:'load'});
+      w.onerror=function(){if(w===ws[0]){['en','hi'].forEach(function(l){if(st[l]!=='ready')failLang(l,'the voice could not start');});}};
+      return w;
     }
-    function load(){
-      if(!can){state='failed';why='not supported';return;}
-      if(ws.length||state==='failed')return;
-      state='loading';pct=0;tell();
-      start(true);   /* the other helpers start when this one is ready (with the graphics card, one is enough) */
+    /* get a language ready (the first helper makes both; more helpers only for Hindi) */
+    function load(lang){
+      lang=lang==='hi'?'hi':'en';
+      if(!can){st[lang]='failed';why='not supported';return;}
+      if(st[lang]!=='off')return;
+      st[lang]='loading';pcts[lang]=0;tell();
+      var w=ws[0]||start();
+      if(!w){failLang(lang,'the voice could not start');return;}
+      w.postMessage({type:'load',lang:lang});
     }
     /* sound may only start after a tap: the sound player is made / woken up during the tap */
     function prime(){
@@ -16436,29 +16452,32 @@ try{(function(){
       if(pre)list.push(item);
       else{var j=0;while(j<list.length&&!list[j].pre)j++;list.splice(j,0,item);}
     }
+    /* each free helper takes the first waiting part of a language it has ready */
     function pump(){
-      while(idle.length&&list.length){
-        var it=list.shift(),w=idle.shift(),x=info[it.k];
-        if(cache.has(it.k)||run[it.k]){idle.unshift(w);continue;}
-        run[it.k]=w;
-        w.postMessage({type:'say',key:it.k,text:x.text,lang:x.lang,speed:x.rate});
+      for(var n=0;n<idle.length;){
+        var w=idle[n],h=has.get(w)||{},at=-1;
+        for(var i=0;i<list.length;i++){var it=list[i];if(cache.has(it.k)||run[it.k]){list.splice(i,1);i--;continue;}if(h[info[it.k].lang]){at=i;break;}}
+        if(at<0){n++;continue;}
+        var k=list.splice(at,1)[0].k,x=info[k];
+        idle.splice(n,1);run[k]=w;
+        w.postMessage({type:'say',key:k,text:x.text,lang:x.lang,speed:x.rate});
       }
     }
-    function put(k,pcm){
-      cache.set(k,pcm);
+    function put(k,pcm,rate){
+      cache.set(k,{pcm:pcm,rate:rate||24000});
       if(cache.size>80){var old=cache.keys().next().value;cache.delete(old);}
       next();
     }
     /* play the parts in order, as soon as each one is made */
     function next(){
-      while(job&&job.i<job.keys.length&&cache.has(job.keys[job.i])){var pcm=cache.get(job.keys[job.i]);job.i++;play(pcm);}
+      while(job&&job.i<job.keys.length&&cache.has(job.keys[job.i])){var c=cache.get(job.keys[job.i]);job.i++;play(c.pcm,c.rate);}
       done();
     }
     function done(){if(job&&job.i>=job.keys.length&&!srcs.length){var f=job.end;job=null;if(f)f();}}
-    function play(pcm){
+    function play(pcm,rate){
       if(!ac||!pcm||!pcm.length)return;
       try{
-        var buf=ac.createBuffer(1,pcm.length,24000);buf.getChannelData(0).set(pcm);
+        var buf=ac.createBuffer(1,pcm.length,rate);buf.getChannelData(0).set(pcm);
         var s=ac.createBufferSource();s.buffer=buf;s.connect(ac.destination);
         var at=Math.max(ac.currentTime+0.05,nextAt);s.start(at);nextAt=at+buf.duration+0.15;   /* a short pause between parts */
         if(job&&job.begin){var f0=job.begin;job.begin=null;f0();}
@@ -16482,14 +16501,16 @@ try{(function(){
     }
     /* the newest answer is made early (its first parts), so 🔊 can start at once */
     function early(bits,lang,rate){
-      if(state!=='ready'||job)return;
+      if(st[lang]!=='ready'||job)return;
       var keys=reg(bits.slice(0,8),lang,rate);
       list=[];keys.forEach(function(k){want(k,true);});
       pump();
     }
     return {
-      can:function(){return can&&state!=='failed';},state:function(){return state;},pct:function(){return pct;},why:function(){return why;},
-      mobile:mobile,load:load,prime:prime,speak:speak,early:early,stop:stopAudio,isCached:isCached,helpers:function(){return nReady;},gpu:function(){return gpu;},gpuWhy:function(){return gpuWhy;},
+      can:function(){return can&&st.en!=='failed';},
+      state:function(lang){return st[lang==='hi'?'hi':'en'];},pct:function(lang){return pcts[lang==='hi'?'hi':'en'];},why:function(){return why;},
+      mobile:mobile,load:load,prime:prime,speak:speak,early:early,stop:stopAudio,isCached:isCached,
+      helpers:function(){return ws.length;},gpu:function(){return gpu;},gpuWhy:function(){return gpuWhy;},
       made:function(){return cache.size;},busy:function(){return !!job||srcs.length>0;},on:function(f){subs.push(f);}
     };
   })();
@@ -16506,7 +16527,7 @@ try{(function(){
   var dlTag=null;
   SV.on(function(){
     if(panel){var st=panel.querySelector('.hx-vst');if(st)st.textContent=siteStatus();}
-    if(SV.state()==='ready')earlyNewest();
+    earlyNewest();
   });
   /* ⏳ on the pressed 🔊 while the voice is being got ready */
   function waitOn(tag){
@@ -16518,14 +16539,15 @@ try{(function(){
   /* speak t: the website's voice or this device's voice */
   function say(t,wantHi,tag){
     if(engine(wantHi?'hi':'en')!=='site')return sayDevice(t,wantHi,tag);
-    if(SV.state()==='ready')return saySite(t,wantHi,tag);
+    var L=wantHi?'hi':'en';
+    if(SV.state(L)==='ready')return saySite(t,wantHi,tag);
     /* not ready yet: wait for it (the same voice every time), with ⏳ and, the first time, the download in % */
-    SV.load();
+    SV.load(L);
     var off=waitOn(tag);dlTag=tag;   /* no message in the chat: only ⏳ on the 🔊 until the voice is ready */
     (function w(){
       if(speakingBtnText!==tag){off();return;}
-      if(SV.state()==='ready'){off();return saySite(t,wantHi,tag);}
-      if(SV.state()==='failed'){off();return sayDevice(t,wantHi,tag);}
+      if(SV.state(L)==='ready'){off();return saySite(t,wantHi,tag);}
+      if(SV.state(L)==='failed'){off();return sayDevice(t,wantHi,tag);}
       setTimeout(w,200);
     })();
   }
@@ -16567,11 +16589,10 @@ try{(function(){
   }
   function earlyNewest(){
     try{
-      if(SV.state()!=='ready')return;
       var ms=document.querySelectorAll('#chatbotBody .chatbot-msg.bot:not(.system):not(.typing)'),m=ms[ms.length-1];
       if(!m||!m.querySelector('.chatbot-voice-btn'))return;
       var html=msgHtml(m),wantHi=hi()||/[ऀ-ॿ]/.test(html.replace(/<[^>]*>/g,''));
-      if(engine(wantHi?'hi':'en')!=='site')return;
+      if(engine(wantHi?'hi':'en')!=='site'||SV.state(wantHi?'hi':'en')!=='ready')return;
       var t=clean(html,wantHi);if(!t)return;
       SV.early(siteBits(t,wantHi),wantHi?'hi':'en',rateFor(wantHi));
     }catch(e){}
@@ -16586,7 +16607,7 @@ try{(function(){
     engine:engine,state:SV.state,
     /* the welcome after login: the website's voice when it is chosen and already loaded on this page */
     welcome:function(text){
-      if(engine('en')!=='site'||SV.state()!=='ready')return false;
+      if(engine('en')!=='site'||SV.state('en')!=='ready')return false;
       var t=clean(text,false);speakingBtnText='__welcome';saySite(t,false,'__welcome');return true;
     }
   };
@@ -16627,7 +16648,7 @@ try{(function(){
     var eng=panel.querySelector('.hx-veng');
     if(eng)eng.addEventListener('change',function(){
       var p=pref();if(eng.value==='auto')delete p.engine;else p.engine=eng.value;savePref(p);
-      if(engine(key)==='site')SV.load();
+      if(engine(key)==='site')SV.load(key);
       openSet();var e3=panel&&panel.querySelector('.hx-veng');if(e3)e3.focus();   /* shown again: the device voice list only with the device voice */
       test();
     });
@@ -16636,13 +16657,23 @@ try{(function(){
     panel.querySelector('.hx-vdone').addEventListener('click',function(){closeSet();try{vbtn.focus();}catch(e){}});
     (sel||panel.querySelector('.hx-veng')||panel.querySelector('.hx-vtest')).focus();
   }
-  function siteStatus(){
-    var H=hi(),s=SV.state();
-    if(s==='ready')return (H?'वेबसाइट की आवाज़ तैयार है ✅ (हर ब्राउज़र में एक जैसी)। ':'Website voice ready ✅ (the same in every browser). ')+(SV.gpu()?(H?'ग्राफ़िक्स कार्ड से बन रही है (तेज़)।':'Made by the graphics card (fast).'):(H?'प्रोसेसर से बन रही है।':'Made by the processor.'));
-    if(s==='loading')return (H?'वेबसाइट की आवाज़ डाउनलोड हो रही है: ':'Downloading the website voice: ')+SV.pct()+'%'+(H?' (सिर्फ़ पहली बार)।':' (first time only).');
-    if(s==='failed')return H?'वेबसाइट की आवाज़ इस ब्राउज़र में नहीं चलती, इसलिए डिवाइस की आवाज़ बोलेगी।':'The website voice does not run in this browser, so the device voice speaks.';
-    return H?'वेबसाइट की आवाज़: पहली बार लगभग 105–185 MB, फिर ब्राउज़र में सेव। आवाज़ इसी डिवाइस पर बनती है।':'Website voice: about 105–185 MB the first time, then saved. Made on this device; nothing is sent.';
+  /* get the voice of the chat's language ready in the background (downloaded once). With "Data saver" on, only when 🔊 is pressed */
+  function readyLang(){
+    try{
+      var L=hi()?'hi':'en';
+      if(engine(L)!=='site'||SV.state(L)!=='off')return;
+      var sd=false;try{sd=!!(navigator.connection&&navigator.connection.saveData);}catch(_){}
+      SV.isCached(L).then(function(c){if(c||!sd)SV.load(L);});
+    }catch(e){}
   }
+  function siteStatus(){
+    var H=hi(),L=H?'hi':'en',s=SV.state(L);
+    if(s==='ready')return (H?'वेबसाइट की आवाज़ तैयार है ✅ (हर ब्राउज़र में एक जैसी)। ':'Website voice ready ✅ (the same in every browser).')+(H?(SV.gpu()?'ग्राफ़िक्स कार्ड से बन रही है (तेज़)।':'प्रोसेसर से बन रही है।'):'');
+    if(s==='loading')return (H?'वेबसाइट की आवाज़ डाउनलोड हो रही है: ':'Downloading the website voice: ')+SV.pct(L)+'%'+(H?' (सिर्फ़ पहली बार)।':' (first time only).');
+    if(s==='failed')return H?'वेबसाइट की आवाज़ इस ब्राउज़र में नहीं चलती, इसलिए डिवाइस की आवाज़ बोलेगी।':'The website voice does not run in this browser, so the device voice speaks.';
+    return H?'वेबसाइट की हिंदी आवाज़: पहली बार लगभग 105–185 MB, फिर ब्राउज़र में सेव। आवाज़ इसी डिवाइस पर बनती है।':'Website voice: about 65 MB the first time, then saved. Made on this device; nothing is sent.';
+  }
+
 
   function test(){
     stop();SV.prime();curBtn=null;var H=hi();
@@ -16658,14 +16689,11 @@ try{(function(){
       head.insertBefore(vbtn,cl);
     }
     /* another language or the chat closed: close the settings */
-    var ps=window.chatbotSetLanguage;if(typeof ps==='function')window.chatbotSetLanguage=function(){var r=ps.apply(this,arguments);closeSet();return r;};
+    var ps=window.chatbotSetLanguage;if(typeof ps==='function')window.chatbotSetLanguage=function(){var r=ps.apply(this,arguments);closeSet();readyLang();return r;};
     var tc=window.toggleChatbot;if(typeof tc==='function')window.toggleChatbot=function(){var r=tc.apply(this,arguments);var pn=document.getElementById('chatbotPanel');if(pn&&!pn.classList.contains('show'))closeSet();
       /* chat opened: get the website's voice ready in the background (downloaded once), so 🔊 speaks at once.
          With "Data saver" on, only when 🔊 is pressed */
-      else if(pn&&engine(hi()?'hi':'en')==='site'&&SV.state()==='off'){
-        var sd=false;try{sd=!!(navigator.connection&&navigator.connection.saveData);}catch(_){}
-        SV.isCached().then(function(c){if(c||!sd)SV.load();});
-      }
+      else if(pn)readyLang();
       return r;};
   }catch(e){}
   /* the welcome voice after login uses the same, clearest (or chosen) English voice */
