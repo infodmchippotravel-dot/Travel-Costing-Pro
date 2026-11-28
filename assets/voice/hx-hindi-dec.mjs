@@ -1,6 +1,6 @@
 /* Hippo Travel — Hindi voice, helper 2 of 2: voice frames → sound (Mimi decoder of Indus Pocket TTS, CC-BY-4.0).
    Frames come from helper 1 (hx-hindi-gen.mjs) through a MessagePort; the sound goes to the page in short pieces (about 0.24 s).
-   Messages in : {type:'load'} | {type:'port'} (+ MessagePort from helper 1)
+   Messages in : {type:'load'} | {type:'port'} (+ MessagePort from helper 1) | {type:'skip', key}
    Port in     : {key, lat (Float32Array 32), reset} | {key, end, aborted}
    Messages out: {type:'progress', loaded, total} | {type:'ready'} | {type:'failed', message} | {type:'frames', key, pcm} | {type:'done', key, aborted} */
 import * as ort from './vendor/ort.wasm.min.mjs';
@@ -39,6 +39,7 @@ function fresh() {
 }
 /* frames are made in order; a few are sent together */
 let queue = Promise.resolve(), buf = [], bufKey = null;
+const skip = new Set();   /* parts no longer wanted: their frames are not made into sound */
 function flush(key) {
   if (!buf.length) return;
   const n = buf.reduce((a, b) => a + b.length, 0), pcm = new Float32Array(n); let o = 0;
@@ -50,7 +51,8 @@ function onPort(e) {
   const d = e.data || {};
   queue = queue.then(async () => {
     if (bufKey !== d.key) { flush(bufKey); bufKey = d.key; }
-    if (d.end) { flush(d.key); postMessage({ type: 'done', key: d.key, aborted: !!d.aborted }); return; }
+    if (d.end) { const sk = skip.delete(d.key); if (sk) buf = []; else flush(d.key); postMessage({ type: 'done', key: d.key, aborted: !!d.aborted || sk }); return; }
+    if (skip.has(d.key)) return;
     if (d.reset || !states) fresh();
     const feeds = Object.assign({ latent: new ort.Tensor('float32', d.lat, [1, 1, 32]) }, states);
     const o = await mimi.run(feeds);
@@ -64,5 +66,6 @@ function onPort(e) {
 self.onmessage = (e) => {
   const d = e.data || {};
   if (d.type === 'port') { e.ports[0].onmessage = onPort; return; }
+  if (d.type === 'skip') { skip.add(d.key); return; }
   if (d.type === 'load') load().then(() => postMessage({ type: 'ready' }), (er) => postMessage({ type: 'failed', message: String((er && er.message) || er) }));
 };

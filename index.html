@@ -16390,6 +16390,10 @@ try{(function(){
     /* per language: 'off' | 'loading' | 'ready' | 'failed'.
        English = Piper "Kristin" (one helper, fast). Hindi = Indus Pocket TTS "Inaya" (two helpers: frames → sound, played while it is made) */
     var st={en:'off',hi:'off'},pcts={en:0,hi:0},why='',whyL={en:'',hi:''},t0={},loadMs={},keep=null,was={};
+    /* how fast the website's voice is made on THIS device (seconds of sound per second), kept in this browser */
+    var spd={};try{spd=JSON.parse(localStorage.getItem('hxVoiceSpeed')||'{}')||{};}catch(e){spd={};}
+    function measured(L,secs,el){if(!(secs>0.6&&el>0))return;var v=secs/el;spd[L]=spd[L]==null?v:spd[L]*0.6+v*0.4;try{localStorage.setItem('hxVoiceSpeed',JSON.stringify(spd));}catch(e){}}
+    var under=0;   /* how many times the Hindi sound ran ahead of the making (then more is gathered first) */
     var EN=null,enIdle=false,HG=null,HD=null,hiOk={g:false,d:false},hiIdle=false,hiCur=null;
     var ac=null,srcs=[],nextAt=0,cached={},subs=[];
     var cache=new Map(),info={},run={},list=[],job=null;   /* made sound per part {chunks,rate,done}, parts being made, parts waiting, the speech now playing */
@@ -16420,7 +16424,7 @@ try{(function(){
         if(d.type==='progress'){pcts.en=d.total?Math.round(d.loaded*100/d.total):0;tell();}
         else if(d.type==='ready'){enIdle=true;ready('en');}
         else if(d.type==='failed')failLang('en',d.message);
-        else if(d.type==='audio'){delete run[d.key];enIdle=true;add(d.key,d.pcm,d.rate,true);pump();}
+        else if(d.type==='audio'){delete run[d.key];enIdle=true;if(info[d.key]&&info[d.key].sent)measured('en',d.pcm.length/(d.rate||22050),(performance.now()-info[d.key].sent)/1000);add(d.key,d.pcm,d.rate,true);pump();}
         else if(d.type==='error'){delete run[d.key];enIdle=true;partFailed(d.key,d.message);pump();}
       };
       EN.onerror=function(){if(st.en!=='ready')failLang('en','the voice could not start');};
@@ -16447,7 +16451,9 @@ try{(function(){
         else if(d.type==='done'){
           delete run[d.key];
           if(d.aborted){cache.delete(d.key);if(job&&job.keys.indexOf(d.key,job.i)>=0)want(d.key,false);pump();}
-          else{var c=cache.get(d.key);if(!c){c={chunks:[],rate:24000,done:true};cache.set(d.key,c);}c.done=true;next();}
+          else{var c=cache.get(d.key);if(!c){c={chunks:[],rate:24000,done:true};cache.set(d.key,c);}c.done=true;
+            if(info[d.key]&&info[d.key].sent){var n=0;c.chunks.forEach(function(x){n+=x.length;});measured('hi',n/24000,(performance.now()-info[d.key].sent)/1000);}
+            next();}
         }
       };
       var bad=function(){if(st.hi!=='ready')failLang('hi','the voice could not start');};
@@ -16484,8 +16490,8 @@ try{(function(){
       for(var i=0;i<list.length;i++){
         var it=list[i],x=info[it.k];
         if(cache.has(it.k)||run[it.k]){list.splice(i,1);i--;continue;}
-        if(x.lang==='en'&&enIdle&&st.en==='ready'){enIdle=false;run[it.k]='en';list.splice(i,1);i--;EN.postMessage({type:'say',key:it.k,text:x.text,speed:x.rate});}
-        else if(x.lang==='hi'&&hiIdle&&st.hi==='ready'){hiIdle=false;hiCur=it.k;run[it.k]='hi';cache.set(it.k,{chunks:[],rate:24000,done:false});list.splice(i,1);i--;HG.postMessage({type:'say',key:it.k,text:x.text});}
+        if(x.lang==='en'&&enIdle&&st.en==='ready'){enIdle=false;run[it.k]='en';list.splice(i,1);i--;x.sent=performance.now();EN.postMessage({type:'say',key:it.k,text:x.text,speed:x.rate});}
+        else if(x.lang==='hi'&&hiIdle&&st.hi==='ready'){hiIdle=false;hiCur=it.k;run[it.k]='hi';cache.set(it.k,{chunks:[],rate:24000,done:false});list.splice(i,1);i--;x.sent=performance.now();HG.postMessage({type:'say',key:it.k,text:x.text});}
       }
     }
     /* a piece of sound arrived (a whole English part, or the next 0.24 s of a Hindi part) */
@@ -16499,8 +16505,16 @@ try{(function(){
     }
     /* play in order, as soon as each piece is there */
     function next(){
+      if(!job)return;
+      /* how fast this device makes the sound: slow (< 1×) → each sentence plays only when it is fully made, so a word is never
+         cut in the middle ("fas-fas"); a pause, if any, comes between sentences. Just about fast (1–1.25×) → a short head start. */
+      var sp=spd[job.lang],slow=sp!=null&&sp<1,mid=sp!=null&&sp>=1&&sp<1.25;
       while(job&&job.i<job.keys.length){
         var c=cache.get(job.keys[job.i]);if(!c)break;
+        if(!c.done&&job.ci===0){
+          if(slow||under>=3)break;
+          if(mid){var have=0;c.chunks.forEach(function(x){have+=x.length/c.rate;});var queued=ac?Math.max(0,nextAt-ac.currentTime):0;if(have+queued<1.2)break;}
+        }
         while(job.ci<c.chunks.length){play(c.chunks[job.ci],c.rate,job.ci===c.chunks.length-1&&c.done);job.ci++;}
         if(!c.done)break;
         job.i++;job.ci=0;
@@ -16513,13 +16527,14 @@ try{(function(){
       try{
         var buf=ac.createBuffer(1,pcm.length,rate);buf.getChannelData(0).set(pcm);
         var s=ac.createBufferSource();s.buffer=buf;s.connect(ac.destination);
+        if(job&&job.ci>0&&nextAt&&ac.currentTime>nextAt+0.05)under++;   /* the sound had run out: gather more next time */
         var at=Math.max(ac.currentTime+0.04,nextAt);s.start(at);nextAt=at+buf.duration+(partEnd?0.12:0);   /* a short pause only between parts */
         if(job&&job.begin){var f0=job.begin;job.begin=null;f0();}
         srcs.push(s);s.onended=function(){srcs=srcs.filter(function(x){return x!==s;});done();};
       }catch(e){}
     }
     /* stop the Hindi part being made when nobody needs it any more */
-    function cancelHi(keep){if(hiCur&&HG&&(!keep||keep.indexOf(hiCur)<0)){HG.postMessage({type:'cancel',key:hiCur});}}
+    function cancelHi(keep){if(hiCur&&HG&&(!keep||keep.indexOf(hiCur)<0)){HG.postMessage({type:'cancel',key:hiCur});if(HD)HD.postMessage({type:'skip',key:hiCur});}}
     function stopAudio(){
       var old=job;job=null;
       srcs.forEach(function(s){try{s.onended=null;s.stop();}catch(e){}});srcs=[];nextAt=0;
@@ -16549,7 +16564,7 @@ try{(function(){
       can:function(){return can&&st.en!=='failed';},
       state:function(lang){return st[lang==='hi'?'hi':'en'];},pct:function(lang){return pcts[lang==='hi'?'hi':'en'];},why:function(){return why;},
       mobile:mobile,load:load,prime:prime,speak:speak,early:early,stop:stopAudio,isCached:isCached,
-      helpers:function(){return (EN?1:0)+(HG?2:0);},gpu:function(){return false;},gpuWhy:function(){return '';},
+      helpers:function(){return (EN?1:0)+(HG?2:0);},speed:function(L){return spd[L==='hi'?'hi':'en'];},under:function(){return under;},gpu:function(){return false;},gpuWhy:function(){return '';},
       made:function(){return cache.size;},busy:function(){return !!job||srcs.length>0;},on:function(f){subs.push(f);},
       /* for the check line in the voice settings */
       diag:function(){return {st:st,pct:pcts,why:whyL,saved:was,ms:loadMs,keep:keep,cacheApi:typeof caches==='object',cores:navigator.hardwareConcurrency||0,mem:navigator.deviceMemory||0};}
@@ -16560,10 +16575,16 @@ try{(function(){
   /* which voice: the person's choice; else the website's own voice, so it sounds the same in every browser and phone.
      A browser that cannot run it uses this device's voice. */
   function devGood(key){var l=list(key);return !!(l[0]&&(score(l[0])>=20||SV.mobile));}   /* phones: their own voices (Google / Apple) are clear */
+  /* which voice, when "Automatic":
+     Hindi — this device's own Hindi voice when it has one (Chrome / Edge / phones: at once and smooth); else the website's Hindi voice.
+     English — the website's voice, unless it is made too slowly on this device and the device has a clear English voice. */
   function engine(key){
     var e=pref().engine;
     if(e==='device'||!SV.can())return 'device';
-    return 'site';
+    if(e==='site')return 'site';
+    var sp=SV.speed(key);
+    if(key==='hi')return list('hi').length?'device':'site';
+    return (sp!=null&&sp<1.3&&devGood('en'))?'device':'site';
   }
   var dlTag=null;
   SV.on(function(){
@@ -16584,8 +16605,8 @@ try{(function(){
     if(SV.state(L)==='ready')return saySite(t,wantHi,tag);
     SV.load(L);
     /* not ready yet: no waiting — this device's own voice speaks at once (the website's voice is made ready meanwhile and
-       speaks from the next 🔊). With no Hindi voice on this device, Hindi is said in Roman letters by its English voice. */
-    if(pref().engine!=='site'&&(list('hi').length>0||list('en').length>0))return sayDevice(t,wantHi,tag);
+       speaks from the next 🔊). */
+    if(pref().engine!=='site'&&list(L).length>0)return sayDevice(t,wantHi,tag);   /* Hindi only with a Hindi voice (never in an English accent) */
     var off=waitOn(tag);dlTag=tag;   /* no message in the chat: only ⏳ on the 🔊 until the voice is ready */
     (function w(){
       if(speakingBtnText!==tag){off();return;}
@@ -16734,7 +16755,8 @@ try{(function(){
   function diagText(){
     try{
       var d=SV.diag(),one=function(L,n){var x=d.st[L];return n+': '+(x==='ready'?'ready':x==='loading'?'loading '+d.pct[L]+'%':x==='failed'?'FAILED ('+String(d.why[L]).slice(0,60)+')':'not loaded')+(d.saved[L]===true?' · was saved':d.saved[L]===false?' · downloaded now':'')+(d.ms[L]!=null?' · '+(d.ms[L]/1000).toFixed(1)+' s':'');};
-      return 'Check — '+one('en','EN')+' | '+one('hi','HI')+' | keep files: '+(d.keep===true?'yes':d.keep===false?'no':'-')+(d.cacheApi?'':' | NO cache storage')+(lastWait!=null?' | last 🔊 → sound '+(lastWait/1000).toFixed(1)+' s':'')+' | cores '+d.cores;
+      var sp=function(L){var v=SV.speed(L);return v==null?'-':v.toFixed(1)+'×';};
+      return 'Check — '+one('en','EN')+' | '+one('hi','HI')+' | speed EN '+sp('en')+' HI '+sp('hi')+(SV.under()?' (gaps '+SV.under()+')':'')+' | uses EN '+engine('en')+' HI '+engine('hi')+' | keep files: '+(d.keep===true?'yes':d.keep===false?'no':'-')+(d.cacheApi?'':' | NO cache storage')+(lastWait!=null?' | last 🔊 → sound '+(lastWait/1000).toFixed(1)+' s':'')+' | cores '+d.cores;
     }catch(e){return '';}
   }
   function siteStatus(){
