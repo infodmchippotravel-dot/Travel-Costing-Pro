@@ -39,7 +39,7 @@ try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.cla
     setTimeout(function(){bo.classList.remove('boot-out');},4000);}   /* never stays hidden */
 }catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-28-4';   /* change with every new version */
+window.SITE_BUILD='2026-11-28-5';   /* change with every new version */
 /* Help chat AI server (ai-worker/ in this repository). Empty = the AI is off and nothing is sent anywhere.
    When it is set, also add the same address to connect-src in the Content-Security-Policy above. */
 window.HIPPO_AI_URL=window.HIPPO_AI_URL||'';
@@ -11009,7 +11009,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 28 Nov 2026 (4)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 28 Nov 2026 (5)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -16328,7 +16328,15 @@ try{(function(){
       ?'इस फ़ोन / ब्राउज़र में हिंदी आवाज़ इंस्टॉल नहीं है, इसलिए हिंदी को Indian-English आवाज़ में बोल रहा हूँ। साफ़ हिंदी आवाज़ के लिए (एक बार): <b>Android</b> — Settings → Text-to-speech → Google → Install voice data → Hindi. <b>Windows</b> — Settings → Time &amp; language → Speech → Add voices → Hindi. <b>iPhone</b> — Settings → Accessibility → Spoken Content → Voices → Hindi. फिर पेज Refresh करें।'
       :'This phone / browser has no Hindi voice installed, so Hindi is spoken by an Indian-English voice. For a clear Hindi voice (once): <b>Android</b> — Settings → Text-to-speech → Google → Install voice data → Hindi. <b>Windows</b> — Settings → Time &amp; language → Speech → Add voices → Hindi. <b>iPhone</b> — Settings → Accessibility → Spoken Content → Voices → Hindi. Then refresh the page.')+'</small>','bot system');}catch(e){}
   }
-  function stop(){try{synth.cancel();}catch(e){}keep=[];speakingBtnText=null;}
+  /* the pressed 🔊 shows what happens: ⏳ getting ready, ⏹ speaking (press = stop), 🔊 again when it ends */
+  var activeBtn=null;
+  function setBtn(mode){
+    var b=activeBtn;if(!b||!document.body.contains(b))return;
+    b.classList.remove('hx-wait','hx-play');b.removeAttribute('aria-busy');
+    if(mode==='play'){b.classList.add('hx-play');b.textContent='⏹';b.title=hi()?'रोकें':'Stop';b.setAttribute('aria-label',b.title);}
+    else{b.textContent='🔊';b.title=hi()?'सुनने के लिए दबाएं':'Tap to hear this';b.setAttribute('aria-label',b.title);activeBtn=null;}
+  }
+  function stop(){try{synth.cancel();}catch(e){}keep=[];speakingBtnText=null;setBtn('idle');}
   /* 🔊 reads the whole message as it is now (with the costing cards under it), not only its first line */
   var lastMsg=null,lastAt=0,curBtn=null,pressAt=0,lastWait=null;
   document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.chatbot-voice-btn');if(b){lastMsg=b.closest('.chatbot-msg');lastAt=Date.now();}},true);
@@ -16342,8 +16350,8 @@ try{(function(){
   window.chatbotSpeak=function(text){
     var whole=msgText();if(whole)text=whole;
     curBtn=lastMsg&&Date.now()-lastAt<800?lastMsg.querySelector('.chatbot-voice-btn'):null;
-    if(speakingBtnText===text&&(synth.speaking||synth.pending||SV.busy()||waiting)){stop();return;}
-    stop();SV.prime();
+    if(speakingBtnText===text&&(synth.speaking||synth.pending||SV.playing()||waiting)){stop();return;}
+    stop();SV.prime();activeBtn=curBtn;
     var wantHi=hi()||/[ऀ-ॿ]/.test(String(text||'').replace(/<[^>]*>/g,''));
     var t=clean(text,wantHi);if(!t)return;
     speakingBtnText=text;
@@ -16369,7 +16377,8 @@ try{(function(){
         var u=new SpeechSynthesisUtterance(bits[i]);
         u.lang=v?v.lang:lang;if(v)u.voice=v;
         u.rate=rate;u.pitch=1;u.volume=1;
-        if(i===bits.length-1)u.onend=function(){if(speakingBtnText===tag)speakingBtnText=null;keep=[];};
+        if(i===from)u.onstart=function(){if(speakingBtnText===tag)setBtn('play');};
+        if(i===bits.length-1)u.onend=function(){if(speakingBtnText===tag){speakingBtnText=null;setBtn('idle');}keep=[];};
         u.onerror=function(e){
           var er=e&&e.error;
           /* an internet voice (Google / Natural) failed, e.g. the internet is slow: say the rest with this device's own voice */
@@ -16385,6 +16394,7 @@ try{(function(){
       })(i);
     }
     go(0,voice);
+    if(speakingBtnText===tag)setBtn('play');   /* this device's voice starts at once */
   }
   /* ---------- the website's own voice: the same clear voice in every browser (Brave, Firefox …) ----------
      Kokoro-82M (Apache-2.0) runs on this device in a background worker (assets/voice). Nothing is sent anywhere.
@@ -16586,7 +16596,7 @@ try{(function(){
       state:function(lang){return st[lang==='hi'?'hi':'en'];},pct:function(lang){return pcts[lang==='hi'?'hi':'en'];},why:function(){return why;},
       mobile:mobile,load:load,prime:prime,speak:speak,early:early,stop:stopAudio,isCached:isCached,cloudOn:cloudOn,
       helpers:function(){return (EN?1:0)+(HG?2:0);},speed:function(L){return spd[L==='hi'?'hi':'en'];},under:function(){return under;},gpu:function(){return false;},gpuWhy:function(){return '';},
-      made:function(){return cache.size;},busy:function(){return !!job||srcs.length>0;},on:function(f){subs.push(f);},
+      made:function(){return cache.size;},busy:function(){return !!job||srcs.length>0;},playing:function(){return srcs.length>0;},on:function(f){subs.push(f);},
       /* for the check line in the voice settings */
       diag:function(){return {st:st,pct:pcts,why:whyL,saved:was,ms:loadMs,keep:keep,cacheApi:typeof caches==='object',cores:navigator.hardwareConcurrency||0,mem:navigator.deviceMemory||0};}
     };
@@ -16642,11 +16652,11 @@ try{(function(){
     if(speakingBtnText!==tag)return;
     var bits=siteBits(t,wantHi);if(!bits.length)return;
     var off=waitOn(tag);
-    SV.speak(bits,wantHi?'hi':'en',(wantHi?1:1)*speed(),function(){off();if(speakingBtnText===tag)speakingBtnText=null;},
+    SV.speak(bits,wantHi?'hi':'en',(wantHi?1:1)*speed(),function(){off();if(speakingBtnText===tag){speakingBtnText=null;setBtn('idle');}},
       function(i,msg){off();console.warn('Online voice did not answer, the other voice speaks:',msg);
         if(speakingBtnText!==tag)return;var rest=bits.slice(i).join(' ');
         if(engine(wantHi?'hi':'en')==='site'&&SV.state(wantHi?'hi':'en')==='ready')saySite(rest,wantHi,tag);else if(list(wantHi?'hi':'en').length)sayDevice(rest,wantHi,tag);else say2(rest,wantHi,tag);},
-      off,'cloud');
+      function(){off();if(speakingBtnText===tag)setBtn('play');},'cloud');
   }
   function say2(t,wantHi,tag){if(engine(wantHi?'hi':'en')!=='site')return sayDevice(t,wantHi,tag);var L=wantHi?'hi':'en';SV.load(L);var off=waitOn(tag);(function w(){if(speakingBtnText!==tag){off();return;}if(SV.state(L)==='ready'){off();return saySite(t,wantHi,tag);}if(SV.state(L)==='failed'){off();return sayDevice(t,wantHi,tag);}setTimeout(w,200);})();}
   /* one sentence at a time, short parts (they are made at the same time by the helpers); a short first part */
@@ -16674,9 +16684,9 @@ try{(function(){
     var bits=siteBits(t,wantHi);
     if(!bits.length)return;
     var off=waitOn(tag);
-    SV.speak(bits,wantHi?'hi':'en',rateFor(wantHi),function(){off();if(speakingBtnText===tag)speakingBtnText=null;},
+    SV.speak(bits,wantHi?'hi':'en',rateFor(wantHi),function(){off();if(speakingBtnText===tag){speakingBtnText=null;setBtn('idle');}},
       function(i,msg){off();console.warn('Website voice: part could not be made, this device speaks the rest:',msg);if(speakingBtnText===tag)sayDevice(bits.slice(i).join(' '),wantHi,tag);},
-      off);
+      function(){off();if(speakingBtnText===tag)setBtn('play');});
   }
   /* the newest answer in the chat is made early, so 🔊 starts at once */
   function msgHtml(m){
@@ -16866,7 +16876,8 @@ try{(function(){
 .hx-vset .hx-vsp button[aria-pressed="true"]{background:var(--navy,#0B1F3A);border-color:var(--navy,#0B1F3A);color:#fff}
 .hx-vset .hx-vtest{flex:1 1 auto;background:linear-gradient(135deg,var(--blue),#38b6e0)!important;color:#fff!important;border:0!important}
 .hx-vset button:focus-visible,.hx-vset select:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
-/* ⏳ while the website's voice makes the first words */
+/* ⏳ while the website's voice makes the first words; ⏹ while it speaks */
+.chatbot-msg .chatbot-voice-btn.hx-play{color:#e11d48}
 .chatbot-msg .chatbot-voice-btn.hx-wait{animation:hxWait 1.2s ease-in-out infinite}
 @keyframes hxWait{50%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){.chatbot-msg .chatbot-voice-btn.hx-wait{animation:none}}
