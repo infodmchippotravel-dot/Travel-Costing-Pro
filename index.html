@@ -39,7 +39,7 @@ try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.cla
     setTimeout(function(){bo.classList.remove('boot-out');},4000);}   /* never stays hidden */
 }catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-27-8';   /* change with every new version */
+window.SITE_BUILD='2026-11-28-1';   /* change with every new version */
 /* Help chat AI server (ai-worker/ in this repository). Empty = the AI is off and nothing is sent anywhere.
    When it is set, also add the same address to connect-src in the Content-Security-Policy above. */
 window.HIPPO_AI_URL=window.HIPPO_AI_URL||'';
@@ -11006,7 +11006,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 27 Nov 2026 (8)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 28 Nov 2026 (1)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -16584,8 +16584,8 @@ try{(function(){
     if(SV.state(L)==='ready')return saySite(t,wantHi,tag);
     SV.load(L);
     /* not ready yet: no waiting — this device's own voice speaks at once (the website's voice is made ready meanwhile and
-       speaks from the next 🔊). Not for Hindi when this device has no clear Hindi voice (it would sound like English): then wait. */
-    if(pref().engine!=='site'&&(L==='en'?list('en').length>0:devGood('hi')))return sayDevice(t,wantHi,tag);
+       speaks from the next 🔊). With no Hindi voice on this device, Hindi is said in Roman letters by its English voice. */
+    if(pref().engine!=='site'&&(list('hi').length>0||list('en').length>0))return sayDevice(t,wantHi,tag);
     var off=waitOn(tag);dlTag=tag;   /* no message in the chat: only ⏳ on the 🔊 until the voice is ready */
     (function w(){
       if(speakingBtnText!==tag){off();return;}
@@ -16720,7 +16720,14 @@ try{(function(){
   /* the website opened: a voice already saved in this browser is made ready at once (nothing is downloaded here),
      so 🔊 speaks at once even right after opening the chat */
   try{
-    var warm=function(){['en','hi'].forEach(function(L){if(engine(L)==='site'&&SV.state(L)==='off')SV.isCached(L).then(function(c){if(c)SV.load(L);});});};
+    /* the chat's language (chosen before, or the website shown in Hindi) is got ready even the first time (downloaded in the background),
+       other voices only when they are already saved. Not with "Data saver" on. */
+    var warm=function(){
+      var mine='en';try{mine=localStorage.getItem('hxChatLang')||'';}catch(e){}
+      if(mine!=='hi'&&mine!=='en'){var m=/(?:^|;\s*)googtrans=\/(?:en|auto)\/([^;]+)/.exec(document.cookie);mine=m&&/^hi/.test(decodeURIComponent(m[1]))?'hi':'';}
+      var sd=false;try{sd=!!(navigator.connection&&navigator.connection.saveData);}catch(_){}
+      ['en','hi'].forEach(function(L){if(engine(L)==='site'&&SV.state(L)==='off')SV.isCached(L).then(function(c){if(c||(L===mine&&!sd))SV.load(L);});});
+    };
     if(document.readyState==='complete')setTimeout(warm,1500);else window.addEventListener('load',function(){setTimeout(warm,1500);});
   }catch(e){}
   /* a short check line (to tell us what happens on this device): state, saved or not, load time, last wait */
