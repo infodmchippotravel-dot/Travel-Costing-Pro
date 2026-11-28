@@ -39,7 +39,7 @@ try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.cla
     setTimeout(function(){bo.classList.remove('boot-out');},4000);}   /* never stays hidden */
 }catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-28-3';   /* change with every new version */
+window.SITE_BUILD='2026-11-28-4';   /* change with every new version */
 /* Help chat AI server (ai-worker/ in this repository). Empty = the AI is off and nothing is sent anywhere.
    When it is set, also add the same address to connect-src in the Content-Security-Policy above. */
 window.HIPPO_AI_URL=window.HIPPO_AI_URL||'';
@@ -11009,7 +11009,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 28 Nov 2026 (3)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 28 Nov 2026 (4)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -16598,14 +16598,14 @@ try{(function(){
   function devGood(key){var l=list(key);return !!(l[0]&&(score(l[0])>=20||SV.mobile));}   /* phones: their own voices (Google / Apple) are clear */
   /* which voice, when "Automatic":
      Hindi — this device's own Hindi voice when it has one (Chrome / Edge / phones: at once and smooth); else the website's Hindi voice.
-     English — the website's voice, unless it is made too slowly on this device and the device has a clear English voice. */
+     English — this device's voice when it is clear (Google / Microsoft natural / phones), else the website's voice (Brave, Firefox). */
   function engine(key){
     var e=pref().engine;
     if(e==='device'||!SV.can())return 'device';
     if(e==='site')return 'site';
     var sp=SV.speed(key);
     if(key==='hi')return list('hi').length?'device':'site';
-    return (sp!=null&&sp<1.3&&devGood('en'))?'device':'site';
+    return devGood('en')?'device':'site';   /* a clear English voice on this device (Chrome / Edge / phones): it speaks at once */
   }
   var dlTag=null;
   SV.on(function(){
