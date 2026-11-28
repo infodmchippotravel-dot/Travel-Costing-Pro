@@ -39,7 +39,7 @@ try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.cla
     setTimeout(function(){bo.classList.remove('boot-out');},4000);}   /* never stays hidden */
 }catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-28-5';   /* change with every new version */
+window.SITE_BUILD='2026-11-28-6';   /* change with every new version */
 /* Help chat AI server (ai-worker/ in this repository). Empty = the AI is off and nothing is sent anywhere.
    When it is set, also add the same address to connect-src in the Content-Security-Policy above. */
 window.HIPPO_AI_URL=window.HIPPO_AI_URL||'';
@@ -11009,7 +11009,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 28 Nov 2026 (5)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 28 Nov 2026 (6)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -16826,10 +16826,16 @@ try{(function(){
       vbtn.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18.3 6.3a8 8 0 0 1 0 11.4"/></svg>';
       vbtn.addEventListener('click',function(){if(panel)closeSet();else openSet();});
       head.insertBefore(vbtn,cl);
+      /* a bar that always stays at the top of the chat: English | हिंदी — change the chat's language at any time */
+      var lb=document.createElement('div');lb.className='hx-langbar notranslate';lb.setAttribute('translate','no');lb.setAttribute('role','group');lb.setAttribute('aria-label','Chat language / चैट की भाषा');
+      lb.innerHTML='<span aria-hidden="true">🌐</span><button type="button" data-l="en">English</button><button type="button" data-l="hi">हिंदी</button>';
+      head.insertAdjacentElement('afterend',lb);
+      [].forEach.call(lb.querySelectorAll('button'),function(b){b.addEventListener('click',function(){var l=b.getAttribute('data-l');if(chatbotLang!==l){stop();window.chatbotSetLanguage(l);}langBar();});});
+      langBar();
     }
     /* another language or the chat closed: close the settings */
     /* the chat language is remembered in this browser (it was asked again after every refresh / page change, and the chat then spoke English) */
-    var ps=window.chatbotSetLanguage;if(typeof ps==='function')window.chatbotSetLanguage=function(l){var r=ps.apply(this,arguments);try{if(l==='hi'||l==='en')localStorage.setItem('hxChatLang',l);}catch(e){}closeSet();readyLang();return r;};
+    var ps=window.chatbotSetLanguage;if(typeof ps==='function')window.chatbotSetLanguage=function(l){var r=ps.apply(this,arguments);try{if(l==='hi'||l==='en')localStorage.setItem('hxChatLang',l);}catch(e){}closeSet();readyLang();langBar();return r;};
     var tc=window.toggleChatbot;if(typeof tc==='function')window.toggleChatbot=function(){var r=tc.apply(this,arguments);var pn=document.getElementById('chatbotPanel');if(pn&&!pn.classList.contains('show'))closeSet();
       /* chat opened: get the website's voice ready in the background (downloaded once), so 🔊 speaks at once.
          With "Data saver" on, only when 🔊 is pressed */
@@ -16844,6 +16850,7 @@ try{(function(){
       }
       return r;};
   }catch(e){}
+  function langBar(){try{[].forEach.call(document.querySelectorAll('#chatbotPanel .hx-langbar button'),function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-l')===chatbotLang));});}catch(e){}}
   /* the welcome voice after login uses the same, clearest (or chosen) English voice */
   window.chatbotPickFemaleVoice=function(code){var c=String(code||'en-US').toLowerCase();return c.indexOf('hi')===0?pick('hi'):pick('en');};
 })();}catch(err){console.error('Help chat voice failed to start:',err);}
@@ -16876,6 +16883,11 @@ try{(function(){
 .hx-vset .hx-vsp button[aria-pressed="true"]{background:var(--navy,#0B1F3A);border-color:var(--navy,#0B1F3A);color:#fff}
 .hx-vset .hx-vtest{flex:1 1 auto;background:linear-gradient(135deg,var(--blue),#38b6e0)!important;color:#fff!important;border:0!important}
 .hx-vset button:focus-visible,.hx-vset select:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+/* the language bar at the top of the chat */
+#chatbotPanel .hx-langbar{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--line);background:var(--card);flex:0 0 auto;font-size:13px}
+#chatbotPanel .hx-langbar button{min-height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit;font-weight:700;cursor:pointer}
+#chatbotPanel .hx-langbar button[aria-pressed="true"]{background:var(--navy,#0B1F3A);border-color:var(--navy,#0B1F3A);color:#fff}
+#chatbotPanel .hx-langbar button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 /* ⏳ while the website's voice makes the first words; ⏹ while it speaks */
 .chatbot-msg .chatbot-voice-btn.hx-play{color:#e11d48}
 .chatbot-msg .chatbot-voice-btn.hx-wait{animation:hxWait 1.2s ease-in-out infinite}
