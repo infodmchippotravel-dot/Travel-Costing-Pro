@@ -74,5 +74,38 @@ const noKey = { ...env, ANTHROPIC_API_KEY: "" };
 r = await worker.fetch(new Request("https://ai.example/chat", { method: "POST", headers: { Origin: ORIGIN, Authorization: "Bearer " + (await token()) }, body: JSON.stringify(Q) }), noKey);
 assert.equal(r.status, 503); ok("no key on the server: clear message, no crash");
 
+/* ---------- /tts: the online voice ---------- */
+let ttsCalls = 0;
+const gsrv = http.createServer((req, res) => { let b = ""; req.on("data", (d) => (b += d)); req.on("end", () => {
+  ttsCalls++; last = { url: req.url, headers: req.headers, body: JSON.parse(b || "{}") };
+  res.setHeader("Content-Type", "application/json");
+  res.end(JSON.stringify({ audioContent: Buffer.from("ID3-fake-mp3-" + last.body.input.text).toString("base64") }));
+}); });
+await new Promise((r) => gsrv.listen(0, r));
+const memCache = new Map();
+globalThis.caches = { default: { match: async (k) => (memCache.has(k.url) ? new Response(memCache.get(k.url)) : undefined), put: async (k, r) => { memCache.set(k.url, new Uint8Array(await r.arrayBuffer())); } } };
+kv.clear();
+const tenv = { ...env, GOOGLE_TTS_KEY: "g-key", GOOGLE_TTS_URL: "http://127.0.0.1:" + gsrv.address().port, TTS_USER_DAILY_CHARS: "60", TTS_GLOBAL_DAILY_CHARS: "100" };
+const say = async (tok, body, origin = ORIGIN, e = tenv) => {
+  const r = await worker.fetch(new Request("https://ai.example/tts", { method: "POST", headers: { Origin: origin, "Content-Type": "application/json", ...(tok ? { Authorization: "Bearer " + tok } : {}) }, body: JSON.stringify(body) }), e);
+  return { status: r.status, type: r.headers.get("Content-Type"), hit: r.headers.get("X-Cache"), cors: r.headers.get("Access-Control-Allow-Origin"), bytes: r.status === 200 ? new Uint8Array(await r.arrayBuffer()) : null, body: r.status === 200 ? null : await r.json() };
+};
+r = await say(await token(), { text: "नमस्ते", lang: "hi" }, "https://evil.example"); assert.equal(r.status, 403); ok("tts: another website is refused");
+r = await say(null, { text: "नमस्ते", lang: "hi" }); assert.equal(r.status, 401); ok("tts: no login is refused");
+r = await say(await token({ firebase: { sign_in_provider: "anonymous" } }), { text: "नमस्ते दोस्तों", lang: "hi", rate: 1 });
+assert.equal(r.status, 200); assert.equal(r.type, "audio/mpeg"); assert.equal(r.hit, "miss"); assert.equal(r.cors, ORIGIN);
+assert.match(new TextDecoder().decode(r.bytes), /^ID3-fake-mp3-नमस्ते दोस्तों$/);
+assert.equal(last.headers["x-goog-api-key"], "g-key"); assert.equal(last.body.voice.name, "hi-IN-Neural2-A"); assert.equal(last.body.voice.languageCode, "hi-IN"); assert.equal(last.body.audioConfig.audioEncoding, "MP3");
+ok("tts: the website's anonymous login gets Hindi sound (key only on the server, Hindi voice)");
+const before = ttsCalls; r = await say(await token({ sub: "other" }), { text: "नमस्ते दोस्तों", lang: "hi", rate: 1 });
+assert.equal(r.status, 200); assert.equal(r.hit, "hit"); assert.equal(ttsCalls, before); ok("tts: the same sentence again comes from the cache (Google is not asked, not counted)");
+r = await say(await token(), { text: "Hello there", lang: "en" }); assert.equal(r.status, 200); assert.equal(last.body.voice.name, "en-IN-Neural2-A"); ok("tts: English voice");
+r = await say(await token(), { text: "x".repeat(50), lang: "en" }); assert.equal(r.status, 429); ok("tts: daily characters per person");
+r = await say(await token({ sub: "third" }), { text: "y".repeat(55), lang: "en" }); assert.equal(r.status, 200); r = await say(await token({ sub: "third2" }), { text: "z".repeat(30), lang: "en" }); assert.equal(r.status, 429); ok("tts: daily characters for the whole website");
+r = await say(await token({ sub: "fourth" }), { text: "   " }); assert.equal(r.status, 400); ok("tts: empty text is refused");
+kv.clear(); r = await say(await token({ sub: "fifth" }), { text: "no key here" }, ORIGIN, { ...tenv, GOOGLE_TTS_KEY: "" }); assert.equal(r.status, 503); ok("tts: no key on the server: clear message");
+r = await say(await token({ firebase: { sign_in_provider: "anonymous" }, sub: "anon2" }), { text: "anonymous off" }, ORIGIN, { ...tenv, TTS_ALLOW_ANONYMOUS: "0" }); assert.equal(r.status, 401); ok("tts: anonymous logins can be switched off");
+gsrv.close();
+
 srv.close();
 console.log("all", n, "worker tests passed");

@@ -1,5 +1,5 @@
 # Hippo Travel — Help chat AI server (Cloudflare Worker)
-# The API key is NOT written here. Set it once with:  npx wrangler secret put ANTHROPIC_API_KEY
+# No key is written here. Keys are Cloudflare secrets: ANTHROPIC_API_KEY (AI answers), GOOGLE_TTS_KEY (online voice).
 name = "hippo-help-ai"
 main = "src/worker.js"
 compatibility_date = "2026-11-01"
@@ -11,6 +11,12 @@ MODEL = "claude-opus-5-5"
 EFFORT = "low"
 USER_DAILY_LIMIT = "40"
 GLOBAL_DAILY_LIMIT = "800"
+# Help chat online voice (/tts). The Google key is a secret:  npx wrangler secret put GOOGLE_TTS_KEY
+TTS_VOICE_HI = "hi-IN-Neural2-A"
+TTS_VOICE_EN = "en-IN-Neural2-A"
+TTS_USER_DAILY_CHARS = "20000"
+TTS_GLOBAL_DAILY_CHARS = "30000"   # about 0.9 million characters a month: inside Google's free monthly amount for these voices
+TTS_ALLOW_ANONYMOUS = "1"
 
 # Daily limits are kept here. Make it once with:  npx wrangler kv namespace create LIMITS
 # then put the id it prints below and remove the # signs.

@@ -39,10 +39,13 @@ try{if(localStorage.getItem('travelCurrentUserKey'))document.documentElement.cla
     setTimeout(function(){bo.classList.remove('boot-out');},4000);}   /* never stays hidden */
 }catch(e){}
 try{localStorage.removeItem('travelGhToken');}catch(e){}   /* a GitHub token is never kept on the computer */
-window.SITE_BUILD='2026-11-28-2';   /* change with every new version */
+window.SITE_BUILD='2026-11-28-3';   /* change with every new version */
 /* Help chat AI server (ai-worker/ in this repository). Empty = the AI is off and nothing is sent anywhere.
    When it is set, also add the same address to connect-src in the Content-Security-Policy above. */
 window.HIPPO_AI_URL=window.HIPPO_AI_URL||'';
+/* Help chat online voice (the /tts address of the same ai-worker). Empty = off: the voice is made on the device.
+   When it is set, also add the same address to connect-src in the Content-Security-Policy above. */
+window.HIPPO_TTS_URL=window.HIPPO_TTS_URL||'';
 /* Problems on the website (for Help chat → "website check"): errors of this website's own code and files that did not load.
    Kept only in this open page (nothing is sent anywhere). Outside scripts (Google Translate, browser add-ons) are left out. */
 (function(){
@@ -11006,7 +11009,7 @@ try{(function(){
 
   /* Version label (shows which copy of the website is open) */
   var credit=document.querySelector('.sitefooter .foot-credit');
-  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 28 Nov 2026 (2)</div>');
+  if(credit&&!el('siteVersion'))credit.insertAdjacentHTML('afterend','<div class="foot-version" id="siteVersion">Version: 28 Nov 2026 (3)</div>');
 
   /* Help page: describe the one-page workflow */
   var help=el('help');
@@ -16397,6 +16400,23 @@ try{(function(){
     var EN=null,enIdle=false,HG=null,HD=null,hiOk={g:false,d:false},hiIdle=false,hiCur=null;
     var ac=null,srcs=[],nextAt=0,cached={},subs=[];
     var cache=new Map(),info={},run={},list=[],job=null;   /* made sound per part {chunks,rate,done}, parts being made, parts waiting, the speech now playing */
+    /* the online voice (Google, through our own server): at most 3 parts asked at the same time */
+    var cloudBusy=0,cloudDownUntil=0,cloudTok=null;
+    function cloudOn(){return /^https:\/\//.test(window.HIPPO_TTS_URL||'')&&navigator.onLine!==false&&typeof window.cloudToken==='function'&&Date.now()>cloudDownUntil&&!!(window.AudioContext||window.webkitAudioContext);}
+    function token(){
+      if(cloudTok&&cloudTok.exp>Date.now())return Promise.resolve(cloudTok.t);
+      return Promise.resolve(window.cloudToken()).then(function(id){if(!id||!id.token)throw new Error('no login');cloudTok={t:id.token,exp:Date.now()+10*60*1000};return id.token;});
+    }
+    function cloudGet(k){
+      var x=info[k];cloudBusy++;run[k]='cloud';x.sent=performance.now();
+      token().then(function(tok){
+        var ctl=typeof AbortController==='function'?new AbortController():null,tm=setTimeout(function(){if(ctl)ctl.abort();},8000);
+        return fetch(window.HIPPO_TTS_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({text:x.text,lang:x.lang,rate:x.rate}),signal:ctl?ctl.signal:undefined})
+          .then(function(r){clearTimeout(tm);if(r.status===401)cloudTok=null;if(!r.ok)throw Object.assign(new Error('online voice '+r.status),{status:r.status});return r.arrayBuffer();});
+      }).then(function(buf){prime();return new Promise(function(ok,bad){try{var pr=ac.decodeAudioData(buf,ok,bad);if(pr&&pr.then)pr.then(ok,bad);}catch(e){bad(e);}});})
+      .then(function(ab){cloudBusy--;delete run[k];add(k,ab.getChannelData(0).slice(0),ab.sampleRate,true);pump();},
+        function(e){cloudBusy--;delete run[k];if(!e||e.status!==400)cloudDownUntil=Date.now()+60000;partFailed(k,'online voice: '+(e&&e.message||e));pump();});
+    }
     var V='?v='+encodeURIComponent(window.SITE_BUILD||'1');
     var FILE={en:'assets/voice/model/en_US-kristin-medium.onnx',hi:'assets/voice/hindi/flow_main_weight_int8.onnx'};
     var mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'')||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
@@ -16490,6 +16510,7 @@ try{(function(){
       for(var i=0;i<list.length;i++){
         var it=list[i],x=info[it.k];
         if(cache.has(it.k)||run[it.k]){list.splice(i,1);i--;continue;}
+        if(x.src==='cloud'){if(cloudBusy<3){list.splice(i,1);i--;cloudGet(it.k);}continue;}
         if(x.lang==='en'&&enIdle&&st.en==='ready'){enIdle=false;run[it.k]='en';list.splice(i,1);i--;x.sent=performance.now();EN.postMessage({type:'say',key:it.k,text:x.text,speed:x.rate});}
         else if(x.lang==='hi'&&hiIdle&&st.hi==='ready'){hiIdle=false;hiCur=it.k;run[it.k]='hi';cache.set(it.k,{chunks:[],rate:24000,done:false});list.splice(i,1);i--;x.sent=performance.now();HG.postMessage({type:'say',key:it.k,text:x.text});}
       }
@@ -16508,7 +16529,7 @@ try{(function(){
       if(!job)return;
       /* how fast this device makes the sound: slow (< 1×) → each sentence plays only when it is fully made, so a word is never
          cut in the middle ("fas-fas"); a pause, if any, comes between sentences. Just about fast (1–1.25×) → a short head start. */
-      var sp=spd[job.lang],slow=sp!=null&&sp<1,mid=sp!=null&&sp>=1&&sp<1.25;
+      var sp=job.src==='cloud'?null:spd[job.lang],slow=sp!=null&&sp<1,mid=sp!=null&&sp>=1&&sp<1.25;
       while(job&&job.i<job.keys.length){
         var c=cache.get(job.keys[job.i]);if(!c)break;
         if(!c.done&&job.ci===0){
@@ -16541,13 +16562,13 @@ try{(function(){
       list=list.filter(function(it){return it.pre;});   /* parts of the stopped speech are not made any more */
       if(old&&hiCur&&old.keys.indexOf(hiCur)>=0)cancelHi(list.map(function(it){return it.k;}));
     }
-    function reg(bits,lang,rate){return bits.map(function(b){var k=key(b,lang,rate);info[k]={text:b,lang:lang,rate:rate};return k;});}
+    function reg(bits,lang,rate,src){return bits.map(function(b){var k=(src==='cloud'?'c|':'')+key(b,lang,rate);info[k]={text:b,lang:lang,rate:rate,src:src||''};return k;});}
     /* say these parts; end() when all are said, err(i) when part i could not be made, begin() when the sound starts */
-    function speak(bits,lang,rate,end,err,begin){
+    function speak(bits,lang,rate,end,err,begin,src){
       stopAudio();prime();
-      var keys=reg(bits,lang,rate);
+      var keys=reg(bits,lang,rate,src);
       list=[];cancelHi(keys);   /* only this speech is made now */
-      job={keys:keys,i:0,ci:0,lang:lang,end:end,err:err,begin:begin};
+      job={keys:keys,i:0,ci:0,lang:lang,src:src||'',end:end,err:err,begin:begin};
       keys.forEach(function(k){want(k,false);});
       pump();next();
     }
@@ -16556,14 +16577,14 @@ try{(function(){
     function early(groups){
       if(job)return;
       var keys=[];
-      groups.forEach(function(g){if(st[g.lang]==='ready')keys=keys.concat(reg(g.bits,g.lang,g.rate));});
+      groups.forEach(function(g){if(g.src==='cloud'||st[g.lang]==='ready')keys=keys.concat(reg(g.bits,g.lang,g.rate,g.src));});
       list=[];cancelHi(keys);keys.forEach(function(k){want(k,true);});
       pump();
     }
     return {
       can:function(){return can&&st.en!=='failed';},
       state:function(lang){return st[lang==='hi'?'hi':'en'];},pct:function(lang){return pcts[lang==='hi'?'hi':'en'];},why:function(){return why;},
-      mobile:mobile,load:load,prime:prime,speak:speak,early:early,stop:stopAudio,isCached:isCached,
+      mobile:mobile,load:load,prime:prime,speak:speak,early:early,stop:stopAudio,isCached:isCached,cloudOn:cloudOn,
       helpers:function(){return (EN?1:0)+(HG?2:0);},speed:function(L){return spd[L==='hi'?'hi':'en'];},under:function(){return under;},gpu:function(){return false;},gpuWhy:function(){return '';},
       made:function(){return cache.size;},busy:function(){return !!job||srcs.length>0;},on:function(f){subs.push(f);},
       /* for the check line in the voice settings */
@@ -16600,6 +16621,8 @@ try{(function(){
   }
   /* speak t: the website's voice or this device's voice */
   function say(t,wantHi,tag){
+    /* the online voice (when it is set up): at once and the same in every browser; if it does not answer, the other voices */
+    if(SV.cloudOn()&&pref().engine!=='device')return sayCloud(t,wantHi,tag);
     if(engine(wantHi?'hi':'en')!=='site')return sayDevice(t,wantHi,tag);
     var L=wantHi?'hi':'en';
     if(SV.state(L)==='ready')return saySite(t,wantHi,tag);
@@ -16615,6 +16638,17 @@ try{(function(){
       setTimeout(w,200);
     })();
   }
+  function sayCloud(t,wantHi,tag){
+    if(speakingBtnText!==tag)return;
+    var bits=siteBits(t,wantHi);if(!bits.length)return;
+    var off=waitOn(tag);
+    SV.speak(bits,wantHi?'hi':'en',(wantHi?1:1)*speed(),function(){off();if(speakingBtnText===tag)speakingBtnText=null;},
+      function(i,msg){off();console.warn('Online voice did not answer, the other voice speaks:',msg);
+        if(speakingBtnText!==tag)return;var rest=bits.slice(i).join(' ');
+        if(engine(wantHi?'hi':'en')==='site'&&SV.state(wantHi?'hi':'en')==='ready')saySite(rest,wantHi,tag);else if(list(wantHi?'hi':'en').length)sayDevice(rest,wantHi,tag);else say2(rest,wantHi,tag);},
+      off,'cloud');
+  }
+  function say2(t,wantHi,tag){if(engine(wantHi?'hi':'en')!=='site')return sayDevice(t,wantHi,tag);var L=wantHi?'hi':'en';SV.load(L);var off=waitOn(tag);(function w(){if(speakingBtnText!==tag){off();return;}if(SV.state(L)==='ready'){off();return saySite(t,wantHi,tag);}if(SV.state(L)==='failed'){off();return sayDevice(t,wantHi,tag);}setTimeout(w,200);})();}
   /* one sentence at a time, short parts (they are made at the same time by the helpers); a short first part */
   function siteBits(t,wantHi){
     var bits=[],MAX=wantHi?90:110;
@@ -16657,6 +16691,7 @@ try{(function(){
       var groups=[];
       ms.forEach(function(m,n){
         var html=msgHtml(m),wantHi=hi()||/[ऀ-ॿ]/.test(html.replace(/<[^>]*>/g,'')),L=wantHi?'hi':'en';
+        if(SV.cloudOn()&&pref().engine!=='device'){if(!n){var t0=clean(html,wantHi);if(t0)groups.push({bits:siteBits(t0,wantHi).slice(0,1),lang:L,rate:speed(),src:'cloud'});}return;}
         if(engine(L)!=='site'||SV.state(L)!=='ready')return;
         var t=clean(html,wantHi);if(!t)return;
         groups.push({bits:siteBits(t,wantHi).slice(0,n?2:(L==='hi'?4:8)),lang:L,rate:rateFor(wantHi)});
@@ -16733,7 +16768,7 @@ try{(function(){
   function readyLang(){
     try{
       var L=hi()?'hi':'en';
-      if(engine(L)!=='site'||SV.state(L)!=='off')return;
+      if(SV.cloudOn()||engine(L)!=='site'||SV.state(L)!=='off')return;
       var sd=false;try{sd=!!(navigator.connection&&navigator.connection.saveData);}catch(_){}
       SV.isCached(L).then(function(c){if(c||!sd)SV.load(L);});
     }catch(e){}
@@ -16744,6 +16779,7 @@ try{(function(){
     /* the chat's language (chosen before, or the website shown in Hindi) is got ready even the first time (downloaded in the background),
        other voices only when they are already saved. Not with "Data saver" on. */
     var warm=function(){
+      if(SV.cloudOn())return;   /* the online voice needs nothing downloaded */
       var mine='en';try{mine=localStorage.getItem('hxChatLang')||'';}catch(e){}
       if(mine!=='hi'&&mine!=='en'){var m=/(?:^|;\s*)googtrans=\/(?:en|auto)\/([^;]+)/.exec(document.cookie);mine=m&&/^hi/.test(decodeURIComponent(m[1]))?'hi':'';}
       var sd=false;try{sd=!!(navigator.connection&&navigator.connection.saveData);}catch(_){}

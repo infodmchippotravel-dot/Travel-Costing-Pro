@@ -14,6 +14,12 @@
    From where:   only the website's own address (CORS: ALLOWED_ORIGIN).
    What is sent to Claude: only what the person typed in the chat (and
    the last few chat turns) — no costings, no rates, no phone numbers.
+
+   /tts — the Help chat's online voice (Google Cloud Text-to-Speech).
+   The Google key is a Cloudflare secret (GOOGLE_TTS_KEY). Any website login may use it
+   (also the website's automatic "anonymous" cloud login), with a daily limit of characters
+   per person and for the whole website. The same sentence is made only once (Cloudflare cache).
+   Only the sentence to be read aloud is sent to Google.
    ===================================================================== */
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -83,7 +89,7 @@ async function googleKeys(env) {
   jwksCache = { at: Date.now(), keys: j.keys || [], url };
   return jwksCache.keys;
 }
-export async function verifyFirebaseToken(token, env, now = Math.floor(Date.now() / 1000)) {
+export async function verifyFirebaseToken(token, env, now = Math.floor(Date.now() / 1000), allowAnonymous = false) {
   const parts = String(token || "").split(".");
   if (parts.length !== 3) throw new Error("bad token");
   const head = b64urlJson(parts[0]);
@@ -97,7 +103,7 @@ export async function verifyFirebaseToken(token, env, now = Math.floor(Date.now(
   if (!(claims.iat <= now + 300)) throw new Error("token from the future");
   if (!claims.sub) throw new Error("no user");
   const provider = claims.firebase && claims.firebase.sign_in_provider;
-  if (!provider || provider === "anonymous") throw new Error("anonymous login is not allowed");
+  if (!provider || (provider === "anonymous" && !allowAnonymous)) throw new Error("anonymous login is not allowed");
   const jwk = (await googleKeys(env)).find((k) => k.kid === head.kid);
   if (!jwk) throw new Error("unknown key");
   const key = await crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
@@ -144,10 +150,77 @@ function cleanTurns(list) {
   return out;
 }
 
+/* ---------- /tts: the online voice ---------- */
+const TTS_MAX = 400;
+async function countChars(env, uid, n) {
+  if (!env.LIMITS) return { ok: true };
+  const day = new Date().toISOString().slice(0, 10);
+  const userKey = "tu:" + uid + ":" + day, allKey = "tall:" + day;
+  const [u, a] = await Promise.all([env.LIMITS.get(userKey), env.LIMITS.get(allKey)]);
+  const nu = (+u || 0) + n, na = (+a || 0) + n;
+  if (nu > (+env.TTS_USER_DAILY_CHARS || 20000)) return { ok: false, why: "user" };
+  if (na > (+env.TTS_GLOBAL_DAILY_CHARS || 30000)) return { ok: false, why: "all" };
+  const ttl = { expirationTtl: 60 * 60 * 48 };
+  await Promise.all([env.LIMITS.put(userKey, String(nu), ttl), env.LIMITS.put(allKey, String(na), ttl)]);
+  return { ok: true };
+}
+async function sha256hex(t) {
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+async function tts(request, env, cors) {
+  const auth = request.headers.get("Authorization") || "";
+  let claims;
+  try {
+    claims = await verifyFirebaseToken(auth.replace(/^Bearer\s+/i, ""), env, undefined, env.TTS_ALLOW_ANONYMOUS !== "0");
+  } catch (e) {
+    return json({ error: "Please log in to the website again.", detail: String(e.message || e) }, 401, cors);
+  }
+  let body;
+  try { body = await request.json(); } catch (e) { return json({ error: "Bad request." }, 400, cors); }
+  const text = String((body && body.text) || "").replace(/\s+/g, " ").trim().slice(0, TTS_MAX);
+  if (!text) return json({ error: "Nothing to read." }, 400, cors);
+  const lang = body.lang === "hi" ? "hi" : "en";
+  const rate = Math.min(1.5, Math.max(0.6, +body.rate || 1));
+  const voice = lang === "hi" ? (env.TTS_VOICE_HI || "hi-IN-Neural2-A") : (env.TTS_VOICE_EN || "en-IN-Neural2-A");
+  const code = voice.split("-").slice(0, 2).join("-");
+  const send = (bytes, hit) => new Response(bytes, { status: 200, headers: { "Content-Type": "audio/mpeg", "Cache-Control": "private, max-age=86400", "X-Cache": hit ? "hit" : "miss", ...cors } });
+
+  /* the same sentence, voice and speed: made once, then kept for 30 days */
+  const cache = typeof caches !== "undefined" && caches.default ? caches.default : null;
+  const cacheKey = new Request("https://tts-cache.invalid/" + (await sha256hex(voice + "|" + rate.toFixed(2) + "|" + text)));
+  if (cache) { const hit = await cache.match(cacheKey); if (hit) return send(await hit.arrayBuffer(), true); }
+
+  const lim = await countChars(env, claims.sub, text.length);
+  if (!lim.ok) return json({ error: lim.why === "user" ? "Today's online voice is used up for you." : "Today's online voice is used up for the website." }, 429, cors);
+  if (!env.GOOGLE_TTS_KEY) return json({ error: "The voice key is not set on the server." }, 503, cors);
+  let r;
+  try {
+    r = await fetch((env.GOOGLE_TTS_URL || "https://texttospeech.googleapis.com") + "/v1/text:synthesize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Goog-Api-Key": env.GOOGLE_TTS_KEY },
+      body: JSON.stringify({ input: { text }, voice: { languageCode: code, name: voice }, audioConfig: { audioEncoding: "MP3", speakingRate: rate } }),
+    });
+  } catch (e) { return json({ error: "Could not reach the voice service." }, 502, cors); }
+  if (!r.ok) return json({ error: "The voice service had a problem (" + r.status + ")." }, r.status === 429 ? 503 : 502, cors);
+  const j = await r.json();
+  if (!j.audioContent) return json({ error: "The voice service sent no sound." }, 502, cors);
+  const bin = atob(j.audioContent), bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  if (cache) { try { await cache.put(cacheKey, new Response(bytes, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "public, max-age=2592000" } })); } catch (e) {} }
+  return send(bytes, false);
+}
+
 export default {
   async fetch(request, env) {
     const cors = corsHeaders(env, request.headers.get("Origin"));
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+    if (new URL(request.url).pathname.replace(/\/+$/, "").endsWith("/tts")) {
+      if (request.method !== "POST") return json({ error: "Use POST." }, 405, cors);
+      const o = request.headers.get("Origin"), al = (env.ALLOWED_ORIGIN || "").split(",").map((x) => x.trim()).filter(Boolean);
+      if (!o || !al.includes(o)) return json({ error: "This address may not use the voice." }, 403, cors);
+      return tts(request, env, cors);
+    }
     if (request.method !== "POST") return json({ error: "Use POST." }, 405, cors);
     const origin = request.headers.get("Origin");
     const allowed = (env.ALLOWED_ORIGIN || "").split(",").map((s) => s.trim()).filter(Boolean);
